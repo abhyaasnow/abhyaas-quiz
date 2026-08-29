@@ -1,183 +1,486 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, Trophy, Award, Zap, Flame, ShieldCheck, 
-  Download, Calendar, Clock, CheckCircle2, ChevronRight, BookOpen 
+import {
+  User,
+  Award,
+  Trophy,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  Wallet,
+  ArrowRight,
+  BookOpen,
+  ShieldCheck,
+  Zap,
+  ChevronRight,
+  Calendar,
+  Layers,
+  ArrowUpRight,
+  FileCheck
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import BottomNav from '../components/BottomNav';
-import Footer from '../components/Footer';
 
-export default function ProfileDashboard() {
+interface TestRecord {
+  id: string;
+  testName: string;
+  subject: string;
+  date: string;
+  score: string;
+  maxScore: number;
+  accuracy: number;
+  status: 'Completed' | 'Audit Passed';
+}
+
+const RECENT_TESTS: TestRecord[] = [
+  {
+    id: 't-101',
+    testName: 'Weekly Speed Sprint #14',
+    subject: 'Indian Polity & Governance',
+    date: '24 Aug 2026',
+    score: '42.68',
+    maxScore: 50,
+    accuracy: 94.0,
+    status: 'Audit Passed',
+  },
+  {
+    id: 't-102',
+    testName: 'Daily Speed Drill (10Q)',
+    subject: 'Modern Indian History',
+    date: '22 Aug 2026',
+    score: '18.00',
+    maxScore: 20,
+    accuracy: 90.0,
+    status: 'Completed',
+  },
+  {
+    id: 't-103',
+    testName: 'CSAT Quantitative Aptitude Drill',
+    subject: 'Percentages & Profit-Loss',
+    date: '19 Aug 2026',
+    score: '16.68',
+    maxScore: 20,
+    accuracy: 85.5,
+    status: 'Completed',
+  },
+  {
+    id: 't-104',
+    testName: 'Monthly Mega Assessment #08',
+    subject: 'General Studies Full Mock',
+    date: '15 Aug 2026',
+    score: '78.50',
+    maxScore: 100,
+    accuracy: 88.2,
+    status: 'Audit Passed',
+  },
+];
+
+export default function ProfilePage() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'tests' | 'wallet'>('overview');
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between">
-      
-      {/* 1. Top Navbar */}
-      <Navbar />
-
-      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
-        
-        {/* Back Button */}
-        <Link 
-          href="/" 
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Home Feed (होम पेज)</span>
-        </Link>
-
-        {/* 2. Candidate Profile Card */}
-        <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-          
-          <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center shadow-md ring-4 ring-blue-100">
-              AS
-            </div>
-
-            {/* Name & Meta */}
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900">Asuttosh Singh</h1>
-                <span className="p-0.5 bg-blue-100 text-blue-700 rounded-full" title="Verified Candidate">
-                  <ShieldCheck className="w-4 h-4" />
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                UPSC CSE & State PSC Aspirant • Delhi-NCR
-              </p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  National AIR #142
-                </span>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Medium: Bilingual
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto">
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-center min-w-[110px]">
-              <div className="flex items-center justify-center gap-1 text-amber-500 mb-0.5">
-                <Zap className="w-4 h-4 fill-amber-500" />
-                <span className="text-xs font-bold text-slate-600">Total XP</span>
-              </div>
-              <span className="text-base sm:text-lg font-black text-slate-900">1,450 XP</span>
-            </div>
-
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-center min-w-[110px]">
-              <div className="flex items-center justify-center gap-1 text-orange-500 mb-0.5">
-                <Flame className="w-4 h-4 fill-orange-500" />
-                <span className="text-xs font-bold text-slate-600">Streak</span>
-              </div>
-              <span className="text-base sm:text-lg font-black text-slate-900">5 Days</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* 3. My Registered Olympiad Examination (Slot Card) */}
-        <div className="space-y-3">
-          <h2 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span>My Registered Olympiads (पंजीकृत परीक्षाएं)</span>
-          </h2>
-
-          <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-blue-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white pb-24">
+      {/* Top Banner Header */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             
-            <div className="space-y-1.5 flex-1">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-950 uppercase tracking-wider">
-                <CheckCircle2 className="w-3 h-3 text-slate-950" />
-                Slot Confirmed • Registration ID: ABH-OLY-8924
-              </span>
-              <h3 className="text-base sm:text-lg font-bold">
-                National Polity Olympiad : Constitutional Framework
-              </h3>
-              <p className="text-xs text-slate-300">
-                अखिल भारतीय राजव्यवस्था मूल्यांकन • Medium: हिन्दी (Hindi)
-              </p>
-
-              <div className="flex items-center gap-4 text-xs text-blue-200 pt-1">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                  Upcoming Sunday
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-amber-400" />
-                  11:00 AM IST
-                </span>
+            {/* Candidate Identity Profile */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-blue-600 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
+                AS
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+                    Asuttosh Singh
+                  </h1>
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> KYC Verified
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">
+                  Candidate ID: <strong className="text-slate-800 font-mono">#ABH-842910</strong> • Target: UPSC CSE &amp; State PSC
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Delhi-NCR, India • Member since March 2026
+                </p>
               </div>
             </div>
 
-            <Link
-              href="/quiz"
-              className="py-2.5 px-5 bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+            {/* Quick Actions */}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/quiz"
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-500/20 flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                <span>Launch Speed Drill</span>
+              </Link>
+              <Link
+                href="/olympiad"
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+              >
+                <Award className="w-4 h-4 text-emerald-600" />
+                <span>Join Olympiad</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="mt-8 flex items-center gap-2 border-b border-slate-200">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 ${
+                activeTab === 'overview'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
             >
-              <span>Attempt Mock Practice</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+              <TrendingUp className="w-4 h-4" />
+              <span>Performance Analytics</span>
+            </button>
 
+            <button
+              onClick={() => setActiveTab('tests')}
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 ${
+                activeTab === 'tests'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Assessment History ({RECENT_TESTS.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('wallet')}
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 ${
+                activeTab === 'wallet'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Wallet className="w-4 h-4 text-amber-500" />
+              <span>Scholarship Wallet</span>
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* 4. Verified E-Certificates & Badges */}
-        <div className="space-y-3">
-          <h2 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
-            <Award className="w-5 h-5 text-emerald-600" />
-            <span>Academic Certificates & Awards (प्रमाण पत्र)</span>
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.2 rounded-full">
-                  All-India Top 5% Scholar
-                </span>
-                <h4 className="font-bold text-sm text-slate-900">Modern History Benchmark Olympiad</h4>
-                <span className="text-xs text-slate-400 block">Issued: 15 May 2026</span>
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            {/* 4 Core Metrics Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tests Attempted</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">24</p>
+                <p className="text-[11px] text-slate-500 mt-1">18 Speed Drills • 6 Olympiads</p>
               </div>
 
-              <button 
-                onClick={() => alert('Certificate downloaded successfully!')}
-                className="p-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors"
-                title="Download E-Certificate"
-              >
-                <Download className="w-4 h-4" />
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overall Accuracy</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-black text-emerald-600 mt-2">91.4%</p>
+                <p className="text-[11px] text-slate-500 mt-1">Top 5% of all active test-takers</p>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">All-India Percentile</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">98.2 %ile</p>
+                <p className="text-[11px] text-slate-500 mt-1">Highest Rank: #1 (Sprint #14)</p>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scholarships Won</span>
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <Award className="w-4 h-4" />
+                  </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-black text-purple-600 mt-2">₹7,000</p>
+                <p className="text-[11px] text-slate-500 mt-1">Directly credited to verified UPI</p>
+              </div>
+            </div>
+
+            {/* Subject Mastery & Strengths */}
+            <div className="grid lg:grid-cols-12 gap-8">
+              {/* Left: Subject Mastery Bars (Span 7) */}
+              <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-600" />
+                    Subject-Wise Mastery Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Evaluated from over 450+ attempted timed practice questions.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Subject 1 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-800">Indian Polity &amp; Governance (भारतीय राजव्यवस्था)</span>
+                      <span className="text-blue-600">94% Mastery</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600 rounded-full" style={{ width: '94%' }} />
+                    </div>
+                  </div>
+
+                  {/* Subject 2 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-800">Modern Indian History (आधुनिक भारत)</span>
+                      <span className="text-emerald-600">88% Mastery</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '88%' }} />
+                    </div>
+                  </div>
+
+                  {/* Subject 3 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-800">Indian Economy &amp; Macroeconomics (अर्थव्यवस्था)</span>
+                      <span className="text-amber-600">76% Mastery</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 rounded-full" style={{ width: '76%' }} />
+                    </div>
+                  </div>
+
+                  {/* Subject 4 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-800">CSAT Quantitative &amp; Logical Reasoning</span>
+                      <span className="text-purple-600">90% Mastery</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-600 rounded-full" style={{ width: '90%' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Weak Area Diagnostic & Recommended Drills (Span 5) */}
+              <div className="lg:col-span-5 bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    AI Diagnostic Recommendations
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Topics requiring revision before the next Olympiad slot.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">Monetary Policy &amp; RBI Instruments</p>
+                      <p className="text-[10px] text-rose-600 font-semibold mt-0.5">Accuracy dropped to 68%</p>
+                    </div>
+                    <Link
+                      href="/quiz?topic=Monetary%20Policy"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1"
+                    >
+                      <span>Drill</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">19th Century Peasant Movements</p>
+                      <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Time per question higher (75s)</p>
+                    </div>
+                    <Link
+                      href="/quiz?topic=Peasant%20Uprisings"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1"
+                    >
+                      <span>Drill</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Test History */}
+        {activeTab === 'tests' && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">Detailed Assessment Record</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Review your historical scorecards and step-by-step solution keys.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+                    <th className="py-3 px-3 rounded-l-lg">Assessment Title</th>
+                    <th className="py-3 px-3">Subject / Module</th>
+                    <th className="py-3 px-3">Date</th>
+                    <th className="py-3 px-3">Score</th>
+                    <th className="py-3 px-3">Accuracy</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3 rounded-r-lg">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {RECENT_TESTS.map((test) => (
+                    <tr key={test.id} className="hover:bg-slate-50/70 transition">
+                      <td className="py-3.5 px-3 font-bold text-slate-900">
+                        {test.testName}
+                      </td>
+                      <td className="py-3.5 px-3 text-slate-600 font-medium">
+                        {test.subject}
+                      </td>
+                      <td className="py-3.5 px-3 text-slate-500">
+                        {test.date}
+                      </td>
+                      <td className="py-3.5 px-3 font-black text-slate-900">
+                        {test.score} / {test.maxScore}
+                      </td>
+                      <td className="py-3.5 px-3 font-bold text-emerald-600">
+                        {test.accuracy}%
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          test.status === 'Audit Passed'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {test.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <Link
+                          href="/quiz"
+                          className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1"
+                        >
+                          <span>Review Keys</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Scholarship Wallet & KYC */}
+        {activeTab === 'wallet' && (
+          <div className="grid lg:grid-cols-12 gap-8">
+            {/* Wallet Balance Card (Span 6) */}
+            <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md uppercase">
+                    Academic Fellowship Wallet
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 mt-2">Available Grant Balance</h3>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Wallet className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-slate-900">₹5,000.00</span>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Ready for Payout</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Awarded for securing <strong>All-India Rank #1</strong> in Weekly Speed Sprint #14.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2 text-xs text-slate-600">
+                <div className="flex items-center justify-between">
+                  <span>Linked UPI VPA:</span>
+                  <strong className="text-slate-900 font-mono">asuttosh@okhdfcbank</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Audit Verification:</span>
+                  <span className="text-emerald-600 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Passed
+                  </span>
+                </div>
+              </div>
+
+              <button className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer">
+                Withdraw Fellowship to Linked Bank (Zero Fee)
               </button>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
-                  Topic Mastery Certificate
-                </span>
-                <h4 className="font-bold text-sm text-slate-900">Indian Polity: Fundamental Rights Drill</h4>
-                <span className="text-xs text-slate-400 block">Issued: 02 June 2026</span>
+            {/* KYC & Compliance Verification (Span 6) */}
+            <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+              <div>
+                <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-blue-600" />
+                  Statutory KYC &amp; Identity Verification
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Required under Indian EdTech merit compliance for grant disbursement.
+                </p>
               </div>
 
-              <button 
-                onClick={() => alert('Certificate downloaded successfully!')}
-                className="p-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors"
-                title="Download E-Certificate"
-              >
-                <Download className="w-4 h-4" />
-              </button>
+              <div className="space-y-3">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-emerald-900">Government Identity Proof</h4>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">Aadhaar Card / Institutional ID Verified</p>
+                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                </div>
+
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-emerald-900">Bank Account / UPI Identifier</h4>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">Name match confirmed with registration</p>
+                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-800">Tax Deducted at Source (TDS Form 16A)</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Below ₹10,000 statutory limit (No TDS deducted)</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded">
+                    Exempt
+                  </span>
+                </div>
+              </div>
             </div>
-
           </div>
-        </div>
-
-      </main>
-
-      {/* 5. Footer & Bottom Bar */}
-      <Footer />
-      <BottomNav />
-
+        )}
+      </div>
     </div>
   );
 }

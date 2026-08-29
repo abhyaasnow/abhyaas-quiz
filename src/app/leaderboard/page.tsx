@@ -1,342 +1,462 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, Trophy, Award, ShieldCheck, 
-  Search, MapPin, Zap, Flame, CheckCircle2, ChevronRight 
+import {
+  Trophy,
+  Medal,
+  Award,
+  Search,
+  CheckCircle2,
+  Timer,
+  Target,
+  ShieldCheck,
+  Zap,
+  SlidersHorizontal,
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import BottomNav from '../components/BottomNav';
-import Footer from '../components/Footer';
 
-interface Scholar {
+interface RankEntry {
   rank: number;
-  name: string;
-  avatar: string;
+  candidateName: string;
+  avatarInitials: string;
   state: string;
-  score: string;
+  tier: string;
+  score: number;
+  maxScore: number;
   accuracy: number;
-  timeTaken: string;
-  xpEarned: string;
-  grantAmount?: string;
+  timeSpent: string;
+  scholarshipStatus: string;
   isVerified: boolean;
 }
 
-const leaderboardData: Scholar[] = [
+const LEADERBOARD_DATA: RankEntry[] = [
   {
     rank: 1,
-    name: 'Priya Sharma',
-    avatar: 'PS',
+    candidateName: 'Aditya Vardhan Sharma',
+    avatarInitials: 'AS',
     state: 'Uttar Pradesh',
-    score: '98/100',
-    accuracy: 98,
-    timeTaken: '32m 14s',
-    xpEarned: '+500 XP',
-    grantAmount: '₹5,000 Grant (Paid)',
+    tier: 'weekly-sprint',
+    score: 96.02,
+    maxScore: 100,
+    accuracy: 98.0,
+    timeSpent: '28m 14s',
+    scholarshipStatus: '₹5,000 Fellowship Disbursed',
     isVerified: true,
   },
   {
     rank: 2,
-    name: 'Rahul Verma',
-    avatar: 'RV',
-    state: 'Delhi-NCR',
-    score: '94/100',
-    accuracy: 94,
-    timeTaken: '35m 08s',
-    xpEarned: '+400 XP',
-    grantAmount: '₹3,000 Grant (Paid)',
+    candidateName: 'Priya Meena',
+    avatarInitials: 'PM',
+    state: 'Rajasthan',
+    tier: 'weekly-sprint',
+    score: 93.36,
+    maxScore: 100,
+    accuracy: 96.0,
+    timeSpent: '31m 45s',
+    scholarshipStatus: '₹1,500 Book Grant Disbursed',
     isVerified: true,
   },
   {
     rank: 3,
-    name: 'Ananya Roy',
-    avatar: 'AR',
-    state: 'West Bengal',
-    score: '92/100',
-    accuracy: 92,
-    timeTaken: '38m 45s',
-    xpEarned: '+350 XP',
-    grantAmount: '₹1,500 Grant (Paid)',
+    candidateName: 'Rohan Deshmukh',
+    avatarInitials: 'RD',
+    state: 'Maharashtra',
+    tier: 'weekly-sprint',
+    score: 91.38,
+    maxScore: 100,
+    accuracy: 94.2,
+    timeSpent: '33m 10s',
+    scholarshipStatus: '₹1,500 Book Grant Disbursed',
     isVerified: true,
   },
   {
     rank: 4,
-    name: 'Vikramaditya Singh',
-    avatar: 'VS',
-    state: 'Rajasthan',
-    score: '90/100',
-    accuracy: 90,
-    timeTaken: '40m 12s',
-    xpEarned: '+250 XP',
-    grantAmount: '₹1,000 Grant (Paid)',
+    candidateName: 'Sneha Kulkarni',
+    avatarInitials: 'SK',
+    state: 'Karnataka',
+    tier: 'weekly-sprint',
+    score: 89.40,
+    maxScore: 100,
+    accuracy: 92.5,
+    timeSpent: '34m 20s',
+    scholarshipStatus: '₹1,500 Book Grant Disbursed',
     isVerified: true,
   },
   {
     rank: 5,
-    name: 'Md. Danish Alam',
-    avatar: 'DA',
-    state: 'Bihar',
-    score: '88/100',
-    accuracy: 88,
-    timeTaken: '41m 30s',
-    xpEarned: '+250 XP',
-    grantAmount: '₹1,000 Grant (Paid)',
+    candidateName: 'Vikramjit Singh',
+    avatarInitials: 'VS',
+    state: 'Punjab',
+    tier: 'weekly-sprint',
+    score: 88.08,
+    maxScore: 100,
+    accuracy: 91.8,
+    timeSpent: '35m 55s',
+    scholarshipStatus: '₹1,500 Book Grant Disbursed',
     isVerified: true,
   },
   {
     rank: 6,
-    name: 'Sneha Kulkarni',
-    avatar: 'SK',
-    state: 'Maharashtra',
-    score: '86/100',
-    accuracy: 86,
-    timeTaken: '42m 00s',
-    xpEarned: '+150 XP',
+    candidateName: 'Ananya Roy',
+    avatarInitials: 'AR',
+    state: 'West Bengal',
+    tier: 'weekly-sprint',
+    score: 86.76,
+    maxScore: 100,
+    accuracy: 90.0,
+    timeSpent: '37m 12s',
+    scholarshipStatus: '₹500 Subject Grant',
     isVerified: true,
   },
   {
     rank: 7,
-    name: 'Aditya Srivastava',
-    avatar: 'AS',
+    candidateName: 'Manish Kumar Patel',
+    avatarInitials: 'MP',
     state: 'Madhya Pradesh',
-    score: '84/100',
-    accuracy: 84,
-    timeTaken: '43m 15s',
-    xpEarned: '+150 XP',
+    tier: 'weekly-sprint',
+    score: 85.44,
+    maxScore: 100,
+    accuracy: 89.4,
+    timeSpent: '38m 04s',
+    scholarshipStatus: '₹500 Subject Grant',
+    isVerified: true,
+  },
+  {
+    rank: 8,
+    candidateName: 'Kavita Sundaram',
+    avatarInitials: 'KS',
+    state: 'Tamil Nadu',
+    tier: 'weekly-sprint',
+    score: 84.12,
+    maxScore: 100,
+    accuracy: 88.5,
+    timeSpent: '39m 18s',
+    scholarshipStatus: '₹500 Subject Grant',
+    isVerified: true,
+  },
+  {
+    rank: 9,
+    candidateName: 'Abhishek Jha',
+    avatarInitials: 'AJ',
+    state: 'Bihar',
+    tier: 'weekly-sprint',
+    score: 83.46,
+    maxScore: 100,
+    accuracy: 87.8,
+    timeSpent: '40m 02s',
+    scholarshipStatus: '₹500 Subject Grant',
+    isVerified: true,
+  },
+  {
+    rank: 10,
+    candidateName: 'Divya Nambiar',
+    avatarInitials: 'DN',
+    state: 'Kerala',
+    tier: 'weekly-sprint',
+    score: 82.80,
+    maxScore: 100,
+    accuracy: 87.0,
+    timeSpent: '41m 15s',
+    scholarshipStatus: '₹500 Subject Grant',
     isVerified: true,
   },
 ];
 
 export default function LeaderboardPage() {
-  const [selectedExam, setSelectedExam] = useState<'polity' | 'history' | 'daily'>('polity');
-  const [selectedState, setSelectedState] = useState<string>('All India');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedTier, setSelectedTier] = useState('weekly-sprint');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const statesList = ['All India', 'Uttar Pradesh', 'Delhi-NCR', 'Bihar', 'Rajasthan', 'Madhya Pradesh', 'Maharashtra', 'West Bengal'];
+  const filteredRanks = useMemo(() => {
+    return LEADERBOARD_DATA.filter((entry) => {
+      const matchesTier = entry.tier === selectedTier;
+      const matchesSearch =
+        entry.candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        entry.state.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesTier && matchesSearch;
+    });
+  }, [selectedTier, searchQuery]);
 
-  const filteredScholars = leaderboardData.filter((scholar) => {
-    const matchesState = selectedState === 'All India' || scholar.state === selectedState;
-    const matchesSearch = scholar.name.toLowerCase().includes(searchQuery.toLowerCase()) || scholar.state.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesState && matchesSearch;
-  });
+  const topThree = filteredRanks.slice(0, 3);
+  const remainingRanks = filteredRanks.slice(3);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between">
-      
-      {/* 1. Header Navbar */}
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white pb-24">
+      {/* Top Banner Header */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+                <Trophy className="w-4 h-4 text-amber-600" />
+                <span>All-India Merit &amp; Scholarship Board</span>
+              </div>
+              <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
+                National Merit Standings
+              </h1>
+              <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
+                अखिल भारतीय मेधावी सूची • Transparent Algorithmic Ranking
+              </p>
+              <p className="mt-3 text-slate-600 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                Live rankings calculated based on accuracy ratio, negative marking penalization, and recorded time efficiency under anti-cheat proctoring.
+              </p>
+            </div>
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
-        
-        {/* Breadcrumb & Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <Link 
-              href="/" 
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 mb-1"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Home Feed</span>
-            </Link>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900">
-              अखिल भारतीय मेधा सूची <span className="text-blue-700">| National Merit Leaderboard</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Verified top rankers, scholarship recipients & academic benchmark analysis.
-            </p>
+            {/* Quick Metrics Pill */}
+            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Evaluation Audit</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900">100% Anti-Cheat Verified</p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-2xl w-fit">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span className="text-xs font-bold text-emerald-950">100% Verified Disbursement Proofs</span>
-          </div>
-        </div>
-
-        {/* 2. Exam Category Selector */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {[
-            { id: 'polity', label: '🏆 National Polity Olympiad (₹50,000 Pool)' },
-            { id: 'history', label: '⚔️ Modern History Grand Drill' },
-            { id: 'daily', label: '⚡ Daily Speed Streak Scholars' },
-          ].map((tab) => (
+          {/* Tier Selector Filter Tabs */}
+          <div className="mt-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
             <button
-              key={tab.id}
-              onClick={() => setSelectedExam(tab.id as any)}
-              className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black border transition-all ${
-                selectedExam === tab.id
-                  ? 'bg-blue-700 text-white border-blue-700 shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+              onClick={() => setSelectedTier('weekly-sprint')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                selectedTier === 'weekly-sprint'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
               }`}
             >
-              {tab.label}
+              <Zap className="w-3.5 h-3.5" />
+              <span>Weekly Speed Sprint (Live)</span>
             </button>
-          ))}
-        </div>
 
-        {/* 3. Top 3 Podium Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
-          {/* Rank 2 */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex flex-col items-center text-center order-2 md:order-1 relative">
-            <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-black text-sm flex items-center justify-center mb-2 border border-slate-300">
-              2
-            </span>
-            <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white font-black text-xl flex items-center justify-center mb-2">
-              {leaderboardData[1].avatar}
-            </div>
-            <h3 className="font-bold text-base text-slate-900">{leaderboardData[1].name}</h3>
-            <span className="text-xs text-slate-500 font-medium">{leaderboardData[1].state}</span>
-            <span className="mt-2 text-xs font-black text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
-              Score: {leaderboardData[1].score} ({leaderboardData[1].accuracy}%)
-            </span>
-            <span className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
-              {leaderboardData[1].grantAmount}
-            </span>
-          </div>
-
-          {/* Rank 1 (Gold Highlight) */}
-          <div className="bg-gradient-to-b from-amber-500/10 via-white to-white rounded-3xl p-6 border-2 border-amber-400 shadow-md flex flex-col items-center text-center order-1 md:order-2 relative -mt-2">
-            <span className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-center mb-2 shadow-xs ring-4 ring-amber-200">
-              🥇
-            </span>
-            <div className="w-16 h-16 rounded-2xl bg-slate-950 text-amber-400 font-black text-2xl flex items-center justify-center mb-2 shadow-md ring-2 ring-amber-400">
-              {leaderboardData[0].avatar}
-            </div>
-            <div className="flex items-center gap-1">
-              <h3 className="font-black text-lg text-slate-900">{leaderboardData[0].name}</h3>
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
-            </div>
-            <span className="text-xs text-slate-500 font-medium">{leaderboardData[0].state}</span>
-            <span className="mt-2 text-xs font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-              Score: {leaderboardData[0].score} (Acc: {leaderboardData[0].accuracy}%)
-            </span>
-            <span className="mt-2 text-xs font-black text-amber-900 bg-amber-400 px-3 py-1 rounded-md shadow-xs">
-              {leaderboardData[0].grantAmount}
-            </span>
-          </div>
-
-          {/* Rank 3 */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex flex-col items-center text-center order-3 md:order-3 relative">
-            <span className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-black text-sm flex items-center justify-center mb-2 border border-amber-300">
-              3
-            </span>
-            <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white font-black text-xl flex items-center justify-center mb-2">
-              {leaderboardData[2].avatar}
-            </div>
-            <h3 className="font-bold text-base text-slate-900">{leaderboardData[2].name}</h3>
-            <span className="text-xs text-slate-500 font-medium">{leaderboardData[2].state}</span>
-            <span className="mt-2 text-xs font-black text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
-              Score: {leaderboardData[2].score} ({leaderboardData[2].accuracy}%)
-            </span>
-            <span className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
-              {leaderboardData[2].grantAmount}
-            </span>
-          </div>
-        </div>
-
-        {/* 4. Filter & Search Bar */}
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          
-          {/* Search Box */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search candidate name or state..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-blue-600"
-            />
-          </div>
-
-          {/* State Dropdown Filter */}
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <select
-              value={selectedState}
-              onChange={(e) => setSelectedState(e.target.value)}
-              className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-600"
+            <button
+              onClick={() => setSelectedTier('monthly-mega')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                selectedTier === 'monthly-mega'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
+              }`}
             >
-              {statesList.map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-          </div>
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Monthly Mega Olympiad</span>
+            </button>
 
+            <button
+              onClick={() => setSelectedTier('daily-drill')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                selectedTier === 'daily-drill'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Daily Practice Drills</span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* 5. Complete Rankings Table / List */}
-        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-700">
-              National Rankings Breakdown
-            </h2>
-            <span className="text-xs text-slate-500 font-medium">
-              Showing {filteredScholars.length} Verified Scholars
-            </span>
-          </div>
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+        
+        {/* Top 3 Podium Cards */}
+        {topThree.length >= 3 && (
+          <div className="grid md:grid-cols-3 gap-5 items-end">
+            
+            {/* Rank 2 (Silver) */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm order-2 md:order-1 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-slate-100 rounded-full -mr-8 -mt-8 pointer-events-none" />
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center border border-slate-200">
+                  #2
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded flex items-center gap-1">
+                  <Medal className="w-3 h-3 text-slate-400" /> Silver Honor
+                </span>
+              </div>
 
-          <div className="divide-y divide-slate-100">
-            {filteredScholars.map((sc) => (
-              <div
-                key={sc.rank}
-                className="p-3.5 sm:p-4 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-3"
-              >
-                {/* Rank & Scholar Info */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center flex-shrink-0 ${
-                    sc.rank === 1
-                      ? 'bg-amber-400 text-slate-950 shadow-xs'
-                      : sc.rank === 2
-                      ? 'bg-slate-200 text-slate-800'
-                      : sc.rank === 3
-                      ? 'bg-amber-100 text-amber-900'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    #{sc.rank}
-                  </span>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-base text-slate-900">{topThree[1].candidateName}</h3>
+                <p className="text-xs text-slate-500">{topThree[1].state}</p>
+              </div>
 
-                  <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                    {sc.avatar}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">{sc.name}</span>
-                      {sc.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />}
-                    </div>
-                    <span className="text-[11px] text-slate-500 block truncate">{sc.state} • Time: {sc.timeTaken}</span>
-                  </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Score</p>
+                  <p className="font-black text-slate-900 mt-0.5">{topThree[1].score} / 100</p>
                 </div>
-
-                {/* Score & Scholarship Badge */}
-                <div className="flex items-center gap-3 flex-shrink-0 text-right">
-                  <div>
-                    <span className="font-black text-xs sm:text-sm text-blue-700 block">{sc.score}</span>
-                    <span className="text-[10px] text-slate-400 font-bold block">Acc: {sc.accuracy}%</span>
-                  </div>
-
-                  {sc.grantAmount ? (
-                    <span className="text-[10px] font-black px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hidden sm:inline-block">
-                      {sc.grantAmount}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hidden sm:inline-block">
-                      {sc.xpEarned}
-                    </span>
-                  )}
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Accuracy</p>
+                  <p className="font-black text-emerald-600 mt-0.5">{topThree[1].accuracy}%</p>
                 </div>
               </div>
-            ))}
+
+              <div className="mt-4 p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-[11px] font-bold text-slate-800 text-center">
+                {topThree[1].scholarshipStatus}
+              </div>
+            </div>
+
+            {/* Rank 1 (Gold - Elevated) */}
+            <div className="bg-gradient-to-b from-amber-50/80 to-white border-2 border-amber-300 rounded-3xl p-7 shadow-lg shadow-amber-500/10 order-1 md:order-2 relative overflow-hidden md:-translate-y-2">
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-10 h-10 rounded-2xl bg-amber-500 text-white font-black text-sm flex items-center justify-center shadow-md shadow-amber-500/30">
+                  #1
+                </span>
+                <span className="text-[11px] font-black px-3 py-1 bg-amber-100 text-amber-900 rounded-full flex items-center gap-1 border border-amber-200">
+                  <Trophy className="w-3.5 h-3.5 text-amber-600" /> National Gold Rank
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-black text-lg text-slate-900">{topThree[0].candidateName}</h3>
+                <p className="text-xs text-slate-600 font-medium">{topThree[0].state}</p>
+              </div>
+
+              <div className="mt-5 pt-5 border-t border-amber-100 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Score</p>
+                  <p className="font-black text-blue-600 text-sm mt-0.5">{topThree[0].score}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Accuracy</p>
+                  <p className="font-black text-emerald-600 text-sm mt-0.5">{topThree[0].accuracy}%</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Time</p>
+                  <p className="font-black text-slate-900 text-xs mt-0.5">{topThree[0].timeSpent}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 p-3 bg-amber-100/70 border border-amber-200 rounded-xl text-xs font-black text-amber-950 text-center">
+                🏆 {topThree[0].scholarshipStatus}
+              </div>
+            </div>
+
+            {/* Rank 3 (Bronze) */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm order-3 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-8 h-8 rounded-xl bg-orange-50 text-orange-700 font-black text-xs flex items-center justify-center border border-orange-200">
+                  #3
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-orange-50 text-orange-700 border border-orange-200 rounded flex items-center gap-1">
+                  <Medal className="w-3 h-3 text-orange-500" /> Bronze Honor
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-base text-slate-900">{topThree[2].candidateName}</h3>
+                <p className="text-xs text-slate-500">{topThree[2].state}</p>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Score</p>
+                  <p className="font-black text-slate-900 mt-0.5">{topThree[2].score} / 100</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Accuracy</p>
+                  <p className="font-black text-emerald-600 mt-0.5">{topThree[2].accuracy}%</p>
+                </div>
+              </div>
+
+              <div className="mt-4 p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-[11px] font-bold text-slate-800 text-center">
+                {topThree[2].scholarshipStatus}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search & Full Leaderboard Table */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-slate-900">
+                All-India Merit Standings (Ranks 4 – 50)
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Provisional ranking verified via anti-cheat event audit logs.
+              </p>
+            </div>
+
+            {/* Candidate Search Box */}
+            <div className="relative w-full sm:w-72 flex-shrink-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search name or state..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+              />
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+                  <th className="py-3 px-3 rounded-l-lg">Rank</th>
+                  <th className="py-3 px-3">Candidate</th>
+                  <th className="py-3 px-3">State</th>
+                  <th className="py-3 px-3">Score (+/ -)</th>
+                  <th className="py-3 px-3">Accuracy</th>
+                  <th className="py-3 px-3">Time Consumed</th>
+                  <th className="py-3 px-3 rounded-r-lg">Merit Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {remainingRanks.map((item) => (
+                  <tr key={item.rank} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-3 font-black text-slate-900">
+                      #{item.rank}
+                    </td>
+                    <td className="py-3.5 px-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 font-black text-[11px] flex items-center justify-center">
+                          {item.avatarInitials}
+                        </div>
+                        <span className="font-bold text-slate-900">{item.candidateName}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-3 text-slate-500 font-medium">
+                      {item.state}
+                    </td>
+                    <td className="py-3.5 px-3 font-black text-slate-900">
+                      {item.score}
+                    </td>
+                    <td className="py-3.5 px-3 font-bold text-emerald-600">
+                      {item.accuracy}%
+                    </td>
+                    <td className="py-3.5 px-3 text-slate-500">
+                      {item.timeSpent}
+                    </td>
+                    <td className="py-3.5 px-3">
+                      <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md">
+                        {item.scholarshipStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Bottom Audit Footer Bar */}
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-slate-500">
+            <p className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>All rank evaluations audited in strict chronological tie-breaker sequence.</span>
+            </p>
+            <Link
+              href="/scholarship-rules"
+              className="text-blue-600 font-semibold hover:underline"
+            >
+              Read Assessment Tie-Breaker Algorithm →
+            </Link>
           </div>
         </div>
-
-      </main>
-
-      {/* 6. Footer & Bottom Bar */}
-      <Footer />
-      <BottomNav />
-
+      </div>
     </div>
   );
 }
