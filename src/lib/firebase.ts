@@ -3,12 +3,13 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKeyForDevelopment12345",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "abhyaas-portal.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "abhyaas-portal",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "abhyaas-portal.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789:web:abcdef"
+  apiKey: "AIzaSyCEdMfA6EeaZS_37TdMtGjIsCcEfQXtbHE",
+  authDomain: "abhyaas-quiz.firebaseapp.com",
+  projectId: "abhyaas-quiz",
+  storageBucket: "abhyaas-quiz.firebasestorage.app",
+  messagingSenderId: "680297613965",
+  appId: "1:680297613965:web:d7bd9f1f67b146382db0c4",
+  measurementId: "G-TTSZTJ044G"
 };
 
 // Singleton pattern to prevent multiple instances
