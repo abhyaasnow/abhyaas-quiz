@@ -70,7 +70,6 @@ export interface SupportTicket {
 
 // ================= 1. QUESTIONS CRUD =================
 
-// Naya Question Save Karna
 export async function createQuestion(question: Omit<QuestionData, 'id'>) {
   try {
     const docRef = await addDoc(collection(db, 'questions'), {
@@ -84,7 +83,6 @@ export async function createQuestion(question: Omit<QuestionData, 'id'>) {
   }
 }
 
-// Saare Questions Fetch Karna
 export async function getAllQuestions(): Promise<QuestionData[]> {
   try {
     const q = query(collection(db, 'questions'), orderBy('createdAt', 'desc'));
@@ -96,7 +94,6 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
   }
 }
 
-// Question Status Update Karna (Pending / Practice / Olympiad)
 export async function updateQuestionStatus(id: string, approvalStatus: ApprovalStatus) {
   try {
     const ref = doc(db, 'questions', id);
@@ -108,7 +105,6 @@ export async function updateQuestionStatus(id: string, approvalStatus: ApprovalS
   }
 }
 
-// Question Delete Karna
 export async function deleteQuestion(id: string) {
   try {
     await deleteDoc(doc(db, 'questions', id));
@@ -121,7 +117,6 @@ export async function deleteQuestion(id: string) {
 
 // ================= 2. SITE SETTINGS & BRAND MEDIA =================
 
-// Global Site Settings Fetch Karna (Logo, Banners, Fees)
 export async function getSiteSettings(): Promise<SiteSettings | null> {
   try {
     const ref = doc(db, 'settings', 'global_config');
@@ -136,7 +131,6 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
   }
 }
 
-// Global Site Settings Update Karna
 export async function updateSiteSettings(settings: Partial<SiteSettings>) {
   try {
     const ref = doc(db, 'settings', 'global_config');
@@ -149,6 +143,31 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>) {
 }
 
 // ================= 3. PAYMENTS & REGISTRATIONS =================
+
+export async function createPaymentRecord(data: Omit<PaymentRecord, 'id' | 'rollNo' | 'createdAt' | 'tokenGenerated' | 'status'>) {
+  try {
+    // Generate Standard National Roll Number format: ABH-2026-XXXX
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const rollNo = `ABH-2026-${randomDigits}`;
+
+    const docRef = await addDoc(collection(db, 'payments'), {
+      ...data,
+      rollNo,
+      status: 'SUCCESS',
+      tokenGenerated: true,
+      createdAt: serverTimestamp(),
+    });
+
+    return { 
+      success: true, 
+      id: docRef.id, 
+      rollNo 
+    };
+  } catch (error) {
+    console.error('Error creating payment record:', error);
+    return { success: false, error };
+  }
+}
 
 export async function getAllPayments(): Promise<PaymentRecord[]> {
   try {
