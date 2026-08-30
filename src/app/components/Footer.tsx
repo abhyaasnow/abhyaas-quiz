@@ -1,8 +1,18 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ShieldCheck, Mail, HelpCircle } from 'lucide-react';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Test arena mein distraction-free rakhne ke liye hide hoga
+  if (pathname === '/quiz') {
+    return null;
+  }
+
   return (
     <footer className="bg-[#080e1a] text-slate-400 text-xs border-t border-slate-800/80 selection:bg-blue-600 selection:text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -12,7 +22,7 @@ export default function Footer() {
           {/* Column 1: Brand & Bio (Span 4) */}
           <div className="lg:col-span-4 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2.5">
-              {/* Dual Triangle Logo Icon from SS1 */}
+              {/* Dual Triangle Logo Icon */}
               <div className="flex flex-col items-center justify-center w-6 h-6">
                 <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-amber-500 mb-[1px]" />
                 <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-blue-500" />
@@ -122,7 +132,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Middle Notice Bar from SS1 */}
+        {/* Middle Notice Bar */}
         <div className="py-6 border-b border-slate-800/70 text-[11px] text-slate-400 leading-relaxed">
           <p>
             <strong className="text-slate-200 font-semibold">Academic Assessment Notice:</strong>{' '}
@@ -130,7 +140,7 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Bottom Bar from SS1 */}
+        {/* Bottom Bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
           <p>© 2026 Abhyaas. All rights reserved.</p>
           <div className="flex items-center gap-3">
