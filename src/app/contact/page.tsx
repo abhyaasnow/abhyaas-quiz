@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   Building,
   ShieldAlert,
-  PhoneCall
+  PhoneCall,
+  ShieldCheck,
+  Phone
 } from 'lucide-react';
 
 export default function ContactPage() {
@@ -66,30 +68,44 @@ export default function ContactPage() {
         <div className="grid lg:grid-cols-12 gap-8">
           {/* Left Column: Direct Contact Info & SLA */}
           <div className="lg:col-span-5 space-y-6">
-            {/* Primary Email Desk */}
-            <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2 mb-4">
-                <Mail className="w-4 h-4 text-blue-600" />
-                Departmental Email Support
-              </h3>
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <p className="text-slate-500 font-medium">General Support &amp; Student Help:</p>
-                  <a href="mailto:support@abhyaasnow.in" className="text-blue-600 font-semibold hover:underline text-xs sm:text-sm">
-                    support@abhyaasnow.in
-                  </a>
+            {/* Primary Email & Phone Desk */}
+            <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-5">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2 mb-3">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  Departmental Email Support
+                </h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <p className="text-slate-500 font-medium">General Support &amp; Student Help:</p>
+                    <a href="mailto:support@abhyaasnow.in" className="text-blue-600 font-semibold hover:underline text-xs sm:text-sm font-mono">
+                      support@abhyaasnow.in
+                    </a>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 font-medium">Merit Grants &amp; Scholarship Desk:</p>
+                    <a href="mailto:scholarships@abhyaasnow.in" className="text-blue-600 font-semibold hover:underline text-xs sm:text-sm font-mono">
+                      scholarships@abhyaasnow.in
+                    </a>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 font-medium">Billing &amp; Payment Verification:</p>
+                    <a href="mailto:billing@abhyaasnow.in" className="text-blue-600 font-semibold hover:underline text-xs sm:text-sm font-mono">
+                      billing@abhyaasnow.in
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-500 font-medium">Merit Grants &amp; Scholarship Desk:</p>
-                  <a href="mailto:scholarships@abhyaasnow.in" className="text-blue-600 font-semibold hover:underline text-xs sm:text-sm">
-                    scholarships@abhyaasnow.in
-                  </a>
-                </div>
-                <div>
-                  <p className="text-slate-500 font-medium">Billing &amp; Payment Verification:</p>
-                  <a href="mailto:billing@abhyaasnow.in" className="text-blue-600 font-semibold hover:underline text-xs sm:text-sm">
-                    billing@abhyaasnow.in
-                  </a>
+              </div>
+
+              {/* Direct Helpline Numbers */}
+              <div className="pt-4 border-t border-slate-100">
+                <h4 className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-2 mb-2">
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  Direct Helpline Desk
+                </h4>
+                <div className="space-y-1 font-mono text-xs font-bold text-slate-900">
+                  <p>📱 +91 93100 38825</p>
+                  <p>📱 +91 80049 39012</p>
                 </div>
               </div>
             </div>
@@ -150,7 +166,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
-                    className="mt-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-xs font-semibold rounded-lg text-white transition"
+                    className="mt-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-xs font-semibold rounded-lg text-white transition cursor-pointer"
                   >
                     Submit Another Query
                   </button>

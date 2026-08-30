@@ -19,7 +19,9 @@ import {
   User as UserIcon,
   LogOut,
   Wallet,
-  Home as HomeIcon
+  Home as HomeIcon,
+  School,
+  BookMarked
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -50,14 +52,14 @@ export default function Navbar() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Route change par sab menu reset
+  // Route change par drawer close
   useEffect(() => {
     setMobileMenuOpen(false);
     setActiveDropdown(null);
     setUserDropdownOpen(false);
   }, [pathname]);
 
-  // HIDE NAVBAR ON /quiz AND /admin (Admin panel par public navbar 100% hide rahega)
+  // Admin & Quiz portal par navbar hide rahega
   if (pathname === '/quiz' || pathname.startsWith('/admin')) {
     return null;
   }
@@ -110,7 +112,7 @@ export default function Navbar() {
               <span>Home</span>
             </Link>
 
-            {/* Target Exams Dropdown */}
+            {/* 1. Target Exams Dropdown */}
             <div className="relative">
               <button
                 type="button"
@@ -161,6 +163,83 @@ export default function Navbar() {
                       <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block text-blue-600 font-bold">Merit Grants Info →</Link></li>
                     </ul>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Classes (1st - 12th) Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActiveDropdown(activeDropdown === 'classes' ? null : 'classes')}
+                className={`px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  activeDropdown === 'classes' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <School className="w-4 h-4 text-emerald-600" />
+                <span>Classes (1st - 12th)</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'classes' ? 'rotate-180 text-blue-600' : ''}`} />
+              </button>
+
+              {activeDropdown === 'classes' && (
+                <div className="absolute left-0 top-full mt-2 w-[720px] bg-white border border-slate-200 rounded-2xl shadow-xl p-5 grid grid-cols-4 gap-4 animate-in fade-in duration-150 z-50">
+                  
+                  {/* Primary Wing */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-900 font-bold text-xs uppercase">
+                      <BookMarked className="w-3.5 h-3.5 text-emerald-600" />
+                      Class 1 - 5
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold">Primary Wing</p>
+                    <ul className="space-y-2 text-slate-600 text-xs">
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Basic Mathematics</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">EVS &amp; General Science</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Junior Mental Ability</Link></li>
+                    </ul>
+                  </div>
+
+                  {/* Middle School */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-900 font-bold text-xs uppercase">
+                      <BookMarked className="w-3.5 h-3.5 text-blue-600" />
+                      Class 6 - 8
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold">Middle School</p>
+                    <ul className="space-y-2 text-slate-600 text-xs">
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">NCERT Science</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Mathematics Foundation</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Social Studies (SST)</Link></li>
+                    </ul>
+                  </div>
+
+                  {/* Secondary */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 text-slate-900 font-bold text-xs uppercase">
+                      <BookMarked className="w-3.5 h-3.5 text-amber-600" />
+                      Class 9 - 10
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold">Secondary Board</p>
+                    <ul className="space-y-2 text-slate-600 text-xs">
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Physics &amp; Chemistry</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Biology &amp; Ecology</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Class 10 Board Mock</Link></li>
+                    </ul>
+                  </div>
+
+                  {/* Senior Secondary */}
+                  <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-1.5 pb-2 border-b border-slate-200 text-slate-900 font-bold text-xs uppercase">
+                      <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
+                      Class 11 - 12
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold">Sr. Secondary</p>
+                    <ul className="space-y-2 text-slate-600 text-xs">
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Science (PCM/PCB)</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Commerce &amp; Accounts</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Arts &amp; Humanities</Link></li>
+                    </ul>
+                  </div>
+
                 </div>
               )}
             </div>
@@ -306,7 +385,7 @@ export default function Navbar() {
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
           >
             <HomeIcon className="w-4 h-4 text-blue-600" />
             <span>Home</span>
@@ -315,16 +394,34 @@ export default function Navbar() {
           <Link
             href="/practice"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
+          >
+            <Compass className="w-4 h-4 text-blue-600" />
+            <span>Target Exams (UPSC / State PSC)</span>
+          </Link>
+
+          <Link
+            href="/practice"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
+          >
+            <School className="w-4 h-4 text-emerald-600" />
+            <span>Classes (Class 1st to 12th)</span>
+          </Link>
+
+          <Link
+            href="/practice"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
           >
             <BookOpen className="w-4 h-4 text-blue-600" />
-            <span>Practice Bank &amp; All Subjects</span>
+            <span>Practice Bank</span>
           </Link>
 
           <Link
             href="/olympiad"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
+            className="flex items-center justify-between p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
           >
             <div className="flex items-center gap-3">
               <Award className="w-4 h-4 text-emerald-600" />
@@ -336,7 +433,7 @@ export default function Navbar() {
           <Link
             href="/leaderboard"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
           >
             <Trophy className="w-4 h-4 text-amber-500" />
             <span>Rankings &amp; Merit Board</span>
@@ -345,7 +442,7 @@ export default function Navbar() {
           <Link
             href="/profile"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm"
           >
             <Wallet className="w-4 h-4 text-amber-600" />
             <span>Candidate Profile &amp; Wallet</span>
@@ -355,7 +452,7 @@ export default function Navbar() {
             <Link
               href="/practice"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-3.5 bg-blue-600 active:bg-blue-700 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-md"
+              className="w-full py-3 bg-blue-600 active:bg-blue-700 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-md"
             >
               <Sparkles className="w-4 h-4" />
               <span>Start Speed Drill</span>
@@ -369,7 +466,7 @@ export default function Navbar() {
                 logout();
                 setMobileMenuOpen(false);
               }}
-              className="w-full p-3.5 rounded-xl border border-rose-200 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 active:bg-rose-50 cursor-pointer"
+              className="w-full p-3 rounded-xl border border-rose-200 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 active:bg-rose-50 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out Account</span>
