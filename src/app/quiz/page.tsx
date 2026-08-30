@@ -1,17 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   Clock, 
   ShieldAlert, 
   CheckCircle2, 
   XCircle, 
-  AlertCircle, 
   ChevronLeft, 
   ChevronRight, 
   Flag, 
-  RotateCcw, 
   Sparkles, 
   Trophy, 
   Globe, 
@@ -19,10 +18,13 @@ import {
   ArrowRight,
   ShieldCheck,
   Check,
-  Award,
-  Loader2
+  Loader2,
+  Lock,
+  Smartphone,
+  Layers,
+  RotateCcw
 } from 'lucide-react';
-import { getAllQuestions, QuestionData } from '@/lib/db';
+import { getAllQuestions } from '@/lib/db';
 
 interface QuizQuestion {
   id: string;
@@ -98,26 +100,6 @@ const FALLBACK_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'q4',
-    subject: 'polity',
-    topic: 'Constitutional Amendments',
-    questionEn: 'The Delimitation Commission in India is constituted under Article 82 and Article 170. Which Amendment Act froze the delimitation of parliamentary constituencies until the first census after 2026?',
-    questionHi: 'भारत में परिसीमन आयोग का गठन अनुच्छेद 82 और अनुच्छेद 170 के तहत किया जाता है। किस संशोधन अधिनियम ने 2026 के बाद की पहली जनगणना तक संसदीय निर्वाचन क्षेत्रों के परिसीमन पर रोक लगा दी थी?',
-    optionsEn: [
-      '42nd Constitutional Amendment Act',
-      '84th Constitutional Amendment Act',
-      '86th Constitutional Amendment Act',
-      '91st Constitutional Amendment Act'
-    ],
-    optionsHi: [
-      '42वां संविधान संशोधन अधिनियम',
-      '84वां संविधान संशोधन अधिनियम',
-      '86वां संविधान संशोधन अधिनियम',
-      '91वां संविधान संशोधन अधिनियम'
-    ],
-    correctOption: 1
-  },
-  {
-    id: 'q5',
     subject: 'history',
     topic: 'Modern History',
     questionEn: 'Who among the following presided over the historic 1929 Lahore Session of the Indian National Congress where the "Purna Swaraj" resolution was adopted?',
@@ -135,30 +117,63 @@ const FALLBACK_QUESTIONS: QuizQuestion[] = [
       'सरदार वल्लभभाई पटेल'
     ],
     correctOption: 1
+  },
+  {
+    id: 'q5',
+    subject: 'economy',
+    topic: 'Fiscal Policy',
+    questionEn: 'Which of the following is NOT included in the Revenue Deficit of the Union Government?',
+    questionHi: 'निम्नलिखित में से क्या केंद्र सरकार के राजस्व घाटे में शामिल नहीं है?',
+    optionsEn: [
+      'Interest payments on borrowings',
+      'Subsidies on food and fertilizers',
+      'Capital expenditure on infrastructure assets',
+      'Administrative establishment salaries'
+    ],
+    optionsHi: [
+      'उधार पर ब्याज भुगतान',
+      'खाद्य और उर्वरक सब्सिडी',
+      'बुनियादी ढांचा परिसंपत्तियों पर पूंजीगत व्यय',
+      'प्रशासनिक स्थापना वेतन'
+    ],
+    correctOption: 2
   }
 ];
 
+const STORAGE_KEY = 'abhyaas_active_session_v1';
+
 export default function ProctoredQuizArenaPage() {
+  const searchParams = useSearchParams();
+  const subjectFilter = searchParams.get('subject') || 'all';
+  const modeParam = searchParams.get('mode') || 'practice';
+
+  // Gatekeeper states
+  const [isUnlocked, setIsUnlocked] = useState(modeParam !== 'olympiad');
+  const [rollInput, setRollInput] = useState('');
+  const [gateError, setGateError] = useState('');
+
   const [questions, setQuestions] = useState<QuizQuestion[]>(FALLBACK_QUESTIONS);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [markedForReview, setMarkedForReview] = useState<Record<number, boolean>>({});
   const [lang, setLang] = useState<'hi' | 'en'>('hi');
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState(45 * 60); // 45 Minutes
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState(45 * 60);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sessionRestored, setSessionRestored] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Anti-Cheat Warnings
   const [proctorWarnings, setProctorWarnings] = useState(0);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
-  // 1. Fetch Cloud Questions
+  // 1. Fetch Cloud Questions & Filter by selected track
   useEffect(() => {
     async function loadQuestions() {
       try {
         const cloudData = await getAllQuestions();
         if (cloudData && cloudData.length > 0) {
-          const mapped: QuizQuestion[] = cloudData.map((q, idx) => ({
+          let mapped: QuizQuestion[] = cloudData.map((q, idx) => ({
             id: q.id || `q_${idx}`,
             subject: q.subject,
             topic: q.topic,
@@ -168,6 +183,12 @@ export default function ProctoredQuizArenaPage() {
             optionsHi: q.optionsHi,
             correctOption: q.correctOption,
           }));
+
+          if (subjectFilter !== 'all') {
+            const filtered = mapped.filter(q => q.subject.toLowerCase() === subjectFilter.toLowerCase());
+            if (filtered.length > 0) mapped = filtered;
+          }
+
           setQuestions(mapped);
         }
       } catch (err) {
@@ -177,16 +198,57 @@ export default function ProctoredQuizArenaPage() {
       }
     }
     loadQuestions();
+  }, [subjectFilter]);
+
+  // 2. Session Storage Auto-Recovery on Initial Mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.selectedAnswers) setSelectedAnswers(parsed.selectedAnswers);
+        if (parsed.markedForReview) setMarkedForReview(parsed.markedForReview);
+        if (parsed.currentIndex !== undefined) setCurrentIndex(parsed.currentIndex);
+        if (parsed.timeLeftSeconds && parsed.timeLeftSeconds > 10) {
+          setTimeLeftSeconds(parsed.timeLeftSeconds);
+        }
+        if (parsed.isUnlocked) setIsUnlocked(true);
+        setSessionRestored(true);
+        setTimeout(() => setSessionRestored(false), 4000);
+      }
+    } catch (e) {
+      console.warn('Session restore error:', e);
+    }
   }, []);
 
-  // 2. Submit Handler
+  // 3. Auto-Save state on change
+  useEffect(() => {
+    if (isSubmitted) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    if (!loading && isUnlocked) {
+      const payload = {
+        selectedAnswers,
+        markedForReview,
+        currentIndex,
+        timeLeftSeconds,
+        isUnlocked,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+  }, [selectedAnswers, markedForReview, currentIndex, timeLeftSeconds, isUnlocked, isSubmitted, loading]);
+
+  // 4. Final Submit Handler
   const handleFinalSubmit = useCallback(() => {
     setIsSubmitted(true);
+    sessionStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  // 3. Live Timer
+  // 5. Timer with Auto-Submit
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || !isUnlocked) return;
     const timer = setInterval(() => {
       setTimeLeftSeconds((prev) => {
         if (prev <= 1) {
@@ -198,28 +260,37 @@ export default function ProctoredQuizArenaPage() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isSubmitted, handleFinalSubmit]);
+  }, [isSubmitted, isUnlocked, handleFinalSubmit]);
 
-  // 4. Anti-Cheat Visibility / Tab Switching Listener
+  // 6. Anti-Cheat Visibility with Mobile 3-Second Grace Window
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || !isUnlocked) return;
+
+    let switchTimeout: NodeJS.Timeout;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setProctorWarnings((prev) => {
-          const next = prev + 1;
-          setShowWarningModal(true);
-          if (next >= 3) {
-            handleFinalSubmit();
-          }
-          return next;
-        });
+        switchTimeout = setTimeout(() => {
+          setProctorWarnings((prev) => {
+            const next = prev + 1;
+            setShowWarningModal(true);
+            if (next >= 3) {
+              handleFinalSubmit();
+            }
+            return next;
+          });
+        }, 3000); // 3 seconds grace to prevent false alerts on mobile notifications
+      } else {
+        clearTimeout(switchTimeout);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isSubmitted, handleFinalSubmit]);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(switchTimeout);
+    };
+  }, [isSubmitted, isUnlocked, handleFinalSubmit]);
 
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -227,7 +298,6 @@ export default function ProctoredQuizArenaPage() {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  // Option selection
   const handleSelectOption = (optionIndex: number) => {
     setSelectedAnswers((prev) => ({
       ...prev,
@@ -248,7 +318,18 @@ export default function ProctoredQuizArenaPage() {
     setSelectedAnswers(copy);
   };
 
-  // Calculation for Result
+  // Roll Number Validation for Olympiad Gate
+  const handleUnlockOlympiad = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = rollInput.trim().toUpperCase();
+    if (clean.length < 6) {
+      setGateError('कृपया मान्य रोल नंबर (उदा. ABH-2026-8921) दर्ज करें।');
+      return;
+    }
+    setIsUnlocked(true);
+  };
+
+  // Result Metrics Calculations
   const totalQuestions = questions.length;
   const attemptedCount = Object.keys(selectedAnswers).length;
   let correctCount = 0;
@@ -279,20 +360,75 @@ export default function ProctoredQuizArenaPage() {
   }
 
   // =========================================================================
-  // VIEW 1: FINAL DIAGNOSTIC SCORECARD
+  // VIEW 1: OLYMPIAD GATEKEEPER (If mode is Olympiad and not unlocked)
+  // =========================================================================
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4 selection:bg-blue-600">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+          <div className="w-14 h-14 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+
+          <div className="text-center space-y-1.5">
+            <h2 className="text-xl font-extrabold text-white">All-India Olympiad Arena Lock</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              यह राष्ट्रीय छात्रवृत्ति मूल्यांकन है। परीक्षा प्रारंभ करने के लिए अपना आवंटित रोल नंबर दर्ज करें।
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlockOlympiad} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Candidate Roll Number / प्रवेश पत्र रोल नंबर:
+              </label>
+              <input
+                type="text"
+                required
+                value={rollInput}
+                onChange={(e) => {
+                  setRollInput(e.target.value);
+                  setGateError('');
+                }}
+                placeholder="e.g. ABH-2026-XXXX"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono uppercase text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
+              />
+              {gateError && <p className="text-[11px] text-rose-400 mt-1 font-semibold">{gateError}</p>}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Verify Token &amp; Start Exam</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-slate-800 text-center">
+            <Link href="/profile" className="text-xs text-blue-400 hover:underline">
+              Don&apos;t know your Roll Number? Check Admit Card →
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: FINAL DIAGNOSTIC SCORECARD
   // =========================================================================
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 selection:bg-blue-600 selection:text-white">
+      <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 selection:bg-blue-600">
         <div className="max-w-4xl mx-auto space-y-8">
           
-          {/* Header Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-2xl">
             <div className="w-16 h-16 bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
               <Trophy className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-black text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
                 Assessment Concluded &amp; Audited
               </h1>
               <p className="text-xs text-slate-400">
@@ -300,7 +436,6 @@ export default function ProctoredQuizArenaPage() {
               </p>
             </div>
 
-            {/* 4 Core Score Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
               <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Raw Score (+2 / -0.66)</span>
@@ -339,9 +474,9 @@ export default function ProctoredQuizArenaPage() {
             </div>
           </div>
 
-          {/* Step-by-Step Question Keys */}
+          {/* Detailed Question Keys */}
           <div className="space-y-4">
-            <h3 className="font-black text-lg text-white flex items-center gap-2">
+            <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-blue-400" />
               Detailed Solutions &amp; Verified Answer Keys
             </h3>
@@ -406,21 +541,29 @@ export default function ProctoredQuizArenaPage() {
   }
 
   // =========================================================================
-  // VIEW 2: ACTIVE PROCTORED TEST ARENA
+  // VIEW 3: ACTIVE TEST WORKSPACE
   // =========================================================================
   const currentQ = questions[currentIndex];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-blue-600">
       
-      {/* Top Test Header Bar */}
+      {/* Session Restored Toast Notification */}
+      {sessionRestored && (
+        <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+          <span>Session automatically recovered from secure storage.</span>
+        </div>
+      )}
+
+      {/* Header */}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-black text-sm">
             A
           </div>
           <div>
-            <h2 className="font-black text-xs sm:text-sm text-white">
+            <h2 className="font-extrabold text-xs sm:text-sm text-white">
               Abhyaas Proctored Assessment Arena
             </h2>
             <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
@@ -429,45 +572,55 @@ export default function ProctoredQuizArenaPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile Palette Drawer Trigger */}
+          <button
+            onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+            className="lg:hidden px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1"
+          >
+            <Layers className="w-3.5 h-3.5 text-blue-400" />
+            <span>Q: {currentIndex + 1}/{totalQuestions}</span>
+          </button>
+
           {/* Language Toggle */}
           <button
             onClick={() => setLang(lang === 'hi' ? 'en' : 'hi')}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-blue-400" />
-            <span>{lang === 'hi' ? 'हिन्दी (Active)' : 'English (Active)'}</span>
+            <span className="hidden sm:inline">{lang === 'hi' ? 'हिन्दी (Active)' : 'English (Active)'}</span>
+            <span className="sm:hidden">{lang === 'hi' ? 'HI' : 'EN'}</span>
           </button>
 
           {/* Countdown Clock */}
-          <div className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-mono font-black text-xs sm:text-sm flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-400" />
+          <div className="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono font-bold text-xs sm:text-sm flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
             <span>{formatTimer(timeLeftSeconds)}</span>
           </div>
 
           <button
             onClick={handleFinalSubmit}
-            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition shadow-md cursor-pointer"
+            className="px-3.5 sm:px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition shadow-md cursor-pointer"
           >
             Submit Paper
           </button>
         </div>
       </header>
 
-      {/* Main Examination Workspace */}
+      {/* Main Examination Canvas */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-grow grid lg:grid-cols-12 gap-6 items-start">
         
         {/* Left: Question Canvas (Span 8) */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 space-y-6 shadow-xl">
           
           <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-md bg-blue-600/30 text-blue-300 font-bold uppercase text-[10px]">
+              <span className="px-2.5 py-0.5 rounded-md bg-blue-600/25 text-blue-400 font-bold uppercase text-[10px]">
                 {currentQ.subject}
               </span>
-              <span className="text-slate-400 font-semibold">{currentQ.topic}</span>
+              <span className="text-slate-400 font-medium">{currentQ.topic}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-[11px]">
               <span className="text-slate-400">Marking:</span>
               <span className="text-emerald-400 font-bold">+2.00</span>
               <span className="text-slate-600">/</span>
@@ -475,10 +628,10 @@ export default function ProctoredQuizArenaPage() {
             </div>
           </div>
 
-          {/* Question Text */}
-          <div className="space-y-3">
+          {/* Question Body */}
+          <div className="space-y-2.5">
             <div className="flex items-start gap-2">
-              <span className="font-black text-blue-400 text-sm sm:text-base">Q.{currentIndex + 1}</span>
+              <span className="font-extrabold text-blue-400 text-sm sm:text-base">Q.{currentIndex + 1}</span>
               <p className="font-bold text-sm sm:text-base text-white leading-relaxed">
                 {lang === 'hi' ? currentQ.questionHi : currentQ.questionEn}
               </p>
@@ -517,7 +670,7 @@ export default function ProctoredQuizArenaPage() {
             })}
           </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
@@ -529,14 +682,14 @@ export default function ProctoredQuizArenaPage() {
                 }`}
               >
                 <Flag className="w-3.5 h-3.5" />
-                <span>{markedForReview[currentIndex] ? 'Marked for Review' : 'Mark for Review'}</span>
+                <span>{markedForReview[currentIndex] ? 'Review Marked' : 'Mark Review'}</span>
               </button>
 
               <button
                 onClick={clearCurrentResponse}
                 className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold transition cursor-pointer"
               >
-                Clear Response
+                Clear
               </button>
             </div>
 
@@ -547,7 +700,7 @@ export default function ProctoredQuizArenaPage() {
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>Previous</span>
+                <span>Prev</span>
               </button>
 
               <button
@@ -563,15 +716,13 @@ export default function ProctoredQuizArenaPage() {
 
         </div>
 
-        {/* Right: Question Palette (Span 4) */}
-        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-xl">
-          
+        {/* Right: Desktop Question Palette (Span 4) */}
+        <div className="hidden lg:block lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-xl">
           <div className="space-y-1 pb-3 border-b border-slate-800">
-            <h3 className="font-black text-sm text-white">Question Navigation Palette</h3>
+            <h3 className="font-extrabold text-sm text-white">Question Navigation Palette</h3>
             <p className="text-[11px] text-slate-400">Total: {totalQuestions} Questions</p>
           </div>
 
-          {/* Palette Grid */}
           <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto pr-1">
             {questions.map((_, idx) => {
               const isAnswered = selectedAnswers[idx] !== undefined;
@@ -599,11 +750,10 @@ export default function ProctoredQuizArenaPage() {
             })}
           </div>
 
-          {/* Legend */}
           <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 pt-3 border-t border-slate-800">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-600" />
-              <span>Answered ({Object.keys(selectedAnswers).length})</span>
+              <span>Answered ({attemptedCount})</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-purple-600" />
@@ -618,12 +768,54 @@ export default function ProctoredQuizArenaPage() {
               <span>Current</span>
             </div>
           </div>
-
         </div>
 
       </div>
 
-      {/* Anti-Cheat Warning Modal */}
+      {/* Mobile Collapsible Palette Drawer */}
+      {mobileDrawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end justify-center">
+          <div className="bg-slate-900 border-t border-slate-700 w-full max-w-lg rounded-t-3xl p-5 space-y-4 animate-in slide-in-from-bottom-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h4 className="font-extrabold text-sm text-white">Jump to Question</h4>
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                className="text-xs font-bold text-blue-400 px-3 py-1 bg-slate-800 rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-5 gap-2 max-h-56 overflow-y-auto">
+              {questions.map((_, idx) => {
+                const isAnswered = selectedAnswers[idx] !== undefined;
+                const isFlagged = markedForReview[idx];
+                const isCurrent = currentIndex === idx;
+
+                let btnStyle = 'bg-slate-800 text-slate-400 border-slate-700';
+                if (isCurrent) btnStyle = 'bg-blue-600 text-white font-black ring-2 ring-blue-400';
+                else if (isFlagged) btnStyle = 'bg-purple-600 text-white font-bold';
+                else if (isAnswered) btnStyle = 'bg-emerald-600 text-white font-bold';
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setCurrentIndex(idx);
+                      setMobileDrawerOpen(false);
+                    }}
+                    className={`h-11 rounded-xl text-xs flex items-center justify-center border ${btnStyle}`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Anti-Cheat Security Modal */}
       {showWarningModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border-2 border-rose-500 rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
