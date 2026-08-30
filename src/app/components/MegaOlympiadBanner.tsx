@@ -6,25 +6,37 @@ import {
   GraduationCap, 
   Award, 
   ArrowRight, 
-  Globe, 
-  Star, 
-  Users, 
   Clock, 
   Sparkles,
-  BookOpen,
-  Layers,
+  Users,
   Trophy,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  FileCheck2,
+  BookMarked,
+  Landmark,
+  Building2,
+  Briefcase,
+  UserCheck,
+  Train,
+  Shield,
+  Layers,
+  CheckCircle2
 } from 'lucide-react';
 import { getSiteSettings, SiteSettings } from '@/lib/db';
 
-type CategoryTab = 'exams' | 'subjects' | 'topics';
+type MainTab = 'exams' | 'topics' | 'subjects';
+
+interface SubCategory {
+  id: string;
+  name: string;
+  icon: any;
+  colorBg?: string;
+}
 
 export default function MegaOlympiadBanner() {
-  const [currentLang, setCurrentLang] = useState<'hi' | 'en'>('hi');
-  const [activeCategory, setActiveCategory] = useState<CategoryTab>('exams');
-  const [activeFilterItem, setActiveFilterItem] = useState('UPSC CSE (IAS/IPS)');
+  const [activeTab, setActiveTab] = useState<MainTab>('exams');
+  const [activeSubCat, setActiveSubCat] = useState('Civil Services');
 
   // Dynamic Settings from Firebase
   const [settings, setSettings] = useState<SiteSettings>({
@@ -35,7 +47,6 @@ export default function MegaOlympiadBanner() {
     bannerGraphicUrl: null,
   });
 
-  // Fetch live settings on mount
   useEffect(() => {
     async function fetchBannerConfig() {
       const data = await getSiteSettings();
@@ -53,9 +64,8 @@ export default function MegaOlympiadBanner() {
     fetchBannerConfig();
   }, []);
 
-  // Live Synchronized Countdown Timer (1h 59m 58s)
+  // Live Timer
   const [timeLeft, setTimeLeft] = useState({ hours: 1, minutes: 59, seconds: 58 });
-
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -68,139 +78,139 @@ export default function MegaOlympiadBanner() {
     return () => clearInterval(timer);
   }, []);
 
-  // 1. EXAM Categories
-  const examCategories = [
-    { id: 'e-all', nameHi: 'सभी परीक्षाएं', nameEn: 'All Exams', featured: false },
-    { id: 'e-upsc', nameHi: 'UPSC CSE (IAS/IPS)', nameEn: 'UPSC CSE (IAS/IPS)', featured: true },
-    { id: 'e-pcs', nameHi: 'State PSC (UP/BPSC)', nameEn: 'State PSC (UP/BPSC)', featured: false },
-    { id: 'e-ssc', nameHi: 'SSC CGL / CHSL', nameEn: 'SSC CGL / CHSL', featured: false },
-    { id: 'e-bank', nameHi: 'Banking & CSAT', nameEn: 'Banking & CSAT', featured: false }
+  // 1. EXAMS Subcategories (Matching Screenshot with circular badges)
+  const examSubCategories: SubCategory[] = [
+    { id: 'civil', name: 'Civil Services', icon: Landmark, colorBg: 'bg-amber-100 text-amber-800' },
+    { id: 'ssc', name: 'SSC Exams', icon: Briefcase, colorBg: 'bg-blue-100 text-blue-800' },
+    { id: 'banking', name: 'Banking Exams', icon: Building2, colorBg: 'bg-cyan-100 text-cyan-800' },
+    { id: 'teaching', name: 'Teaching Exams', icon: UserCheck, colorBg: 'bg-emerald-100 text-emerald-800' },
+    { id: 'railway', name: 'Railway Exams', icon: Train, colorBg: 'bg-indigo-100 text-indigo-800' },
+    { id: 'defense', name: 'Defense & Police', icon: Shield, colorBg: 'bg-rose-100 text-rose-800' },
   ];
 
-  // 2. SUBJECT Categories
-  const subjectCategories = [
-    { id: 's-all', nameHi: 'सभी विषय', nameEn: 'All Subjects', featured: false },
-    { id: 's-polity', nameHi: 'भारतीय राजव्यवस्था (Polity)', nameEn: 'Polity & Constitution', featured: true },
-    { id: 's-hist', nameHi: 'भारतीय इतिहास (History)', nameEn: 'Modern History', featured: false },
-    { id: 's-eco', nameHi: 'अर्थव्यवस्था (Economy)', nameEn: 'Indian Economy', featured: false },
-    { id: 's-geo', nameHi: 'भूगोल एवं पर्यावरण (Geography)', nameEn: 'Geography & Ecology', featured: false },
+  // 2. TOPICS Subcategories
+  const topicSubCategories: SubCategory[] = [
+    { id: 'preamble', name: 'Preamble & Philosophy', icon: BookMarked, colorBg: 'bg-amber-100 text-amber-800' },
+    { id: 'fr', name: 'Fundamental Rights (Art 12-35)', icon: ShieldCheck, colorBg: 'bg-blue-100 text-blue-800' },
+    { id: 'panchayat', name: 'Panchayati Raj (73rd Amend)', icon: Landmark, colorBg: 'bg-emerald-100 text-emerald-800' },
+    { id: 'dpsp', name: 'DPSP & Fundamental Duties', icon: Layers, colorBg: 'bg-purple-100 text-purple-800' },
+    { id: 'parliament', name: 'Parliament & Legislation', icon: Building2, colorBg: 'bg-indigo-100 text-indigo-800' },
   ];
 
-  // 3. TOPIC Categories
-  const topicCategories = [
-    { id: 't-preamble', nameHi: 'प्रस्तावना एवं ढांचा', nameEn: 'Preamble & Framework', featured: true },
-    { id: 't-fr', nameHi: 'मौलिक अधिकार (Art 12-35)', nameEn: 'Fundamental Rights', featured: true },
-    { id: 't-panchayat', nameHi: 'पंचायती राज (73rd Amend)', nameEn: 'Panchayati Raj & 73rd', featured: false },
-    { id: 't-freedom', nameHi: '1857 - 1947 स्वतंत्रता संग्राम', nameEn: 'Freedom Movement', featured: false },
+  // 3. SUBJECTS Subcategories
+  const subjectSubCategories: SubCategory[] = [
+    { id: 'polity', name: 'Indian Polity & Constitution', icon: Landmark, colorBg: 'bg-blue-100 text-blue-800' },
+    { id: 'history', name: 'Modern Indian History', icon: BookMarked, colorBg: 'bg-amber-100 text-amber-800' },
+    { id: 'economy', name: 'Economy & Budget', icon: Building2, colorBg: 'bg-emerald-100 text-emerald-800' },
+    { id: 'geography', name: 'Geography & Ecology', icon: Layers, colorBg: 'bg-cyan-100 text-cyan-800' },
+    { id: 'csat', name: 'CSAT Aptitude & Logic', icon: Zap, colorBg: 'bg-purple-100 text-purple-800' },
   ];
 
-  const currentCategoryList = 
-    activeCategory === 'exams' ? examCategories :
-    activeCategory === 'subjects' ? subjectCategories : topicCategories;
+  const currentSubCategories = 
+    activeTab === 'exams' ? examSubCategories :
+    activeTab === 'topics' ? topicSubCategories : subjectSubCategories;
 
   return (
-    <div className="w-full bg-slate-100 border-b border-slate-200">
+    <div className="w-full">
       
-      {/* Top Filter Stream Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-2">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
+      {/* ================= 1. TOP BLUE BAR WITH 3 BIG BUTTONS ================= */}
+      <div className="bg-[#14536f] py-4 px-4 sm:px-6 shadow-md">
+        <div className="max-w-5xl mx-auto flex items-center justify-center gap-3 sm:gap-6 overflow-x-auto scrollbar-none py-1">
           
-          {/* 3 Main Segment Tabs: Exams / Subjects / Topics */}
-          <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs font-bold overflow-x-auto">
-            <button
-              onClick={() => {
-                setActiveCategory('exams');
-                setActiveFilterItem('UPSC CSE (IAS/IPS)');
-              }}
-              className={`px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeCategory === 'exams' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>परीक्षाएं (Target Exams)</span>
-            </button>
+          {/* BUTTON 1: EXAMS */}
+          <button
+            onClick={() => {
+              setActiveTab('exams');
+              setActiveSubCat('Civil Services');
+            }}
+            className={`flex items-center gap-2.5 sm:gap-3.5 px-6 sm:px-9 py-2.5 sm:py-3.5 rounded-full font-black text-sm sm:text-lg transition-all duration-150 cursor-pointer shadow-lg whitespace-nowrap ${
+              activeTab === 'exams'
+                ? 'bg-[#0077b6] text-white border-2 border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] scale-105'
+                : 'bg-white text-slate-900 hover:bg-slate-100 border border-slate-300'
+            }`}
+          >
+            <FileCheck2 className={`w-6 h-6 sm:w-7 sm:h-7 ${activeTab === 'exams' ? 'text-white' : 'text-slate-800'}`} />
+            <span>Exams</span>
+          </button>
 
-            <button
-              onClick={() => {
-                setActiveCategory('subjects');
-                setActiveFilterItem('Polity & Constitution');
-              }}
-              className={`px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeCategory === 'subjects' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>विषय (Subjects)</span>
-            </button>
+          {/* BUTTON 2: TOPICS */}
+          <button
+            onClick={() => {
+              setActiveTab('topics');
+              setActiveSubCat('Preamble & Philosophy');
+            }}
+            className={`flex items-center gap-2.5 sm:gap-3.5 px-6 sm:px-9 py-2.5 sm:py-3.5 rounded-full font-black text-sm sm:text-lg transition-all duration-150 cursor-pointer shadow-lg whitespace-nowrap ${
+              activeTab === 'topics'
+                ? 'bg-[#0077b6] text-white border-2 border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] scale-105'
+                : 'bg-white text-slate-900 hover:bg-slate-100 border border-slate-300'
+            }`}
+          >
+            <div className="flex items-center">
+              <BookMarked className={`w-6 h-6 sm:w-7 sm:h-7 ${activeTab === 'topics' ? 'text-white' : 'text-slate-800'}`} />
+            </div>
+            <span>Topics</span>
+          </button>
 
-            <button
-              onClick={() => {
-                setActiveCategory('topics');
-                setActiveFilterItem('Preamble & Framework');
-              }}
-              className={`px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeCategory === 'topics' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>टॉपिक्स (Topics)</span>
-            </button>
-          </div>
+          {/* BUTTON 3: SUBJECTS */}
+          <button
+            onClick={() => {
+              setActiveTab('subjects');
+              setActiveSubCat('Indian Polity & Constitution');
+            }}
+            className={`flex items-center gap-2.5 sm:gap-3.5 px-6 sm:px-9 py-2.5 sm:py-3.5 rounded-full font-black text-sm sm:text-lg transition-all duration-150 cursor-pointer shadow-lg whitespace-nowrap ${
+              activeTab === 'subjects'
+                ? 'bg-[#0077b6] text-white border-2 border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] scale-105'
+                : 'bg-white text-slate-900 hover:bg-slate-100 border border-slate-300'
+            }`}
+          >
+            <span className={`text-xl sm:text-2xl font-black font-serif leading-none ${activeTab === 'subjects' ? 'text-white' : 'text-slate-900'}`}>
+              अ
+            </span>
+            <span>Subjects</span>
+          </button>
 
-          {/* Bilingual Switcher */}
-          <div className="flex items-center gap-2 text-xs font-bold bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm">
-            <Globe className="w-4 h-4 text-blue-600" />
-            <span className="text-slate-500">माध्यम:</span>
-            <button
-              onClick={() => setCurrentLang('hi')}
-              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                currentLang === 'hi' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              हिन्दी
-            </button>
-            <button
-              onClick={() => setCurrentLang('en')}
-              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                currentLang === 'en' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              English
-            </button>
-          </div>
         </div>
+      </div>
 
-        {/* Dynamic Badges Filter Stream */}
-        <div className="flex items-center gap-2 pt-3 overflow-x-auto pb-2 scrollbar-none">
-          {currentCategoryList.map((cat) => {
-            const isSelected = activeFilterItem === cat.nameEn || activeFilterItem === cat.nameHi;
+      {/* ================= 2. WHITE SUBCATEGORIES STRIP (PILL BADGES) ================= */}
+      <div className="bg-white border-b border-slate-200 py-3 px-4 sm:px-6 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center gap-2.5 sm:gap-3 overflow-x-auto scrollbar-none">
+          {currentSubCategories.map((sub) => {
+            const isSelected = activeSubCat === sub.name;
+            const IconComponent = sub.icon;
+
             return (
               <button
-                key={cat.id}
-                onClick={() => setActiveFilterItem(currentLang === 'hi' ? cat.nameHi : cat.nameEn)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                key={sub.id}
+                onClick={() => setActiveSubCat(sub.name)}
+                className={`flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                   isSelected
-                    ? 'bg-white border-2 border-blue-600 text-blue-600 shadow-sm'
-                    : 'bg-white/80 border border-slate-200 text-slate-700 hover:bg-white'
+                    ? 'bg-white border-2 border-blue-600 text-blue-700 shadow-md ring-2 ring-blue-500/20'
+                    : 'bg-[#dedede] hover:bg-[#d3d3d3] border border-slate-400 text-slate-800 shadow-sm'
                 }`}
               >
-                {cat.featured && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
-                <span>{currentLang === 'hi' ? cat.nameHi : cat.nameEn}</span>
+                {/* Circular Icon on the Left */}
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner ${
+                  isSelected ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white'
+                }`}>
+                  <IconComponent className="w-3.5 h-3.5" />
+                </div>
+                <span>{sub.name}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* ================= MAIN LARGE HERO CARD ================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-10">
+      {/* ================= 3. MAIN DARK MEGA OLYMPIAD HERO CARD ================= */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-10">
         <div className="bg-gradient-to-b from-[#0b1329] via-[#0f172a] to-[#080d1a] border border-slate-700/80 rounded-3xl p-6 sm:p-10 lg:p-12 text-white shadow-2xl relative overflow-hidden space-y-8">
           
-          {/* Subtle Ambient Background Lighting */}
+          {/* Background Ambient Glows */}
           <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Top Row: Badges & Live Synchronized Clock */}
+          {/* Top Row: Badges & Live Countdown */}
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold uppercase tracking-wide">
@@ -217,7 +227,7 @@ export default function MegaOlympiadBanner() {
               </span>
             </div>
 
-            {/* Prominent High-Tech Countdown Box */}
+            {/* Countdown Box */}
             <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-4 py-2 rounded-2xl shadow-inner self-start md:self-auto">
               <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
@@ -239,7 +249,7 @@ export default function MegaOlympiadBanner() {
             </div>
           </div>
 
-          {/* Titles & Description */}
+          {/* Dynamic Titles */}
           <div className="relative z-10 space-y-2.5 max-w-4xl">
             <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-amber-400 leading-tight">
               {settings.bannerTitleHi}
@@ -248,11 +258,11 @@ export default function MegaOlympiadBanner() {
               {settings.bannerTitleEn}
             </p>
             <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed pt-1">
-              अखिल भारतीय मेधावी मूल्यांकन परीक्षा • All-India Percentile Standings, Weakness Heatmaps &amp; Verified Academic Research Grants.
+              अखिल भारतीय मेधावी मूल्यांकन परीक्षा • Selected Domain: <strong className="text-white">{activeSubCat}</strong>. All-India Percentile Standings &amp; Verified Academic Research Grants.
             </p>
           </div>
 
-          {/* Registration Progress Bar */}
+          {/* Registration Progress */}
           <div className="relative z-10 space-y-2 max-w-2xl">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
               <span className="flex items-center gap-1.5">
@@ -266,11 +276,11 @@ export default function MegaOlympiadBanner() {
             </div>
           </div>
 
-          {/* ================= 3 BIG PREMIUM ACTION BUTTONS (LEFT - MID - RIGHT) ================= */}
+          {/* 3 Main Action Cards */}
           <div className="relative z-10 pt-6 border-t border-slate-800/80">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
               
-              {/* BUTTON 1 (LEFT): Gold / Amber Olympiad Slot Booking */}
+              {/* Button 1: Register Slot */}
               <Link
                 href="/olympiad"
                 className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-black shadow-xl shadow-amber-500/20 hover:shadow-2xl hover:shadow-amber-500/40 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer"
@@ -285,7 +295,7 @@ export default function MegaOlympiadBanner() {
                 </span>
               </Link>
 
-              {/* BUTTON 2 (MIDDLE): Royal Blue Practice & Speed Drill */}
+              {/* Button 2: Daily Speed Drill */}
               <Link
                 href="/quiz"
                 className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 text-white font-black shadow-xl shadow-blue-600/20 hover:shadow-2xl hover:shadow-blue-600/40 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer"
@@ -300,7 +310,7 @@ export default function MegaOlympiadBanner() {
                 </span>
               </Link>
 
-              {/* BUTTON 3 (RIGHT): Emerald Green All-India Rankings & Grants */}
+              {/* Button 3: Rankings */}
               <Link
                 href="/leaderboard"
                 className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 text-white font-black shadow-xl shadow-emerald-600/20 hover:shadow-2xl hover:shadow-emerald-600/40 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer"
