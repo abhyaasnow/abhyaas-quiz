@@ -7,17 +7,22 @@ import {
   Award, 
   ArrowRight, 
   Globe, 
-  Star,
-  Users,
-  Clock,
-  Sparkles
+  Star, 
+  Users, 
+  Clock, 
+  Sparkles,
+  BookOpen,
+  School,
+  Layers
 } from 'lucide-react';
 import { getSiteSettings, SiteSettings } from '@/lib/db';
 
+type CategoryTab = 'classes' | 'exams' | 'subjects' | 'topics';
+
 export default function MegaOlympiadBanner() {
   const [currentLang, setCurrentLang] = useState<'hi' | 'en'>('hi');
-  const [activeCategory, setActiveCategory] = useState<'subjects' | 'exams' | 'topics'>('exams');
-  const [activeExam, setActiveExam] = useState('UPSC CSE');
+  const [activeCategory, setActiveCategory] = useState<CategoryTab>('classes');
+  const [activeFilterItem, setActiveFilterItem] = useState('Class 11th - 12th');
 
   // Dynamic Settings from Firebase
   const [settings, setSettings] = useState<SiteSettings>({
@@ -61,13 +66,45 @@ export default function MegaOlympiadBanner() {
     return () => clearInterval(timer);
   }, []);
 
-  const examCategories = [
-    { id: 'all', nameHi: 'सभी परीक्षाएं', nameEn: 'All Exams', featured: false },
-    { id: 'upsc', nameHi: 'UPSC CSE', nameEn: 'UPSC CSE', featured: true },
-    { id: 'pcs', nameHi: 'State PCS', nameEn: 'State PCS', featured: false },
-    { id: 'ssc', nameHi: 'SSC CGL', nameEn: 'SSC CGL', featured: false },
-    { id: 'bank', nameHi: 'Banking & PO', nameEn: 'Banking & PO', featured: false }
+  // 1. CLASS (1st to 12th) Categories
+  const classCategories = [
+    { id: 'c-all', nameHi: 'सभी कक्षाएं', nameEn: 'All Classes', featured: false },
+    { id: 'c-1-5', nameHi: 'कक्षा 01 - 05वीं (Primary)', nameEn: 'Class 01st - 05th (Primary)', featured: false },
+    { id: 'c-6-8', nameHi: 'कक्षा 06 - 08वीं (Middle)', nameEn: 'Class 06th - 08th (Middle)', featured: false },
+    { id: 'c-9-10', nameHi: 'कक्षा 09 - 10वीं (Secondary)', nameEn: 'Class 09th - 10th (Secondary)', featured: true },
+    { id: 'c-11-12', nameHi: 'कक्षा 11 - 12वीं (Sr. Secondary)', nameEn: 'Class 11th - 12th (Sr. Secondary)', featured: true },
   ];
+
+  // 2. EXAM Categories
+  const examCategories = [
+    { id: 'e-all', nameHi: 'सभी परीक्षाएं', nameEn: 'All Exams', featured: false },
+    { id: 'e-upsc', nameHi: 'UPSC CSE (IAS/IPS)', nameEn: 'UPSC CSE', featured: true },
+    { id: 'e-pcs', nameHi: 'State PSC (UP/BPSC)', nameEn: 'State PSC', featured: false },
+    { id: 'e-ssc', nameHi: 'SSC CGL / CHSL', nameEn: 'SSC CGL', featured: false },
+    { id: 'e-bank', nameHi: 'Banking & CSAT', nameEn: 'Banking & CSAT', featured: false }
+  ];
+
+  // 3. SUBJECT Categories
+  const subjectCategories = [
+    { id: 's-all', nameHi: 'सभी विषय', nameEn: 'All Subjects', featured: false },
+    { id: 's-polity', nameHi: 'भारतीय राजव्यवस्था (Polity)', nameEn: 'Polity & Constitution', featured: true },
+    { id: 's-hist', nameHi: 'भारतीय इतिहास (History)', nameEn: 'Modern History', featured: false },
+    { id: 's-eco', nameHi: 'अर्थव्यवस्था (Economy)', nameEn: 'Indian Economy', featured: false },
+    { id: 's-geo', nameHi: 'भूगोल एवं पर्यावरण (Geography)', nameEn: 'Geography & Ecology', featured: false },
+  ];
+
+  // 4. TOPIC Categories
+  const topicCategories = [
+    { id: 't-preamble', nameHi: 'प्रस्तावना एवं ढांचा', nameEn: 'Preamble & Framework', featured: true },
+    { id: 't-fr', nameHi: 'मौलिक अधिकार (Art 12-35)', nameEn: 'Fundamental Rights', featured: true },
+    { id: 't-panchayat', nameHi: 'पंचायती राज (73rd Amend)', nameEn: 'Panchayati Raj & 73rd', featured: false },
+    { id: 't-freedom', nameHi: '1857 - 1947 स्वतंत्रता संग्राम', nameEn: 'Freedom Movement', featured: false },
+  ];
+
+  const currentCategoryList = 
+    activeCategory === 'classes' ? classCategories :
+    activeCategory === 'exams' ? examCategories :
+    activeCategory === 'subjects' ? subjectCategories : topicCategories;
 
   return (
     <div className="w-full bg-slate-100 border-b border-slate-200">
@@ -76,31 +113,59 @@ export default function MegaOlympiadBanner() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
           
-          {/* Tabs: Subjects / Exams / Topics */}
-          <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs font-bold">
+          {/* 4 Main Segment Tabs: Classes / Exams / Subjects / Topics */}
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs font-bold overflow-x-auto">
+            
             <button
-              onClick={() => setActiveCategory('subjects')}
-              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
-                activeCategory === 'subjects' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => {
+                setActiveCategory('classes');
+                setActiveFilterItem('Class 11th - 12th (Sr. Secondary)');
+              }}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                activeCategory === 'classes' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              विषय (Subjects)
+              <School className="w-3.5 h-3.5" />
+              <span>कक्षाएं (Classes 1-12)</span>
             </button>
+
             <button
-              onClick={() => setActiveCategory('exams')}
-              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+              onClick={() => {
+                setActiveCategory('exams');
+                setActiveFilterItem('UPSC CSE');
+              }}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeCategory === 'exams' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              परीक्षाएं (Exams)
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>परीक्षाएं (Exams)</span>
             </button>
+
             <button
-              onClick={() => setActiveCategory('topics')}
-              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+              onClick={() => {
+                setActiveCategory('subjects');
+                setActiveFilterItem('Polity & Constitution');
+              }}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                activeCategory === 'subjects' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>विषय (Subjects)</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveCategory('topics');
+                setActiveFilterItem('Preamble & Framework');
+              }}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeCategory === 'topics' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              टॉपिक्स (Topics)
+              <Layers className="w-3.5 h-3.5" />
+              <span>टॉपिक्स (Topics)</span>
             </button>
           </div>
 
@@ -127,14 +192,14 @@ export default function MegaOlympiadBanner() {
           </div>
         </div>
 
-        {/* Exam Badges Filter */}
+        {/* Dynamic Badges Filter Stream */}
         <div className="flex items-center gap-2 pt-3 overflow-x-auto pb-2 scrollbar-none">
-          {examCategories.map((cat) => {
-            const isSelected = activeExam === cat.nameEn;
+          {currentCategoryList.map((cat) => {
+            const isSelected = activeFilterItem === cat.nameEn || activeFilterItem === cat.nameHi;
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveExam(cat.nameEn)}
+                onClick={() => setActiveFilterItem(currentLang === 'hi' ? cat.nameHi : cat.nameEn)}
                 className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-white border-2 border-blue-600 text-blue-600 shadow-sm'
@@ -158,7 +223,7 @@ export default function MegaOlympiadBanner() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold">
                 <GraduationCap className="w-4 h-4" />
-                ALL-INDIA WEEKLY OLYMPIAD | साप्ताहिक ओलंपियाड
+                ALL-INDIA OLYMPIAD &amp; ASSESSMENT
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold">
                 <Award className="w-3.5 h-3.5" />
@@ -178,7 +243,7 @@ export default function MegaOlympiadBanner() {
                 {settings.bannerTitleEn}
               </p>
               <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-                UPSC &amp; State PSC अखिल भारतीय मूल्यांकन परीक्षा • All-India Rank, Analysis &amp; Merit Academic Grants.
+                School (Class 1-12) &amp; Competitive Exam अखिल भारतीय मूल्यांकन परीक्षा • All-India Rank, Weakness Heatmap &amp; Merit Academic Fellowships.
               </p>
             </div>
 
@@ -187,7 +252,7 @@ export default function MegaOlympiadBanner() {
               <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
                 <span className="flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-blue-400" />
-                  380 / 500 Aspirants Registered (पंजीकृत)
+                  380 / 500 Candidates Registered (पंजीकृत)
                 </span>
                 <span className="text-amber-400 font-bold">Slots Filling Fast (76%)</span>
               </div>
@@ -223,7 +288,7 @@ export default function MegaOlympiadBanner() {
                 </div>
               </div>
 
-              {/* Action Button with Dynamic Fee */}
+              {/* Action Button */}
               <div className="flex items-center gap-3">
                 <Link
                   href="/olympiad"
