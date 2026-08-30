@@ -8,13 +8,10 @@ import {
   Award,
   Search,
   CheckCircle2,
-  Timer,
-  Target,
   ShieldCheck,
   Zap,
-  SlidersHorizontal,
-  ArrowRight,
-  TrendingUp
+  TrendingUp,
+  ArrowRight
 } from 'lucide-react';
 
 interface RankEntry {
@@ -22,7 +19,7 @@ interface RankEntry {
   candidateName: string;
   avatarInitials: string;
   state: string;
-  tier: string;
+  tier: 'weekly-sprint' | 'monthly-mega' | 'daily-drill';
   score: number;
   maxScore: number;
   accuracy: number;
@@ -32,6 +29,7 @@ interface RankEntry {
 }
 
 const LEADERBOARD_DATA: RankEntry[] = [
+  // ================= 1. WEEKLY SPEED SPRINT =================
   {
     rank: 1,
     candidateName: 'Aditya Vardhan Sharma',
@@ -162,10 +160,118 @@ const LEADERBOARD_DATA: RankEntry[] = [
     scholarshipStatus: '₹500 Subject Grant',
     isVerified: true,
   },
+
+  // ================= 2. MONTHLY MEGA OLYMPIAD =================
+  {
+    rank: 1,
+    candidateName: 'Siddharth Mukherjee',
+    avatarInitials: 'SM',
+    state: 'West Bengal',
+    tier: 'monthly-mega',
+    score: 188.50,
+    maxScore: 200,
+    accuracy: 95.5,
+    timeSpent: '1h 18m',
+    scholarshipStatus: '₹25,000 Research Fellowship',
+    isVerified: true,
+  },
+  {
+    rank: 2,
+    candidateName: 'Akash Deep Chaudhary',
+    avatarInitials: 'AC',
+    state: 'Haryana',
+    tier: 'monthly-mega',
+    score: 182.20,
+    maxScore: 200,
+    accuracy: 93.0,
+    timeSpent: '1h 22m',
+    scholarshipStatus: '₹10,000 Academic Grant',
+    isVerified: true,
+  },
+  {
+    rank: 3,
+    candidateName: 'Shreya Iyer',
+    avatarInitials: 'SI',
+    state: 'Maharashtra',
+    tier: 'monthly-mega',
+    score: 179.00,
+    maxScore: 200,
+    accuracy: 91.8,
+    timeSpent: '1h 25m',
+    scholarshipStatus: '₹10,000 Academic Grant',
+    isVerified: true,
+  },
+  {
+    rank: 4,
+    candidateName: 'Neeraj Mishra',
+    avatarInitials: 'NM',
+    state: 'Uttar Pradesh',
+    tier: 'monthly-mega',
+    score: 174.60,
+    maxScore: 200,
+    accuracy: 89.5,
+    timeSpent: '1h 27m',
+    scholarshipStatus: '₹3,000 Educational Grant',
+    isVerified: true,
+  },
+
+  // ================= 3. DAILY PRACTICE DRILLS =================
+  {
+    rank: 1,
+    candidateName: 'Kunal Rathore',
+    avatarInitials: 'KR',
+    state: 'Madhya Pradesh',
+    tier: 'daily-drill',
+    score: 20.00,
+    maxScore: 20,
+    accuracy: 100.0,
+    timeSpent: '4m 12s',
+    scholarshipStatus: 'Speed Master Badge',
+    isVerified: true,
+  },
+  {
+    rank: 2,
+    candidateName: 'Megha Sen',
+    avatarInitials: 'MS',
+    state: 'Odisha',
+    tier: 'daily-drill',
+    score: 20.00,
+    maxScore: 20,
+    accuracy: 100.0,
+    timeSpent: '4m 45s',
+    scholarshipStatus: 'Speed Master Badge',
+    isVerified: true,
+  },
+  {
+    rank: 3,
+    candidateName: 'Aman Preet',
+    avatarInitials: 'AP',
+    state: 'Delhi-NCR',
+    tier: 'daily-drill',
+    score: 18.66,
+    maxScore: 20,
+    accuracy: 95.0,
+    timeSpent: '5m 02s',
+    scholarshipStatus: 'Daily Top Performer',
+    isVerified: true,
+  },
+  {
+    rank: 4,
+    candidateName: 'Tanya Gupta',
+    avatarInitials: 'TG',
+    state: 'Gujarat',
+    tier: 'daily-drill',
+    score: 18.00,
+    maxScore: 20,
+    accuracy: 92.0,
+    timeSpent: '5m 20s',
+    scholarshipStatus: 'Daily Top Performer',
+    isVerified: true,
+  }
 ];
 
 export default function LeaderboardPage() {
-  const [selectedTier, setSelectedTier] = useState('weekly-sprint');
+  const [selectedTier, setSelectedTier] = useState<'weekly-sprint' | 'monthly-mega' | 'daily-drill'>('weekly-sprint');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredRanks = useMemo(() => {
@@ -283,7 +389,7 @@ export default function LeaderboardPage() {
               <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Score</p>
-                  <p className="font-black text-slate-900 mt-0.5">{topThree[1].score} / 100</p>
+                  <p className="font-black text-slate-900 mt-0.5">{topThree[1].score} / {topThree[1].maxScore}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Accuracy</p>
@@ -351,7 +457,7 @@ export default function LeaderboardPage() {
               <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Score</p>
-                  <p className="font-black text-slate-900 mt-0.5">{topThree[2].score} / 100</p>
+                  <p className="font-black text-slate-900 mt-0.5">{topThree[2].score} / {topThree[2].maxScore}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Accuracy</p>
@@ -371,7 +477,7 @@ export default function LeaderboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900">
-                All-India Merit Standings (Ranks 4 – 50)
+                All-India Merit Standings ({filteredRanks.length} Candidates)
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Provisional ranking verified via anti-cheat event audit logs.
