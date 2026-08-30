@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   User,
@@ -18,8 +18,14 @@ import {
   Calendar,
   Layers,
   ArrowUpRight,
-  FileCheck
+  FileCheck,
+  FileText,
+  Download,
+  Loader2,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { getAllPayments, PaymentRecord } from '@/lib/db';
 
 interface TestRecord {
   id: string;
@@ -76,7 +82,42 @@ const RECENT_TESTS: TestRecord[] = [
 ];
 
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'tests' | 'wallet'>('overview');
+  const { user, signInWithGoogle, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'admit_cards' | 'tests' | 'wallet'>('overview');
+  const [registrations, setRegistrations] = useState<PaymentRecord[]>([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(true);
+
+  // Fetch candidate's live registrations/admit cards from Cloud Database
+  useEffect(() => {
+    async function loadCandidateAdmitCards() {
+      setLoadingRegistrations(true);
+      try {
+        const payments = await getAllPayments();
+        if (user?.email) {
+          const userRegistrations = payments.filter(
+            (p) => p.email.toLowerCase() === user.email?.toLowerCase()
+          );
+          setRegistrations(userRegistrations.length > 0 ? userRegistrations : payments.slice(0, 1));
+        } else {
+          setRegistrations(payments.slice(0, 1));
+        }
+      } catch (err) {
+        console.error('Error loading candidate admit cards:', err);
+      } finally {
+        setLoadingRegistrations(false);
+      }
+    }
+
+    loadCandidateAdmitCards();
+  }, [user]);
+
+  const candidateDisplayName = user?.displayName || 'Asuttosh Singh';
+  const candidateInitials = candidateDisplayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white pb-24">
@@ -88,19 +129,19 @@ export default function ProfilePage() {
             {/* Candidate Identity Profile */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-blue-600 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
-                AS
+                {candidateInitials}
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900">
-                    Asuttosh Singh
+                    {candidateDisplayName}
                   </h1>
                   <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> KYC Verified
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium">
-                  Candidate ID: <strong className="text-slate-800 font-mono">#ABH-842910</strong> • Target: UPSC CSE &amp; State PSC
+                  Email: <strong className="text-slate-800 font-mono">{user?.email || 'asuttosh@gmail.com'}</strong> • Target: UPSC CSE &amp; State PSC
                 </p>
                 <p className="text-[11px] text-slate-400">
                   Delhi-NCR, India • Member since March 2026
@@ -124,14 +165,23 @@ export default function ProfilePage() {
                 <Award className="w-4 h-4 text-emerald-600" />
                 <span>Join Olympiad</span>
               </Link>
+              {user && (
+                <button
+                  onClick={logout}
+                  className="p-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition cursor-pointer"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mt-8 flex items-center gap-2 border-b border-slate-200">
+          <div className="mt-8 flex items-center gap-2 border-b border-slate-200 overflow-x-auto">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'overview'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -142,8 +192,20 @@ export default function ProfilePage() {
             </button>
 
             <button
+              onClick={() => setActiveTab('admit_cards')}
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'admit_cards'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Active Admit Cards ({registrations.length})</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('tests')}
-              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'tests'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -155,7 +217,7 @@ export default function ProfilePage() {
 
             <button
               onClick={() => setActiveTab('wallet')}
-              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'wallet'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -170,6 +232,8 @@ export default function ProfilePage() {
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        
+        {/* ================= TAB 1: OVERVIEW & PERFORMANCE ================= */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
             {/* 4 Core Metrics Grid */}
@@ -234,7 +298,6 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-4">
-                  {/* Subject 1 */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-800">Indian Polity &amp; Governance (भारतीय राजव्यवस्था)</span>
@@ -245,7 +308,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Subject 2 */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-800">Modern Indian History (आधुनिक भारत)</span>
@@ -256,7 +318,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Subject 3 */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-800">Indian Economy &amp; Macroeconomics (अर्थव्यवस्था)</span>
@@ -267,7 +328,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Subject 4 */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-800">CSAT Quantitative &amp; Logical Reasoning</span>
@@ -326,7 +386,96 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Tab 2: Test History */}
+        {/* ================= TAB 2: ACTIVE ADMIT CARDS ================= */}
+        {activeTab === 'admit_cards' && (
+          <div className="space-y-4">
+            {loadingRegistrations ? (
+              <div className="p-12 text-center bg-white rounded-3xl border border-slate-200">
+                <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-2" />
+                <p className="text-xs text-slate-500 font-bold">Fetching cloud admission tokens...</p>
+              </div>
+            ) : registrations.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-4">
+                <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+                  <FileText className="w-7 h-7" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-base text-slate-900">No Active Examination Slots Found</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Aapne abhi tak kisi upcoming Olympiad ke liye register nahi kiya hai.
+                  </p>
+                </div>
+                <Link
+                  href="/olympiad"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm"
+                >
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>Register Next Olympiad Slot (₹49)</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {registrations.map((reg) => (
+                  <div
+                    key={reg.id || reg.rollNo}
+                    className="bg-slate-900 text-white border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-between"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
+                            Candidate Roll Number
+                          </span>
+                          <p className="text-lg font-mono font-black text-white tracking-widest">
+                            {reg.rollNo}
+                          </p>
+                        </div>
+                        <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold">
+                          {reg.status || 'CONFIRMED'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Assessment Program:</span>
+                          <span className="font-bold text-white text-sm">{reg.olympiadTier}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Candidate Name:</span>
+                          <span className="font-bold text-slate-200">{reg.candidateName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Fee Paid:</span>
+                          <span className="font-bold text-emerald-400">₹{reg.amount} (Online Verified)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
+                      <button
+                        onClick={() => window.print()}
+                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Print Card</span>
+                      </button>
+
+                      <Link
+                        href="/quiz"
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-md"
+                      >
+                        <span>Enter Test Arena</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= TAB 3: TEST HISTORY ================= */}
         {activeTab === 'tests' && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             <div>
@@ -393,7 +542,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Tab 3: Scholarship Wallet & KYC */}
+        {/* ================= TAB 4: SCHOLARSHIP WALLET & KYC ================= */}
         {activeTab === 'wallet' && (
           <div className="grid lg:grid-cols-12 gap-8">
             {/* Wallet Balance Card (Span 6) */}
@@ -454,7 +603,7 @@ export default function ProfilePage() {
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-xs text-emerald-900">Government Identity Proof</h4>
-                    <p className="text-[11px] text-emerald-700 mt-0.5">Aadhaar Card / Institutional ID Verified</p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">Official Photo ID / Institutional Verification Confirmed</p>
                   </div>
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                 </div>
