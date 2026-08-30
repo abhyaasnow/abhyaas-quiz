@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Timer,
@@ -14,91 +15,27 @@ import {
   Bookmark,
   FileText,
   Check,
-  Eye,
   Award,
   Sparkles,
   Zap,
-  Info,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
+import { QUESTIONS_BANK, SUBJECT_METADATA, Question } from '@/data/questionsBank';
 
-interface Question {
-  id: number;
-  subject: string;
-  topic: string;
-  questionEn: string;
-  questionHi: string;
-  optionsEn: string[];
-  optionsHi: string[];
-  correctOption: number; // 0-indexed
-  explanationEn: string;
-  explanationHi: string;
-}
+function QuizPlayerContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const subjectParam = searchParams.get('subject') || 'polity';
 
-const SAMPLE_QUESTIONS: Question[] = [
-  {
-    id: 1,
-    subject: 'Indian Polity',
-    topic: 'Fundamental Rights',
-    questionEn: 'Which of the following Articles of the Indian Constitution guarantees the "Right to Constitutional Remedies" to citizens?',
-    questionHi: 'भारतीय संविधान का कौन सा अनुच्छेद नागरिकों को "संवैधानिक उपचारों का अधिकार" प्रदान करता है?',
-    optionsEn: ['Article 19', 'Article 21', 'Article 32', 'Article 226'],
-    optionsHi: ['अनुच्छेद 19', 'अनुच्छेद 21', 'अनुच्छेद 32', 'अनुच्छेद 226'],
-    correctOption: 2,
-    explanationEn: 'Article 32 gives the right to individuals to move to the Supreme Court directly for the enforcement of fundamental rights. Dr. B.R. Ambedkar termed it the "Heart and Soul of the Constitution".',
-    explanationHi: 'अनुच्छेद 32 नागरिकों को मौलिक अधिकारों के प्रवर्तन के लिए सीधे सर्वोच्च न्यायालय जाने का अधिकार देता है। डॉ. बी.आर. अंबेडकर ने इसे संविधान का "हृदय और आत्मा" कहा था।'
-  },
-  {
-    id: 2,
-    subject: 'Indian Polity',
-    topic: 'Preamble',
-    questionEn: 'By which Constitutional Amendment Act were the words "Socialist", "Secular", and "Integrity" added to the Preamble of the Indian Constitution?',
-    questionHi: 'किस संविधान संशोधन अधिनियम द्वारा भारतीय संविधान की प्रस्तावना में "समाजवादी", "पंथनिरपेक्ष" और "अखंडता" शब्द जोड़े गए थे?',
-    optionsEn: ['42nd Constitutional Amendment Act, 1976', '44th Constitutional Amendment Act, 1978', '52nd Constitutional Amendment Act, 1985', '86th Constitutional Amendment Act, 2002'],
-    optionsHi: ['42वां संविधान संशोधन अधिनियम, 1976', '44वां संविधान संशोधन अधिनियम, 1978', '52वां संविधान संशोधन अधिनियम, 1985', '86वां संविधान संशोधन अधिनियम, 2002'],
-    correctOption: 0,
-    explanationEn: 'The 42nd Amendment Act of 1976 amended the Preamble to add the words Socialist, Secular, and Integrity during the Emergency period under the Indira Gandhi government.',
-    explanationHi: '1976 के 42वें संशोधन अधिनियम द्वारा आपातकाल के दौरान प्रस्तावना में समाजवादी, पंथनिरपेक्ष और अखंडता शब्द शामिल किए गए थे।'
-  },
-  {
-    id: 3,
-    subject: 'Modern History',
-    topic: 'Gandhian Era',
-    questionEn: 'In which year was the Historic "Poona Pact" signed between Mahatma Gandhi and Dr. B.R. Ambedkar?',
-    questionHi: 'महात्मा गांधी और डॉ. बी.आर. अंबेडकर के बीच ऐतिहासिक "पूना पैक्ट" पर किस वर्ष हस्ताक्षर किए गए थे?',
-    optionsEn: ['1930', '1931', '1932', '1935'],
-    optionsHi: ['1930', '1931', '1932', '1935'],
-    correctOption: 2,
-    explanationEn: 'The Poona Pact was signed on September 24, 1932 at Yerwada Central Jail in Pune, abandoning the separate electorates for the depressed classes in favor of reserved seats.',
-    explanationHi: 'पूना समझौता 24 सितंबर 1932 को पुणे की यरवदा जेल में हुआ, जिसके तहत पृथक निर्वाचक मंडल के स्थान पर आरक्षित सीटों की व्यवस्था स्वीकार की गई।'
-  },
-  {
-    id: 4,
-    subject: 'Indian Economy',
-    topic: 'Monetary Policy',
-    questionEn: 'What happens to commercial bank credit availability when the Reserve Bank of India (RBI) increases the Cash Reserve Ratio (CRR)?',
-    questionHi: 'जब भारतीय रिजर्व बैंक (RBI) नकद आरक्षित अनुपात (CRR) बढ़ाता है, तो वाणिज्यिक बैंकों की ऋण देने की क्षमता पर क्या प्रभाव पड़ता है?',
-    optionsEn: ['Credit availability increases', 'Credit availability decreases', 'Credit remains unchanged', 'Interest rates drop to zero'],
-    optionsHi: ['ऋण उपलब्धता बढ़ जाती है', 'ऋण उपलब्धता घट जाती है', 'ऋण पर कोई प्रभाव नहीं पड़ता', 'ब्याज दरें शून्य हो जाती हैं'],
-    correctOption: 1,
-    explanationEn: 'Increasing CRR requires commercial banks to keep a higher portion of their deposits parked as cash with the RBI, reducing lendable funds and cooling money supply.',
-    explanationHi: 'CRR बढ़ाने से बैंकों को अपनी कुल जमा का अधिक हिस्सा RBI के पास रखना पड़ता है, जिससे बैंकों के पास उधार देने योग्य पूंजी कम हो जाती है।'
-  },
-  {
-    id: 5,
-    subject: 'Geography & Environment',
-    topic: 'Rivers of India',
-    questionEn: 'Which of the following West-flowing peninsular rivers flows through a Rift Valley in India?',
-    questionHi: 'निम्नलिखित में से कौन सी पश्चिम की ओर बहने वाली प्रायद्वीपीय नदी भारत में भ्रंश घाटी (Rift Valley) से होकर बहती है?',
-    optionsEn: ['Godavari', 'Narmada', 'Krishna', 'Cauvery'],
-    optionsHi: ['गोदावरी', 'नर्मदा', 'कृष्णा', 'कावेरी'],
-    correctOption: 1,
-    explanationEn: 'Narmada and Tapi are the prominent peninsular rivers that flow westwards through rift valleys between the Vindhya and Satpura ranges and drain into the Arabian Sea.',
-    explanationHi: 'नर्मदा और तापी नदियां विंध्य और सतपुड़ा पर्वत श्रेणियों के बीच भ्रंश घाटी से होकर पश्चिम की ओर बहती हैं और अरब सागर में गिरती हैं।'
-  }
-];
+  // Dynamic Subject-specific questions
+  const activeQuestions: Question[] = useMemo(() => {
+    const filtered = QUESTIONS_BANK.filter((q) => q.subjectId === subjectParam);
+    return filtered.length > 0 ? filtered : QUESTIONS_BANK;
+  }, [subjectParam]);
 
-export default function QuizPlayerPage() {
+  const activeSubjectInfo = SUBJECT_METADATA[subjectParam] || SUBJECT_METADATA.polity;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [markedForReview, setMarkedForReview] = useState<number[]>([]);
@@ -108,12 +45,24 @@ export default function QuizPlayerPage() {
   const [timeLeft, setTimeLeft] = useState(600);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   // Anti-Cheat Proctoring States
   const [warningsCount, setWarningsCount] = useState(0);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
-  const currentQ = SAMPLE_QUESTIONS[currentIndex];
+  // Reset when subject changes
+  useEffect(() => {
+    setCurrentIndex(0);
+    setAnswers({});
+    setMarkedForReview([]);
+    setVisited([0]);
+    setTimeLeft(600);
+    setIsSubmitted(false);
+    setWarningsCount(0);
+  }, [subjectParam]);
+
+  const currentQ = activeQuestions[currentIndex] || activeQuestions[0];
 
   // Anti-Cheat: Visibility Change & Window Blur Detector
   const handleCheatAttempt = useCallback(() => {
@@ -139,7 +88,6 @@ export default function QuizPlayerPage() {
       handleCheatAttempt();
     };
 
-    // Disable Right-Click Context Menu
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
     };
@@ -155,7 +103,7 @@ export default function QuizPlayerPage() {
     };
   }, [handleCheatAttempt]);
 
-  // Timer Tick
+  // Timer Countdown
   useEffect(() => {
     if (isSubmitted) return;
     const timer = setInterval(() => {
@@ -172,7 +120,6 @@ export default function QuizPlayerPage() {
     return () => clearInterval(timer);
   }, [isSubmitted]);
 
-  // Format Time: MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -215,11 +162,11 @@ export default function QuizPlayerPage() {
     let incorrect = 0;
     let unattempted = 0;
 
-    SAMPLE_QUESTIONS.forEach((q, idx) => {
+    activeQuestions.forEach((q, idx) => {
       const ans = answers[idx];
       if (ans === undefined) {
         unattempted += 1;
-      } else if (ans === q.correctOption) {
+      } else if (ans === q.correctAnswer) {
         correct += 1;
       } else {
         incorrect += 1;
@@ -227,7 +174,7 @@ export default function QuizPlayerPage() {
     });
 
     const rawScore = correct * 2 - incorrect * 0.66;
-    const maxScore = SAMPLE_QUESTIONS.length * 2;
+    const maxScore = activeQuestions.length * 2;
     const accuracy = correct + incorrect > 0 ? (correct / (correct + incorrect)) * 100 : 0;
     const timeSpent = 600 - timeLeft;
 
@@ -235,12 +182,20 @@ export default function QuizPlayerPage() {
       correct,
       incorrect,
       unattempted,
-      rawScore: rawScore.toFixed(2),
+      rawScore: Math.max(0, rawScore).toFixed(2),
       maxScore,
       accuracy: accuracy.toFixed(1),
       timeSpentFormatted: formatTime(timeSpent),
     };
-  }, [answers, timeLeft]);
+  }, [answers, timeLeft, activeQuestions]);
+
+  if (!currentQ) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <p className="text-slate-600 font-bold">Loading Drill Questions...</p>
+      </div>
+    );
+  }
 
   // --------------------------------------------------------------------------
   // SCREEN 1: POST-TEST DIAGNOSTIC SCORECARD
@@ -248,7 +203,6 @@ export default function QuizPlayerPage() {
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white pb-20">
-        {/* Top Sticky Bar */}
         <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
             <Link
@@ -265,7 +219,6 @@ export default function QuizPlayerPage() {
         </div>
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-8">
-          {/* Header Card */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm text-center space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
               <Award className="w-7 h-7" />
@@ -274,7 +227,7 @@ export default function QuizPlayerPage() {
               Test Performance &amp; AI Diagnostic Report
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-              अखिल भारतीय अभ्यास परीक्षण परिणाम • Detailed accuracy, time efficiency and solutions breakdown.
+              {activeSubjectInfo.title} • {activeSubjectInfo.subtitle}
             </p>
 
             {/* Score Highlights Grid */}
@@ -303,30 +256,29 @@ export default function QuizPlayerPage() {
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Net Breakdown</p>
                 <p className="text-xs font-bold text-slate-700 mt-2">
-                  <span className="text-emerald-600 font-black">+{resultMetrics.correct}</span> / <span className="text-rose-600 font-black">-{resultMetrics.incorrect}</span> / <span className="text-slate-400 font-black">0</span>
+                  <span className="text-emerald-600 font-black">+{resultMetrics.correct}</span> / <span className="text-rose-600 font-black">-{resultMetrics.incorrect}</span> / <span className="text-slate-400 font-black">{resultMetrics.unattempted}</span>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Solutions & Question-by-Question Detailed Review */}
+          {/* Solutions Review */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-600" />
               Detailed Solutions &amp; Question Review (विस्तृत उत्तर एवं व्याख्या)
             </h2>
 
-            {SAMPLE_QUESTIONS.map((q, idx) => {
+            {activeQuestions.map((q, idx) => {
               const userAns = answers[idx];
-              const isCorrect = userAns === q.correctOption;
+              const isCorrect = userAns === q.correctAnswer;
               const isUnattempted = userAns === undefined;
 
               return (
                 <div key={q.id} className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-                  {/* Question Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <span className="text-[10px] font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md">
-                      Question #{idx + 1} • {q.subject}
+                      Question #{idx + 1} • {q.topic}
                     </span>
                     <div>
                       {isUnattempted ? (
@@ -345,7 +297,6 @@ export default function QuizPlayerPage() {
                     </div>
                   </div>
 
-                  {/* Question Bilingual Text */}
                   <div className="space-y-1">
                     <p className="font-bold text-slate-900 text-sm sm:text-base leading-snug">
                       {q.questionEn}
@@ -355,10 +306,9 @@ export default function QuizPlayerPage() {
                     </p>
                   </div>
 
-                  {/* Options List */}
                   <div className="grid sm:grid-cols-2 gap-2.5">
                     {q.optionsEn.map((opt, optIdx) => {
-                      const isThisCorrect = optIdx === q.correctOption;
+                      const isThisCorrect = optIdx === q.correctAnswer;
                       const isThisUserSelected = optIdx === userAns;
 
                       let style = 'bg-slate-50 border-slate-200 text-slate-700';
@@ -382,7 +332,6 @@ export default function QuizPlayerPage() {
                     })}
                   </div>
 
-                  {/* Explanation Box */}
                   <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1">
                     <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-blue-600" />
@@ -400,7 +349,6 @@ export default function QuizPlayerPage() {
             })}
           </div>
 
-          {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
             <Link
               href="/practice"
@@ -408,12 +356,20 @@ export default function QuizPlayerPage() {
             >
               Attempt Another Subject Drill
             </Link>
-            <Link
-              href="/olympiad"
-              className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition text-center shadow-md shadow-blue-500/20"
+            <button
+              onClick={() => {
+                setAnswers({});
+                setMarkedForReview([]);
+                setVisited([0]);
+                setTimeLeft(600);
+                setIsSubmitted(false);
+                setCurrentIndex(0);
+              }}
+              className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
             >
-              Register for Scholarship Olympiad (₹49) →
-            </Link>
+              <RotateCcw className="w-4 h-4" />
+              <span>Re-attempt This Drill</span>
+            </button>
           </div>
         </div>
       </div>
@@ -426,33 +382,39 @@ export default function QuizPlayerPage() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 selection:bg-blue-600 selection:text-white flex flex-col justify-between">
       
-      {/* 1. Header Bar: Exam Title, Live Timer & Proctored Badge */}
+      {/* 1. Header Bar: Exit Button, Live Timer & Proctored Badge */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Exam Title */}
+          
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowExitModal(true)}
+              className="p-2 text-slate-600 hover:text-rose-600 hover:bg-slate-100 rounded-xl transition flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              title="Exit Test"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Exit</span>
+            </button>
+
             <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm">
               <Zap className="w-4 h-4" />
             </div>
             <div>
               <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-none">
-                National Speed Drill Assessment
+                {activeSubjectInfo.title}
               </h1>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                {currentQ.subject} • 50 Questions • +2.00 / -0.66 Marking
+                {activeQuestions.length} Questions • +2.00 / -0.66 Marking Scheme
               </p>
             </div>
           </div>
 
-          {/* Right Status: Timer & Anti-Cheat Badge */}
           <div className="flex items-center gap-3">
-            {/* Anti-Cheat Active Badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Proctoring Active</span>
             </div>
 
-            {/* Live Countdown Timer */}
             <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-black tracking-wider ${
               timeLeft < 120
                 ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
@@ -462,7 +424,6 @@ export default function QuizPlayerPage() {
               <span>{formatTime(timeLeft)}</span>
             </div>
 
-            {/* Submit Button */}
             <button
               onClick={() => setShowSubmitModal(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
@@ -480,11 +441,10 @@ export default function QuizPlayerPage() {
           {/* Left Column: Active Question & Options (Span 8) */}
           <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             
-            {/* Question Sub-Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black px-3 py-1 bg-slate-900 text-white rounded-lg">
-                  Question {currentIndex + 1} of {SAMPLE_QUESTIONS.length}
+                  Question {currentIndex + 1} of {activeQuestions.length}
                 </span>
                 <span className="text-xs text-slate-500 font-semibold">
                   Section: {currentQ.topic}
@@ -497,7 +457,6 @@ export default function QuizPlayerPage() {
               </div>
             </div>
 
-            {/* Bilingual Question Text */}
             <div className="space-y-2 py-2">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
                 {currentQ.questionEn}
@@ -507,7 +466,6 @@ export default function QuizPlayerPage() {
               </p>
             </div>
 
-            {/* 4 Interactive Option Cards */}
             <div className="space-y-3 pt-2">
               {currentQ.optionsEn.map((opt, optIndex) => {
                 const isSelected = answers[currentIndex] === optIndex;
@@ -535,7 +493,6 @@ export default function QuizPlayerPage() {
               })}
             </div>
 
-            {/* Question Actions Toolbar */}
             <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <button
@@ -560,7 +517,6 @@ export default function QuizPlayerPage() {
                 )}
               </div>
 
-              {/* Navigation Prev / Next */}
               <div className="flex items-center gap-2">
                 <button
                   disabled={currentIndex === 0}
@@ -571,7 +527,7 @@ export default function QuizPlayerPage() {
                   <span>Previous</span>
                 </button>
 
-                {currentIndex < SAMPLE_QUESTIONS.length - 1 ? (
+                {currentIndex < activeQuestions.length - 1 ? (
                   <button
                     onClick={() => navigateTo(currentIndex + 1)}
                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
@@ -592,13 +548,12 @@ export default function QuizPlayerPage() {
             </div>
           </div>
 
-          {/* Right Column: NTA-Style Question Palette & Legend (Span 4) */}
+          {/* Right Column: NTA-Style Question Palette (Span 4) */}
           <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-3">
               Question Palette (प्रश्न ग्रिड)
             </h3>
 
-            {/* Question Legend */}
             <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 font-medium">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
@@ -618,9 +573,8 @@ export default function QuizPlayerPage() {
               </div>
             </div>
 
-            {/* Question Grid Buttons */}
             <div className="grid grid-cols-5 gap-2.5 pt-3 border-t border-slate-100">
-              {SAMPLE_QUESTIONS.map((_, qIdx) => {
+              {activeQuestions.map((_, qIdx) => {
                 const isCurrent = qIdx === currentIndex;
                 const isAnswered = answers[qIdx] !== undefined;
                 const isMarked = markedForReview.includes(qIdx);
@@ -649,7 +603,6 @@ export default function QuizPlayerPage() {
               })}
             </div>
 
-            {/* Anti-Cheat Security Notice */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
               <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
@@ -663,7 +616,38 @@ export default function QuizPlayerPage() {
         </div>
       </main>
 
-      {/* 3. Anti-Cheat Violation Warning Modal */}
+      {/* Exit Test Confirmation Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-black text-base text-slate-900">Exit Assessment?</h3>
+              <button onClick={() => setShowExitModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to leave this practice drill? Your current progress and responses will be discarded.
+            </p>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => setShowExitModal(false)}
+                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => router.push('/practice')}
+                className="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Exit to Bank
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Anti-Cheat Violation Warning Modal */}
       {showWarningModal && !isSubmitted && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-rose-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 text-center">
@@ -692,7 +676,7 @@ export default function QuizPlayerPage() {
         </div>
       )}
 
-      {/* 4. Submit Confirmation Modal */}
+      {/* Submit Confirmation Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
@@ -707,7 +691,7 @@ export default function QuizPlayerPage() {
               <p>Are you sure you want to finalize and submit your responses?</p>
               <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
                 <p>• Answered: <strong className="text-emerald-600">{Object.keys(answers).length}</strong></p>
-                <p>• Unanswered: <strong className="text-rose-600">{SAMPLE_QUESTIONS.length - Object.keys(answers).length}</strong></p>
+                <p>• Unanswered: <strong className="text-rose-600">{activeQuestions.length - Object.keys(answers).length}</strong></p>
                 <p>• Marked for Review: <strong className="text-purple-600">{markedForReview.length}</strong></p>
               </div>
             </div>
@@ -733,5 +717,13 @@ export default function QuizPlayerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function QuizPlayerPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-xs font-bold text-slate-500">Loading Assessment Arena...</div>}>
+      <QuizPlayerContent />
+    </Suspense>
   );
 }

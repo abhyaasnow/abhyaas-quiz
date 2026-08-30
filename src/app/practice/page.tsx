@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Search,
   BookOpen,
+  ArrowLeft,
   ArrowRight,
   Flame,
   SlidersHorizontal,
@@ -221,7 +222,7 @@ const STREAMS_DATA: Stream[] = [
         tagline: 'State GK, GS & Prelims Pattern Mastery',
         subjects: [
           {
-            id: 'state-gk',
+            id: 'geography',
             nameEn: 'State General Studies & Geography',
             nameHi: 'राज्य सामान्य ज्ञान एवं भूगोल',
             iconTag: '🏛️',
@@ -279,7 +280,7 @@ const STREAMS_DATA: Stream[] = [
         tagline: 'Combined Graduate Level Speed Drills',
         subjects: [
           {
-            id: 'quant',
+            id: 'csat',
             nameEn: 'Quantitative Aptitude',
             nameHi: 'संख्यात्मक अभियोग्यता (गणित)',
             iconTag: '➗',
@@ -321,7 +322,7 @@ const STREAMS_DATA: Stream[] = [
             ],
           },
           {
-            id: 'reasoning',
+            id: 'csat',
             nameEn: 'General Intelligence & Reasoning',
             nameHi: 'तार्किक क्षमता एवं अभियोग्यता',
             iconTag: '🧩',
@@ -417,6 +418,25 @@ export default function PracticePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white pb-24">
+      
+      {/* Top Breadcrumb & Back Bar */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-blue-600" />
+            <span>Back to Home</span>
+          </Link>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <span>{activeStream.nameEn}</span>
+            <span>/</span>
+            <span className="text-slate-800 font-bold">{activeExam.nameEn}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Top Banner Header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -500,6 +520,7 @@ export default function PracticePage() {
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <div className="grid lg:grid-cols-12 gap-8">
+          
           {/* Level 3: Left Sidebar - Subject Selector (Span 4) */}
           <div className="lg:col-span-4 space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
@@ -549,6 +570,7 @@ export default function PracticePage() {
 
           {/* Level 4: Right Section - Chapter & Micro-Topic Drill Cards (Span 8) */}
           <div className="lg:col-span-8 space-y-6">
+            
             {/* Subject Info & Live Search Filter */}
             <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -627,9 +649,9 @@ export default function PracticePage() {
                       </p>
                     </div>
 
-                    {/* Start Button */}
+                    {/* Precise Dynamic Link (Subject ID + Topic ID) */}
                     <Link
-                      href={`/quiz?topic=${encodeURIComponent(topic.titleEn)}`}
+                      href={`/quiz?subject=${activeSubject?.id || 'polity'}&topic=${topic.id}`}
                       className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 flex-shrink-0 shadow-sm shadow-blue-500/20 cursor-pointer"
                     >
                       <span>Start Drill (10Q)</span>
