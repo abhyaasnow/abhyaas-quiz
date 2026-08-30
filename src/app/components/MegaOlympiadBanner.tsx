@@ -1,133 +1,245 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Award, Users, Clock, ArrowRight, GraduationCap, Globe } from 'lucide-react';
-import OlympiadModal from './OlympiadModal';
+import Link from 'next/link';
+import { 
+  GraduationCap, 
+  Award, 
+  ArrowRight, 
+  Globe, 
+  Star,
+  Users,
+  Clock,
+  Sparkles
+} from 'lucide-react';
+import { getSiteSettings, SiteSettings } from '@/lib/db';
 
 export default function MegaOlympiadBanner() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [timeLeft, setTimeLeft] = useState({ hours: 1, minutes: 45, seconds: 12 });
+  const [currentLang, setCurrentLang] = useState<'hi' | 'en'>('hi');
+  const [activeCategory, setActiveCategory] = useState<'subjects' | 'exams' | 'topics'>('exams');
+  const [activeExam, setActiveExam] = useState('UPSC CSE');
+
+  // Dynamic Settings from Firebase
+  const [settings, setSettings] = useState<SiteSettings>({
+    bannerTitleHi: 'राष्ट्रीय राज्यव्यवस्था ओलंपियाड : संवैधानिक ढांचा',
+    bannerTitleEn: 'National Polity Olympiad : Constitutional Framework & Preamble',
+    scholarshipPool: '₹50,000',
+    assessmentFee: '₹49',
+    bannerGraphicUrl: null,
+  });
+
+  // Fetch live settings on mount
+  useEffect(() => {
+    async function fetchBannerConfig() {
+      const data = await getSiteSettings();
+      if (data) {
+        setSettings(prev => ({
+          ...prev,
+          bannerTitleHi: data.bannerTitleHi || prev.bannerTitleHi,
+          bannerTitleEn: data.bannerTitleEn || prev.bannerTitleEn,
+          scholarshipPool: data.scholarshipPool || prev.scholarshipPool,
+          assessmentFee: data.assessmentFee || prev.assessmentFee,
+          bannerGraphicUrl: data.bannerGraphicUrl || null,
+        }));
+      }
+    }
+    fetchBannerConfig();
+  }, []);
+
+  // Live Synchronized Countdown Timer (1h 59m 58s)
+  const [timeLeft, setTimeLeft] = useState({ hours: 1, minutes: 59, seconds: 58 });
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
         if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
         if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return prev;
+        return { hours: 0, minutes: 0, seconds: 0 };
       });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const formatNum = (num: number) => String(num).padStart(2, '0');
+  const examCategories = [
+    { id: 'all', nameHi: 'सभी परीक्षाएं', nameEn: 'All Exams', featured: false },
+    { id: 'upsc', nameHi: 'UPSC CSE', nameEn: 'UPSC CSE', featured: true },
+    { id: 'pcs', nameHi: 'State PCS', nameEn: 'State PCS', featured: false },
+    { id: 'ssc', nameHi: 'SSC CGL', nameEn: 'SSC CGL', featured: false },
+    { id: 'bank', nameHi: 'Banking & PO', nameEn: 'Banking & PO', featured: false }
+  ];
 
   return (
-    <>
-      <section className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4 sm:mt-6">
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950 text-white p-4 sm:p-6 lg:p-8 shadow-lg border border-blue-800/40">
+    <div className="w-full bg-slate-100 border-b border-slate-200">
+      
+      {/* Category Navigation Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
           
-          {/* Glow */}
-          <div className="absolute -right-12 -top-12 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          {/* Tabs: Subjects / Exams / Topics */}
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs font-bold">
+            <button
+              onClick={() => setActiveCategory('subjects')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                activeCategory === 'subjects' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              विषय (Subjects)
+            </button>
+            <button
+              onClick={() => setActiveCategory('exams')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                activeCategory === 'exams' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              परीक्षाएं (Exams)
+            </button>
+            <button
+              onClick={() => setActiveCategory('topics')}
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
+                activeCategory === 'topics' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              टॉपिक्स (Topics)
+            </button>
+          </div>
 
-          <div className="relative z-10 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5 sm:gap-6">
-            
-            {/* Left Column: Dual Language Info */}
-            <div className="flex-1 space-y-3">
-              
-              {/* Badges Row */}
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-black bg-amber-400 text-slate-950 shadow-xs uppercase tracking-wider">
-                  <GraduationCap className="w-3.5 h-3.5 text-slate-950" />
-                  All-India Weekly Olympiad | साप्ताहिक ओलंपियाड
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-blue-500/20 border border-blue-400/30 text-blue-300">
-                  <Award className="w-3 h-3 text-blue-400" />
-                  ₹50,000 Scholarships / छात्रवृत्ति
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">
-                  <Globe className="w-3 h-3 text-emerald-400" />
-                  Bilingual (हिन्दी + English)
-                </span>
-              </div>
+          {/* Bilingual Switcher */}
+          <div className="flex items-center gap-2 text-xs font-bold bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
+            <Globe className="w-3.5 h-3.5 text-blue-600" />
+            <span className="text-slate-500">माध्यम:</span>
+            <button
+              onClick={() => setCurrentLang('hi')}
+              className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                currentLang === 'hi' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              हिन्दी
+            </button>
+            <button
+              onClick={() => setCurrentLang('en')}
+              className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                currentLang === 'en' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              English
+            </button>
+          </div>
+        </div>
 
-              {/* Dual Language Title */}
-              <div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight">
-                  राष्ट्रीय राजव्यवस्था ओलंपियाड <span className="text-amber-400 font-extrabold">: संवैधानिक ढांचा</span>
-                </h2>
-                <p className="text-sm sm:text-base font-bold text-blue-200/90 mt-0.5">
-                  National Polity Olympiad : Constitutional Framework & Preamble
-                </p>
-                <p className="text-slate-300 text-xs sm:text-sm mt-1.5 font-normal">
-                  UPSC & State PSC अखिल भारतीय मूल्यांकन परीक्षा • All-India Rank, Analysis & Merit Academic Grants.
-                </p>
-              </div>
+        {/* Exam Badges Filter */}
+        <div className="flex items-center gap-2 pt-3 overflow-x-auto pb-2 scrollbar-none">
+          {examCategories.map((cat) => {
+            const isSelected = activeExam === cat.nameEn;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveExam(cat.nameEn)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-white border-2 border-blue-600 text-blue-600 shadow-sm'
+                    : 'bg-white/80 border border-slate-200 text-slate-700 hover:bg-white'
+                }`}
+              >
+                {cat.featured && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
+                <span>{currentLang === 'hi' ? cat.nameHi : cat.nameEn}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-              {/* Candidate Progress */}
-              <div className="space-y-1.5 pt-0.5 max-w-md">
-                <div className="flex justify-between text-[11px] sm:text-xs font-bold">
-                  <span className="flex items-center gap-1 text-blue-300">
-                    <Users className="w-3.5 h-3.5" /> 380 / 500 Aspirants Registered (पंजीकृत)
-                  </span>
-                  <span className="text-amber-300">Slots Filling Fast (76%)</span>
-                </div>
-                <div className="w-full h-2 bg-slate-950/60 rounded-full overflow-hidden p-0.5 border border-white/10">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-amber-400 rounded-full w-[76%]" />
-                </div>
-              </div>
-
+      {/* Main Dark Mega Olympiad Hero Card */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-8">
+        <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+          
+          <div className="relative z-10 space-y-5">
+            {/* Badges Bar */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold">
+                <GraduationCap className="w-4 h-4" />
+                ALL-INDIA WEEKLY OLYMPIAD | साप्ताहिक ओलंपियाड
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold">
+                <Award className="w-3.5 h-3.5" />
+                {settings.scholarshipPool} Scholarships / छात्रवृत्ति
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                Bilingual (हिन्दी + English)
+              </span>
             </div>
 
-            {/* Right Column: Timer & Registration CTA */}
-            <div className="flex flex-row lg:flex-col items-center justify-between lg:justify-center gap-3 bg-white/5 backdrop-blur-md p-3 sm:p-4 rounded-xl border border-white/10 min-w-[260px]">
+            {/* Dynamic Titles from Cloud */}
+            <div className="space-y-1.5">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-amber-400 leading-tight">
+                {settings.bannerTitleHi}
+              </h1>
+              <p className="text-base sm:text-lg font-bold text-slate-200">
+                {settings.bannerTitleEn}
+              </p>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+                UPSC &amp; State PSC अखिल भारतीय मूल्यांकन परीक्षा • All-India Rank, Analysis &amp; Merit Academic Grants.
+              </p>
+            </div>
+
+            {/* Registration Progress */}
+            <div className="space-y-1.5 max-w-xl">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-blue-400" />
+                  380 / 500 Aspirants Registered (पंजीकृत)
+                </span>
+                <span className="text-amber-400 font-bold">Slots Filling Fast (76%)</span>
+              </div>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-amber-500 w-[76%] rounded-full" />
+              </div>
+            </div>
+
+            {/* Live Timer & Registration CTA */}
+            <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-slate-800/80">
               
               {/* Countdown */}
-              <div className="text-left lg:text-center">
-                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  <Clock className="w-3 h-3 text-amber-400" /> Starts In / प्रारंभ:
-                </div>
-                <div className="flex items-center gap-1 font-mono">
-                  <div className="bg-slate-950/70 border border-white/10 px-2 py-1 rounded-md text-center min-w-[38px]">
-                    <span className="text-sm sm:text-base font-black text-amber-400">{formatNum(timeLeft.hours)}</span>
-                    <span className="block text-[8px] text-slate-400">घंटे / H</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  STARTS IN / प्रारंभ:
+                </span>
+                <div className="flex items-center gap-1.5 text-xs font-black">
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-center min-w-[40px]">
+                    <span className="text-sm sm:text-base text-white block leading-none">{String(timeLeft.hours).padStart(2, '0')}</span>
+                    <span className="text-[9px] text-slate-400 font-medium">घंटे / H</span>
                   </div>
-                  <span className="text-xs font-bold text-amber-400">:</span>
-                  <div className="bg-slate-950/70 border border-white/10 px-2 py-1 rounded-md text-center min-w-[38px]">
-                    <span className="text-sm sm:text-base font-black text-amber-400">{formatNum(timeLeft.minutes)}</span>
-                    <span className="block text-[8px] text-slate-400">मिनट / M</span>
+                  <span className="text-slate-500 font-bold">:</span>
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-center min-w-[40px]">
+                    <span className="text-sm sm:text-base text-white block leading-none">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                    <span className="text-[9px] text-slate-400 font-medium">मिनट / M</span>
                   </div>
-                  <span className="text-xs font-bold text-amber-400">:</span>
-                  <div className="bg-slate-950/70 border border-white/10 px-2 py-1 rounded-md text-center min-w-[38px]">
-                    <span className="text-sm sm:text-base font-black text-amber-400">{formatNum(timeLeft.seconds)}</span>
-                    <span className="block text-[8px] text-slate-400">सेकंड / S</span>
+                  <span className="text-slate-500 font-bold">:</span>
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-center min-w-[40px]">
+                    <span className="text-sm sm:text-base text-amber-400 block leading-none">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                    <span className="text-[9px] text-slate-400 font-medium">सेकंड / S</span>
                   </div>
                 </div>
               </div>
 
-              {/* Bilingual CTA */}
-              <div className="flex-1 lg:w-full space-y-1">
-                <button 
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-full group bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-slate-950 font-black px-4 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm tracking-wide flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+              {/* Action Button with Dynamic Fee */}
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/olympiad"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
                 >
-                  <span>REGISTER • ₹49 | पंजीकरण</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-                <span className="block text-center text-[10px] text-slate-400 font-medium">
-                  One-time Fee (एकल मूल्यांकन शुल्क)
-                </span>
+                  <Sparkles className="w-4 h-4" />
+                  <span>REGISTER • {settings.assessmentFee} | पंजीकरण</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
 
             </div>
 
           </div>
-
         </div>
-      </section>
-
-      {/* Registration & Merit Matrix Modal */}
-      <OlympiadModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-    </>
+      </div>
+    </div>
   );
 }

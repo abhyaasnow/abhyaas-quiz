@@ -1,244 +1,93 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
-  Timer,
-  ShieldAlert,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
   RotateCcw,
-  ArrowLeft,
-  ArrowRight,
-  Bookmark,
-  FileText,
-  Check,
-  Award,
   Sparkles,
-  Zap,
-  X
+  Trophy,
+  Send,
+  Loader2
 } from 'lucide-react';
+import { getAllQuestions, QuestionData } from '@/lib/db';
 
-interface Question {
-  id: string;
-  subjectId: string;
-  subjectName: string;
-  topic: string;
-  questionEn: string;
-  questionHi: string;
-  optionsEn: string[];
-  optionsHi: string[];
-  correctOption: number;
-  explanationEn: string;
-  explanationHi: string;
-}
-
-const GLOBAL_QUESTIONS_DB: Question[] = [
-  // ================= POLITY =================
+const FALLBACK_QUESTIONS: QuestionData[] = [
   {
-    id: 'pol-1',
-    subjectId: 'polity',
-    subjectName: 'Indian Polity & Governance',
+    id: 'fb-1',
+    subject: 'polity',
     topic: 'Constitutional Framework & Preamble',
-    questionEn: 'Which of the following statements regarding the Preamble to the Constitution of India is correct?',
-    questionHi: 'भारत के संविधान की प्रस्तावना के संबंध में निम्नलिखित में से कौन सा कथन सही है?',
-    optionsEn: [
-      'It is not a part of the Constitution and has no legal effect.',
-      'It is a part of the Constitution and can be amended under Article 368 without altering the basic structure.',
-      'It gives discretionary powers to the legislature over fundamental rights.',
-      'It cannot be amended under any circumstances.'
-    ],
-    optionsHi: [
-      'यह संविधान का हिस्सा नहीं है और इसका कोई कानूनी प्रभाव नहीं है।',
-      'यह संविधान का एक अभिन्न हिस्सा है और मूल ढांचे को बदले बिना अनुच्छेद 368 के तहत संशोधित किया जा सकता है।',
-      'यह मौलिक अधिकारों पर विधायिका को विवेकाधीन शक्तियां प्रदान करती है।',
-      'किसी भी परिस्थिति में इसमें संशोधन नहीं किया जा सकता।'
-    ],
-    correctOption: 1,
-    explanationEn: 'In the Kesavananda Bharati case (1973), the Supreme Court ruled that the Preamble is an integral part of the Constitution and can be amended under Article 368 subject to the Basic Structure doctrine.',
-    explanationHi: 'केशवानंद भारती मामले (1973) में सुप्रीम कोर्ट ने माना कि प्रस्तावना संविधान का अभिन्न अंग है और मूल संरचना के अधीन अनुच्छेद 368 द्वारा इसमें संशोधन किया जा सकता है।'
-  },
-  {
-    id: 'pol-2',
-    subjectId: 'polity',
-    subjectName: 'Indian Polity & Governance',
-    topic: 'Fundamental Rights & Article 32',
-    questionEn: 'Which Article of the Indian Constitution was described by Dr. B.R. Ambedkar as the "Heart and Soul" of the Constitution?',
-    questionHi: 'डॉ. बी.आर. अंबेडकर ने भारतीय संविधान के किस अनुच्छेद को संविधान का "हृदय और आत्मा" कहा था?',
+    questionEn: 'Which Article of the Constitution of India guarantees the Right to Constitutional Remedies?',
+    questionHi: 'भारत के संविधान का कौन सा अनुच्छेद संवैधानिक उपचारों के अधिकार की गारंटी देता है?',
     optionsEn: ['Article 14', 'Article 19', 'Article 21', 'Article 32'],
     optionsHi: ['अनुच्छेद 14', 'अनुच्छेद 19', 'अनुच्छेद 21', 'अनुच्छेद 32'],
     correctOption: 3,
-    explanationEn: 'Article 32 provides the right to constitutional remedies via Supreme Court writs (Habeas Corpus, Mandamus, Prohibition, Certiorari, Quo-Warranto).',
-    explanationHi: 'अनुच्छेद 32 मौलिक अधिकारों के उल्लंघन पर सीधे सर्वोच्च न्यायालय द्वारा रिट जारी कराने का संवैधानिक उपचार प्रदान करता है।'
+    approvalStatus: 'APPROVED_OLYMPIAD',
+    timesUsedInOlympiad: 0,
   },
-
-  // ================= MODERN HISTORY =================
   {
-    id: 'history-1',
-    subjectId: 'history',
-    subjectName: 'Modern Indian History',
-    topic: 'Indian Freedom Struggle',
-    questionEn: 'With reference to the Indian freedom struggle, which of the following movements occurred earliest?',
-    questionHi: 'भारतीय स्वतंत्रता संग्राम के संदर्भ में, निम्नलिखित में से कौन सा आंदोलन सबसे पहले घटित हुआ?',
-    optionsEn: ['Rowlatt Satyagraha', 'Champaran Satyagraha', 'Kheda Satyagraha', 'Ahmedabad Mill Strike'],
-    optionsHi: ['रौलट सत्याग्रह', 'चंपारण सत्याग्रह', 'खेड़ा सत्याग्रह', 'अहमदाबाद मिल मजदूर हड़ताल'],
+    id: 'fb-2',
+    subject: 'polity',
+    topic: 'Fundamental Rights',
+    questionEn: 'Under Article 21, the right to privacy was declared a Fundamental Right in which landmark judgment?',
+    questionHi: 'अनुच्छेद 21 के तहत निजता के अधिकार को किस ऐतिहासिक फैसले में मौलिक अधिकार घोषित किया गया था?',
+    optionsEn: ['Kesavananda Bharati Case', 'K.S. Puttaswamy Case', 'Maneka Gandhi Case', 'Minerva Mills Case'],
+    optionsHi: ['केशवानंद भारती मामला', 'के.एस. पुट्टास्वामी मामला', 'मेनका गांधी मामला', 'मिनर्वा मिल्स मामला'],
     correctOption: 1,
-    explanationEn: 'Chronology: Champaran (April 1917) -> Ahmedabad Mill Strike (Feb 1918) -> Kheda Satyagraha (March 1918) -> Rowlatt Satyagraha (1919).',
-    explanationHi: 'कालक्रम: चंपारण सत्याग्रह (1917) -> अहमदाबाद मिल हड़ताल (फरवरी 1918) -> खेड़ा सत्याग्रह (मार्च 1918) -> रौलट सत्याग्रह (1919)।'
-  },
-  {
-    id: 'history-2',
-    subjectId: 'history',
-    subjectName: 'Modern Indian History',
-    topic: 'Constitutional Developments in British India',
-    questionEn: 'Which British Act introduced "Dyarchy" (dual rule) in the provinces of British India?',
-    questionHi: 'ब्रिटिश संसद के किस अधिनियम ने ब्रिटिश भारत के प्रांतों में "द्वैध शासन" (Dyarchy) प्रणाली लागू की थी?',
-    optionsEn: ['Indian Councils Act 1909', 'Government of India Act 1919', 'Government of India Act 1935', 'Charter Act 1853'],
-    optionsHi: ['भारतीय परिषद अधिनियम 1909', 'भारत सरकार अधिनियम 1919', 'भारत सरकार अधिनियम 1935', 'चार्टर अधिनियम 1853'],
-    correctOption: 1,
-    explanationEn: 'The Government of India Act 1919 (Montagu-Chelmsford Reforms) introduced Dyarchy in the provinces by dividing subjects into Transferred and Reserved.',
-    explanationHi: 'भारत सरकार अधिनियम 1919 ने प्रांतीय विषयों को हस्तांतरित और आरक्षित में बांटकर प्रांतों में द्वैध शासन शुरू किया था।'
-  },
-
-  // ================= ECONOMY =================
-  {
-    id: 'eco-1',
-    subjectId: 'economy',
-    subjectName: 'Indian Economy & Banking',
-    topic: 'Monetary Policy & RBI',
-    questionEn: 'When the Reserve Bank of India (RBI) raises the Cash Reserve Ratio (CRR), what is the direct impact?',
-    questionHi: 'जब भारतीय रिज़र्व बैंक (RBI) नकद आरक्षित अनुपात (CRR) बढ़ाता है, तो उसका सीधा प्रभाव क्या होता है?',
-    optionsEn: [
-      'Lendable resources and liquidity in the banking system decrease.',
-      'Banks will have more surplus funds to lend at cheaper rates.',
-      'Foreign Direct Investment automatically doubles.',
-      'Government debt drops to zero immediately.'
-    ],
-    optionsHi: [
-      'बैंकिंग प्रणाली में उधार देने योग्य संसाधन और तरलता कम हो जाती है।',
-      'बैंकों के पास सस्ती दरों पर उधार देने के लिए अधिक धन उपलब्ध होता है।',
-      'विदेशी प्रत्यक्ष निवेश स्वतः दोगुना हो जाता है।',
-      'सरकारी ऋण तत्काल शून्य हो जाता है।'
-    ],
-    correctOption: 0,
-    explanationEn: 'An increase in CRR forces commercial banks to park a higher share of their deposits with the RBI in cash, draining excess liquidity from circulation.',
-    explanationHi: 'CRR बढ़ने से बैंकों को अपनी जमा पूंजी का बड़ा हिस्सा RBI के पास सुरक्षित रखना पड़ता है, जिससे बाजार में नकदी/तरलता घटती है।'
-  },
-
-  // ================= GEOGRAPHY =================
-  {
-    id: 'geo-1',
-    subjectId: 'geography',
-    subjectName: 'Geography & State Studies',
-    topic: 'Indian Drainage System',
-    questionEn: 'Which of the following peninsular rivers flows westwards through a rift valley into the Arabian Sea?',
-    questionHi: 'निम्नलिखित में से कौन सी प्रायद्वीपीय नदी भ्रंश घाटी (Rift Valley) से होकर पश्चिम की ओर बहती है और अरब सागर में गिरती है?',
-    optionsEn: ['Godavari', 'Narmada', 'Krishna', 'Mahanadi'],
-    optionsHi: ['गोदावरी', 'नर्मदा', 'कृष्णा', 'महानदी'],
-    correctOption: 1,
-    explanationEn: 'The Narmada and Tapi rivers flow westwards between the Vindhya and Satpura ranges through rift valleys and form estuaries.',
-    explanationHi: 'नर्मदा और तापी नदियां विंध्य और सतपुड़ा पर्वतमालाओं के बीच भ्रंश घाटी से बहती हुई अरब सागर में गिरती हैं।'
-  },
-
-  // ================= CSAT =================
-  {
-    id: 'csat-1',
-    subjectId: 'csat',
-    subjectName: 'CSAT & Logical Reasoning',
-    topic: 'Deductive Logic & Syllogism',
-    questionEn: 'Statements: 1. All officers are graduates. 2. Some graduates are researchers.\nConclusion I: Some officers are researchers. Conclusion II: All researchers are officers.',
-    questionHi: 'कथन: 1. सभी अधिकारी स्नातक हैं। 2. कुछ स्नातक शोधकर्ता हैं।\nनिष्कर्ष I: कुछ अधिकारी शोधकर्ता हैं। निष्कर्ष II: सभी शोधकर्ता अधिकारी हैं।',
-    optionsEn: [
-      'Only Conclusion I follows',
-      'Only Conclusion II follows',
-      'Both I and II follow',
-      'Neither Conclusion I nor II follows'
-    ],
-    optionsHi: [
-      'केवल निष्कर्ष I सही है',
-      'केवल निष्कर्ष II सही है',
-      'निष्कर्ष I और II दोनों सही हैं',
-      'न तो निष्कर्ष I और न ही II सही है'
-    ],
-    correctOption: 3,
-    explanationEn: 'Without an overlapping middle term distributed across premises, no definitive conclusion can be drawn between officers and researchers.',
-    explanationHi: 'दिए गए कथनों से अधिकारी और शोधकर्ता के बीच कोई निश्चित प्रत्यक्ष संबंध सिद्ध नहीं होता। अतः कोई भी निष्कर्ष मान्य नहीं है।'
+    approvalStatus: 'APPROVED_OLYMPIAD',
+    timesUsedInOlympiad: 0,
   }
 ];
 
-function QuizPlayerContent() {
+function QuizArenaContent() {
   const searchParams = useSearchParams();
   const subjectParam = searchParams.get('subject') || 'polity';
 
-  const activeQuestions = useMemo(() => {
-    const filtered = GLOBAL_QUESTIONS_DB.filter(
-      (q) => q.subjectId.toLowerCase() === subjectParam.toLowerCase()
-    );
-    return filtered.length > 0 ? filtered : GLOBAL_QUESTIONS_DB.filter((q) => q.subjectId === 'polity');
-  }, [subjectParam]);
-
+  const [questions, setQuestions] = useState<QuestionData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [markedForReview, setMarkedForReview] = useState<number[]>([]);
-  const [visited, setVisited] = useState<number[]>([0]);
-
-  const [timeLeft, setTimeLeft] = useState(600);
+  const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
+  const [timeRemaining, setTimeRemaining] = useState(1200); // 20 Minutes
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
 
-  const [warningsCount, setWarningsCount] = useState(0);
-  const [showWarningModal, setShowWarningModal] = useState(false);
-
+  // 1. Fetch live questions from Firestore Cloud
   useEffect(() => {
-    setCurrentIndex(0);
-    setAnswers({});
-    setMarkedForReview([]);
-    setVisited([0]);
-    setTimeLeft(600);
-    setIsSubmitted(false);
-    setWarningsCount(0);
+    async function loadQuizQuestions() {
+      setLoading(true);
+      try {
+        const cloudQuestions = await getAllQuestions();
+        const filtered = cloudQuestions.filter(
+          (q) =>
+            q.subject === subjectParam &&
+            (q.approvalStatus === 'APPROVED_OLYMPIAD' || q.approvalStatus === 'APPROVED_PRACTICE')
+        );
+
+        if (filtered.length > 0) {
+          setQuestions(filtered);
+        } else if (cloudQuestions.length > 0) {
+          setQuestions(cloudQuestions);
+        } else {
+          setQuestions(FALLBACK_QUESTIONS);
+        }
+      } catch (err) {
+        console.error('Error fetching quiz questions:', err);
+        setQuestions(FALLBACK_QUESTIONS);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuizQuestions();
   }, [subjectParam]);
 
-  const currentQ = activeQuestions[currentIndex] || activeQuestions[0];
-
-  // Anti-Cheat: Visibility Change & Window Blur Detector
-  const handleCheatAttempt = useCallback(() => {
-    if (isSubmitted) return;
-    setWarningsCount((prev) => {
-      const nextCount = prev + 1;
-      setShowWarningModal(true);
-      if (nextCount >= 3) {
-        setIsSubmitted(true);
-      }
-      return nextCount;
-    });
-  }, [isSubmitted]);
-
+  // 2. Countdown Timer Engine
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) handleCheatAttempt();
-    };
-    const handleWindowBlur = () => handleCheatAttempt();
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleWindowBlur);
-    document.addEventListener('contextmenu', handleContextMenu);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleWindowBlur);
-      document.removeEventListener('contextmenu', handleContextMenu);
-    };
-  }, [handleCheatAttempt]);
-
-  // Timer Tick
-  useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || loading) return;
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           setIsSubmitted(true);
@@ -247,555 +96,341 @@ function QuizPlayerContent() {
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
-  }, [isSubmitted]);
+  }, [isSubmitted, loading]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  const currentQ = questions[currentIndex] || FALLBACK_QUESTIONS[0];
 
-  const handleSelectOption = (optIndex: number) => {
-    setAnswers((prev) => ({ ...prev, [currentIndex]: optIndex }));
+  const handleOptionSelect = (optionIndex: number) => {
+    if (isSubmitted) return;
+    setUserAnswers((prev) => ({
+      ...prev,
+      [currentIndex]: optionIndex,
+    }));
   };
 
   const handleClearResponse = () => {
-    setAnswers((prev) => {
-      const updated = { ...prev };
-      delete updated[currentIndex];
-      return updated;
+    if (isSubmitted) return;
+    setUserAnswers((prev) => {
+      const copy = { ...prev };
+      delete copy[currentIndex];
+      return copy;
     });
   };
 
-  const handleToggleReview = () => {
-    setMarkedForReview((prev) =>
-      prev.includes(currentIndex) ? prev.filter((i) => i !== currentIndex) : [...prev, currentIndex]
-    );
-  };
-
-  const navigateTo = (index: number) => {
-    setCurrentIndex(index);
-    if (!visited.includes(index)) {
-      setVisited((prev) => [...prev, index]);
-    }
-  };
-
-  const resultMetrics = useMemo(() => {
+  // Score Calculation (+2.00 / -0.66)
+  const calculateResults = () => {
     let correct = 0;
     let incorrect = 0;
     let unattempted = 0;
 
-    activeQuestions.forEach((q, idx) => {
-      const ans = answers[idx];
+    questions.forEach((q, idx) => {
+      const ans = userAnswers[idx];
       if (ans === undefined) {
-        unattempted += 1;
+        unattempted++;
       } else if (ans === q.correctOption) {
-        correct += 1;
+        correct++;
       } else {
-        incorrect += 1;
+        incorrect++;
       }
     });
 
-    const rawScore = correct * 2 - incorrect * 0.66;
-    const maxScore = activeQuestions.length * 2;
-    const accuracy = correct + incorrect > 0 ? (correct / (correct + incorrect)) * 100 : 0;
-    const timeSpent = 600 - timeLeft;
+    const rawScore = correct * 2.0 - incorrect * 0.66;
+    const accuracy = correct + incorrect > 0 ? ((correct / (correct + incorrect)) * 100).toFixed(1) : '0';
 
     return {
       correct,
       incorrect,
       unattempted,
-      rawScore: Math.max(0, rawScore).toFixed(2),
-      maxScore,
-      accuracy: accuracy.toFixed(1),
-      timeSpentFormatted: formatTime(timeSpent),
+      score: rawScore.toFixed(2),
+      accuracy,
     };
-  }, [answers, timeLeft, activeQuestions]);
+  };
 
-  if (!currentQ) {
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-100">
-        <p className="text-slate-600 font-bold text-sm">Loading Examination Arena...</p>
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white space-y-4">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+          Initializing Proctored Test Vault...
+        </p>
       </div>
     );
   }
 
-  // ================= 1. POST-TEST DIAGNOSTIC SCORECARD =================
+  // ================= SCORECARD SUMMARY VIEW =================
   if (isSubmitted) {
+    const results = calculateResults();
+
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 pb-20">
-        <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-            <Link
-              href="/practice"
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-blue-600 transition"
-            >
-              <ArrowLeft className="w-4 h-4 text-blue-600" />
-              <span>Back to Practice Bank</span>
-            </Link>
-            <span className="text-[11px] font-bold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full uppercase">
-              Evaluation Completed
-            </span>
-          </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-8">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
-              <Award className="w-7 h-7" />
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/30">
+              <Trophy className="w-7 h-7" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Test Performance &amp; Diagnostic Report
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-              Subject: {currentQ.subjectName}
-            </p>
+            <h2 className="text-xl sm:text-2xl font-black text-white">Assessment Completed</h2>
+            <p className="text-xs text-slate-400">All-India Provisional Score &amp; Accuracy Report</p>
+          </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6">
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Final Score</p>
-                <p className="text-xl sm:text-2xl font-black text-blue-600 mt-1">
-                  {resultMetrics.rawScore} <span className="text-xs text-slate-400">/ {resultMetrics.maxScore}</span>
-                </p>
-              </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Raw Score</span>
+              <p className="text-xl font-black text-amber-400 mt-1">{results.score}</p>
+              <span className="text-[10px] text-slate-500">Max: {questions.length * 2}</span>
+            </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Accuracy Index</p>
-                <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-1">
-                  {resultMetrics.accuracy}%
-                </p>
-              </div>
+            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Accuracy</span>
+              <p className="text-xl font-black text-emerald-400 mt-1">{results.accuracy}%</p>
+              <span className="text-[10px] text-slate-500">Precision Ratio</span>
+            </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Time Consumed</p>
-                <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                  {resultMetrics.timeSpentFormatted}
-                </p>
-              </div>
-
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Net Breakdown</p>
-                <p className="text-xs font-bold text-slate-700 mt-2">
-                  <span className="text-emerald-600 font-black">+{resultMetrics.correct}</span> / <span className="text-rose-600 font-black">-{resultMetrics.incorrect}</span> / <span className="text-slate-400 font-black">{resultMetrics.unattempted}</span>
-                </p>
-              </div>
+            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Correct</span>
+              <p className="text-xl font-black text-blue-400 mt-1">{results.correct} / {questions.length}</p>
+              <span className="text-[10px] text-slate-500">+{results.correct * 2} Marks</span>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              Detailed Solutions &amp; Question Review
-            </h2>
-
-            {activeQuestions.map((q, idx) => {
-              const userAns = answers[idx];
-              const isCorrect = userAns === q.correctOption;
-              const isUnattempted = userAns === undefined;
-
-              return (
-                <div key={q.id} className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span className="text-[10px] font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md">
-                      Question #{idx + 1} • {q.topic}
-                    </span>
-                    <div>
-                      {isUnattempted ? (
-                        <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md">
-                          Unattempted
-                        </span>
-                      ) : isCorrect ? (
-                        <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Correct (+2.00)
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-md flex items-center gap-1">
-                          <XCircle className="w-3.5 h-3.5" /> Incorrect (-0.66)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="font-bold text-slate-900 text-sm sm:text-base leading-snug">
-                      {q.questionEn}
-                    </p>
-                    <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                      {q.questionHi}
-                    </p>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-2.5">
-                    {q.optionsEn.map((opt, optIdx) => {
-                      const isThisCorrect = optIdx === q.correctOption;
-                      const isThisUserSelected = optIdx === userAns;
-
-                      let style = 'bg-slate-50 border-slate-200 text-slate-700';
-                      if (isThisCorrect) {
-                        style = 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold ring-1 ring-emerald-400';
-                      } else if (isThisUserSelected && !isCorrect) {
-                        style = 'bg-rose-50 border-rose-400 text-rose-900 font-bold ring-1 ring-rose-400';
-                      }
-
-                      return (
-                        <div key={optIdx} className={`p-3 rounded-xl border text-xs leading-tight ${style}`}>
-                          <div className="flex items-start gap-2">
-                            <span className="font-black text-[10px] uppercase">{String.fromCharCode(65 + optIdx)}.</span>
-                            <div>
-                              <span>{opt}</span>
-                              <span className="block text-[11px] opacity-75 mt-0.5">{q.optionsHi[optIdx]}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1">
-                    <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                      Editorial Explanation:
-                    </p>
-                    <p className="text-xs text-slate-700 leading-relaxed">
-                      {q.explanationEn}
-                    </p>
-                    <p className="text-xs text-slate-600 leading-relaxed pt-1 border-t border-blue-100">
-                      {q.explanationHi}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-            <Link
-              href="/practice"
-              className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition text-center"
-            >
-              Attempt Another Subject Drill
-            </Link>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               onClick={() => {
-                setAnswers({});
-                setMarkedForReview([]);
-                setVisited([0]);
-                setTimeLeft(600);
+                setUserAnswers({});
                 setIsSubmitted(false);
+                setTimeRemaining(1200);
                 setCurrentIndex(0);
               }}
-              className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Re-attempt This Drill</span>
+              <span>Retake Practice Drill</span>
             </button>
+
+            <Link
+              href="/leaderboard"
+              className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>View All-India Rankings</span>
+            </Link>
           </div>
         </div>
       </div>
     );
   }
 
-  // ================= 2. CLEAN PROCTORED TEST ARENA =================
+  // ================= LIVE PROCTORED TEST VIEW =================
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
       
-      {/* Sleek Minimal Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      {/* Test Arena Top Control Bar */}
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm">
-              <Zap className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-black text-xs">
+              A
             </div>
             <div>
-              <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-none">
-                {currentQ.subjectName}
+              <h1 className="font-bold text-xs sm:text-sm text-slate-200">
+                Abhyaas National Testing Arena
               </h1>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                {activeQuestions.length} Questions • +2.00 / -0.66 Marking
-              </p>
+              <span className="text-[10px] text-slate-400">
+                Marking: +2.00 / -0.66 • Section: {currentQ.topic}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-black tracking-wider ${
-              timeLeft < 120
-                ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
-                : 'bg-slate-900 text-white border-slate-800'
-            }`}>
-              <Timer className="w-4 h-4" />
-              <span>{formatTime(timeLeft)}</span>
+          {/* Countdown Clock */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-amber-400">
+              <Clock className="w-4 h-4" />
+              <span>
+                {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+              </span>
             </div>
 
             <button
-              onClick={() => setShowSubmitModal(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
+              onClick={() => {
+                if (confirm('Kya aap sach me test submit karna chahte hain?')) {
+                  setIsSubmitted(true);
+                }
+              }}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer"
             >
-              Submit Test
+              <Send className="w-3.5 h-3.5" />
+              <span>Submit Test</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Focus Question Arena */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
-        <div className="grid lg:grid-cols-12 gap-6 items-start">
-          
-          {/* Left: Active Question & Interactive Options (Span 8) */}
-          <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 bg-slate-900 text-white rounded-lg">
-                  Question {currentIndex + 1} of {activeQuestions.length}
-                </span>
-                <span className="text-xs text-slate-500 font-semibold truncate max-w-[200px] sm:max-w-md">
-                  Section: {currentQ.topic}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">+2.00</span>
-                <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">-0.66</span>
-              </div>
+      {/* Main 2-Column Quiz Layout */}
+      <div className="max-w-7xl mx-auto px-4 py-6 w-full flex-grow grid lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Left: Dual Bilingual Question Card (Span 8) */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs text-slate-400">
+              <span className="font-bold text-amber-400 uppercase tracking-wider">
+                Question {currentIndex + 1} of {questions.length}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-[10px] font-bold">
+                Bilingual Rendering
+              </span>
             </div>
 
-            <div className="space-y-2 py-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+            {/* Bilingual Statements */}
+            <div className="space-y-3">
+              <p className="text-sm sm:text-base font-bold text-white leading-relaxed">
                 {currentQ.questionEn}
-              </h2>
-              <p className="text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
+              </p>
+              <p className="text-sm sm:text-base font-medium text-slate-300 leading-relaxed pt-1 border-t border-slate-800/80">
                 {currentQ.questionHi}
               </p>
             </div>
 
+            {/* Diagram Image if exists */}
+            {currentQ.diagramUrl && (
+              <div className="rounded-2xl overflow-hidden border border-slate-800 max-h-64 max-w-md">
+                <img src={currentQ.diagramUrl} alt="Question Diagram" className="w-full h-full object-contain bg-slate-950" />
+              </div>
+            )}
+
+            {/* Options List */}
             <div className="space-y-3 pt-2">
-              {currentQ.optionsEn.map((opt, optIndex) => {
-                const isSelected = answers[currentIndex] === optIndex;
+              {currentQ.optionsEn.map((optEn, oIdx) => {
+                const isSelected = userAnswers[currentIndex] === oIdx;
+
                 return (
                   <button
-                    key={optIndex}
-                    onClick={() => handleSelectOption(optIndex)}
+                    key={oIdx}
+                    onClick={() => handleOptionSelect(oIdx)}
                     className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 ${
                       isSelected
-                        ? 'bg-blue-50/80 border-blue-600 shadow-sm ring-1 ring-blue-600'
-                        : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
+                        ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-500'
+                        : 'bg-slate-800/60 border-slate-800 hover:border-slate-700 text-slate-200'
                     }`}
                   >
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
-                      isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {String.fromCharCode(65 + optIndex)}
-                    </span>
-                    <div className="text-xs sm:text-sm">
-                      <span className="font-semibold block text-slate-900">{opt}</span>
-                      <span className="text-slate-500 font-medium block mt-0.5">{currentQ.optionsHi[optIndex]}</span>
+                    <div
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 ${
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {String.fromCharCode(65 + oIdx)}
+                    </div>
+                    <div className="space-y-0.5 text-xs sm:text-sm">
+                      <p className="font-semibold text-white">{optEn}</p>
+                      <p className="text-slate-400 font-medium">{currentQ.optionsHi[oIdx]}</p>
                     </div>
                   </button>
                 );
               })}
             </div>
 
-            <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleToggleReview}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                    markedForReview.includes(currentIndex)
-                      ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  <Bookmark className="w-3.5 h-3.5" />
-                  <span>{markedForReview.includes(currentIndex) ? 'Marked for Review' : 'Mark for Review'}</span>
-                </button>
-
-                {answers[currentIndex] !== undefined && (
-                  <button
-                    onClick={handleClearResponse}
-                    className="px-3.5 py-2 text-rose-600 hover:bg-rose-50 text-xs font-bold rounded-xl transition cursor-pointer"
-                  >
-                    Clear Choice
-                  </button>
-                )}
-              </div>
+            {/* Bottom Actions Bar */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800 text-xs">
+              <button
+                onClick={handleClearResponse}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition font-bold cursor-pointer"
+              >
+                Clear Selection
+              </button>
 
               <div className="flex items-center gap-2">
                 <button
                   disabled={currentIndex === 0}
-                  onClick={() => navigateTo(currentIndex - 1)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => setCurrentIndex((prev) => prev - 1)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-white font-bold transition flex items-center gap-1 cursor-pointer"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-4 h-4" />
                   <span>Previous</span>
                 </button>
 
-                {currentIndex < activeQuestions.length - 1 ? (
-                  <button
-                    onClick={() => navigateTo(currentIndex + 1)}
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <span>Next</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowSubmitModal(true)}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <span>Finish Drill</span>
-                    <Check className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  disabled={currentIndex === questions.length - 1}
+                  onClick={() => setCurrentIndex((prev) => prev + 1)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:pointer-events-none text-white font-bold transition flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
+
+          </div>
+        </div>
+
+        {/* Right: Question Palette Grid (Span 4) */}
+        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs">
+            <span className="font-bold text-slate-300">Question Palette</span>
+            <span className="text-[11px] text-amber-400 font-bold">
+              {Object.keys(userAnswers).length} / {questions.length} Attempted
+            </span>
           </div>
 
-          {/* Right: Question Palette Grid & Security Monitor (Span 4) */}
-          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-3">
-              Question Palette (प्रश्न ग्रिड)
-            </h3>
+          <div className="grid grid-cols-5 gap-2">
+            {questions.map((_, idx) => {
+              const isCurrent = currentIndex === idx;
+              const isAnswered = userAnswers[idx] !== undefined;
 
-            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 font-medium">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                <span>Answered ({Object.keys(answers).length})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                <span>Review ({markedForReview.length})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-rose-500"></span>
-                <span>Unanswered</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-slate-200"></span>
-                <span>Not Visited</span>
-              </div>
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`h-9 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center ${
+                    isCurrent
+                      ? 'border-2 border-amber-400 text-white bg-amber-500/20'
+                      : isAnswered
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pt-3 border-t border-slate-800 space-y-2 text-[11px] text-slate-400">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-emerald-600" />
+              <span>Answered (हल किया)</span>
             </div>
-
-            <div className="grid grid-cols-5 gap-2.5 pt-3 border-t border-slate-100">
-              {activeQuestions.map((_, qIdx) => {
-                const isCurrent = qIdx === currentIndex;
-                const isAnswered = answers[qIdx] !== undefined;
-                const isMarked = markedForReview.includes(qIdx);
-                const isVisited = visited.includes(qIdx);
-
-                let badgeStyle = 'bg-slate-100 text-slate-600 border-slate-200';
-                if (isMarked) {
-                  badgeStyle = 'bg-purple-600 text-white border-purple-600 font-bold';
-                } else if (isAnswered) {
-                  badgeStyle = 'bg-emerald-600 text-white border-emerald-600 font-bold';
-                } else if (isVisited) {
-                  badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
-                }
-
-                return (
-                  <button
-                    key={qIdx}
-                    onClick={() => navigateTo(qIdx)}
-                    className={`h-10 rounded-xl border text-xs font-bold transition flex items-center justify-center cursor-pointer ${badgeStyle} ${
-                      isCurrent ? 'ring-2 ring-blue-600 ring-offset-2' : ''
-                    }`}
-                  >
-                    {qIdx + 1}
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-slate-800 border border-slate-700" />
+              <span>Unattempted (छोड़ा गया)</span>
             </div>
-
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
-              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                Anti-Cheat Integrity Monitor
-              </p>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Do not switch browser tabs or minimize window. Screen switching will trigger an official security warning.
-              </p>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-amber-500/20 border-2 border-amber-400" />
+              <span>Current Question (वर्तमान प्रश्न)</span>
             </div>
           </div>
         </div>
-      </main>
 
-      {/* Anti-Cheat Warning Modal */}
-      {showWarningModal && !isSubmitted && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-rose-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold px-2.5 py-1 bg-rose-100 text-rose-700 rounded-full uppercase">
-                Security Violation #{warningsCount} / 3
-              </span>
-              <h3 className="text-lg font-black text-slate-900 mt-2">
-                Screen Focus Lost / Tab Switch Detected
-              </h3>
-              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                You navigated away from the active examination screen. 3 consecutive violations will auto-submit your test.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setShowWarningModal(false)}
-              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-            >
-              I Understand, Return to Test
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Submit Confirmation Modal */}
-      {showSubmitModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-black text-base text-slate-900">Confirm Test Submission</h3>
-              <button onClick={() => setShowSubmitModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs text-slate-600">
-              <p>Are you sure you want to finalize and submit your responses?</p>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
-                <p>• Answered: <strong className="text-emerald-600">{Object.keys(answers).length}</strong></p>
-                <p>• Unanswered: <strong className="text-rose-600">{activeQuestions.length - Object.keys(answers).length}</strong></p>
-                <p>• Marked for Review: <strong className="text-purple-600">{markedForReview.length}</strong></p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Continue Test
-              </button>
-              <button
-                onClick={() => {
-                  setShowSubmitModal(false);
-                  setIsSubmitted(true);
-                }}
-                className="py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-500/20 cursor-pointer"
-              >
-                Submit Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
-export default function QuizPlayerPage() {
+export default function QuizArenaPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-xs font-bold text-slate-500">Loading Assessment Arena...</div>}>
-      <QuizPlayerContent />
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white space-y-4">
+          <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+          <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+            Loading Assessment Arena...
+          </p>
+        </div>
+      }
+    >
+      <QuizArenaContent />
     </Suspense>
   );
 }
