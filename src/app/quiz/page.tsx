@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Timer,
@@ -18,40 +18,179 @@ import {
   Award,
   Sparkles,
   Zap,
-  X,
-  LogOut
+  X
 } from 'lucide-react';
-import { QUESTIONS_BANK, SUBJECT_METADATA, Question } from '@/data/questionsBank';
+
+interface Question {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  topic: string;
+  questionEn: string;
+  questionHi: string;
+  optionsEn: string[];
+  optionsHi: string[];
+  correctOption: number;
+  explanationEn: string;
+  explanationHi: string;
+}
+
+const GLOBAL_QUESTIONS_DB: Question[] = [
+  // ================= POLITY =================
+  {
+    id: 'pol-1',
+    subjectId: 'polity',
+    subjectName: 'Indian Polity & Governance',
+    topic: 'Constitutional Framework & Preamble',
+    questionEn: 'Which of the following statements regarding the Preamble to the Constitution of India is correct?',
+    questionHi: 'भारत के संविधान की प्रस्तावना के संबंध में निम्नलिखित में से कौन सा कथन सही है?',
+    optionsEn: [
+      'It is not a part of the Constitution and has no legal effect.',
+      'It is a part of the Constitution and can be amended under Article 368 without altering the basic structure.',
+      'It gives discretionary powers to the legislature over fundamental rights.',
+      'It cannot be amended under any circumstances.'
+    ],
+    optionsHi: [
+      'यह संविधान का हिस्सा नहीं है और इसका कोई कानूनी प्रभाव नहीं है।',
+      'यह संविधान का एक अभिन्न हिस्सा है और मूल ढांचे को बदले बिना अनुच्छेद 368 के तहत संशोधित किया जा सकता है।',
+      'यह मौलिक अधिकारों पर विधायिका को विवेकाधीन शक्तियां प्रदान करती है।',
+      'किसी भी परिस्थिति में इसमें संशोधन नहीं किया जा सकता।'
+    ],
+    correctOption: 1,
+    explanationEn: 'In the Kesavananda Bharati case (1973), the Supreme Court ruled that the Preamble is an integral part of the Constitution and can be amended under Article 368 subject to the Basic Structure doctrine.',
+    explanationHi: 'केशवानंद भारती मामले (1973) में सुप्रीम कोर्ट ने माना कि प्रस्तावना संविधान का अभिन्न अंग है और मूल संरचना के अधीन अनुच्छेद 368 द्वारा इसमें संशोधन किया जा सकता है।'
+  },
+  {
+    id: 'pol-2',
+    subjectId: 'polity',
+    subjectName: 'Indian Polity & Governance',
+    topic: 'Fundamental Rights & Article 32',
+    questionEn: 'Which Article of the Indian Constitution was described by Dr. B.R. Ambedkar as the "Heart and Soul" of the Constitution?',
+    questionHi: 'डॉ. बी.आर. अंबेडकर ने भारतीय संविधान के किस अनुच्छेद को संविधान का "हृदय और आत्मा" कहा था?',
+    optionsEn: ['Article 14', 'Article 19', 'Article 21', 'Article 32'],
+    optionsHi: ['अनुच्छेद 14', 'अनुच्छेद 19', 'अनुच्छेद 21', 'अनुच्छेद 32'],
+    correctOption: 3,
+    explanationEn: 'Article 32 provides the right to constitutional remedies via Supreme Court writs (Habeas Corpus, Mandamus, Prohibition, Certiorari, Quo-Warranto).',
+    explanationHi: 'अनुच्छेद 32 मौलिक अधिकारों के उल्लंघन पर सीधे सर्वोच्च न्यायालय द्वारा रिट जारी कराने का संवैधानिक उपचार प्रदान करता है।'
+  },
+
+  // ================= MODERN HISTORY =================
+  {
+    id: 'history-1',
+    subjectId: 'history',
+    subjectName: 'Modern Indian History',
+    topic: 'Indian Freedom Struggle',
+    questionEn: 'With reference to the Indian freedom struggle, which of the following movements occurred earliest?',
+    questionHi: 'भारतीय स्वतंत्रता संग्राम के संदर्भ में, निम्नलिखित में से कौन सा आंदोलन सबसे पहले घटित हुआ?',
+    optionsEn: ['Rowlatt Satyagraha', 'Champaran Satyagraha', 'Kheda Satyagraha', 'Ahmedabad Mill Strike'],
+    optionsHi: ['रौलट सत्याग्रह', 'चंपारण सत्याग्रह', 'खेड़ा सत्याग्रह', 'अहमदाबाद मिल मजदूर हड़ताल'],
+    correctOption: 1,
+    explanationEn: 'Chronology: Champaran (April 1917) -> Ahmedabad Mill Strike (Feb 1918) -> Kheda Satyagraha (March 1918) -> Rowlatt Satyagraha (1919).',
+    explanationHi: 'कालक्रम: चंपारण सत्याग्रह (1917) -> अहमदाबाद मिल हड़ताल (फरवरी 1918) -> खेड़ा सत्याग्रह (मार्च 1918) -> रौलट सत्याग्रह (1919)।'
+  },
+  {
+    id: 'history-2',
+    subjectId: 'history',
+    subjectName: 'Modern Indian History',
+    topic: 'Constitutional Developments in British India',
+    questionEn: 'Which British Act introduced "Dyarchy" (dual rule) in the provinces of British India?',
+    questionHi: 'ब्रिटिश संसद के किस अधिनियम ने ब्रिटिश भारत के प्रांतों में "द्वैध शासन" (Dyarchy) प्रणाली लागू की थी?',
+    optionsEn: ['Indian Councils Act 1909', 'Government of India Act 1919', 'Government of India Act 1935', 'Charter Act 1853'],
+    optionsHi: ['भारतीय परिषद अधिनियम 1909', 'भारत सरकार अधिनियम 1919', 'भारत सरकार अधिनियम 1935', 'चार्टर अधिनियम 1853'],
+    correctOption: 1,
+    explanationEn: 'The Government of India Act 1919 (Montagu-Chelmsford Reforms) introduced Dyarchy in the provinces by dividing subjects into Transferred and Reserved.',
+    explanationHi: 'भारत सरकार अधिनियम 1919 ने प्रांतीय विषयों को हस्तांतरित और आरक्षित में बांटकर प्रांतों में द्वैध शासन शुरू किया था।'
+  },
+
+  // ================= ECONOMY =================
+  {
+    id: 'eco-1',
+    subjectId: 'economy',
+    subjectName: 'Indian Economy & Banking',
+    topic: 'Monetary Policy & RBI',
+    questionEn: 'When the Reserve Bank of India (RBI) raises the Cash Reserve Ratio (CRR), what is the direct impact?',
+    questionHi: 'जब भारतीय रिज़र्व बैंक (RBI) नकद आरक्षित अनुपात (CRR) बढ़ाता है, तो उसका सीधा प्रभाव क्या होता है?',
+    optionsEn: [
+      'Lendable resources and liquidity in the banking system decrease.',
+      'Banks will have more surplus funds to lend at cheaper rates.',
+      'Foreign Direct Investment automatically doubles.',
+      'Government debt drops to zero immediately.'
+    ],
+    optionsHi: [
+      'बैंकिंग प्रणाली में उधार देने योग्य संसाधन और तरलता कम हो जाती है।',
+      'बैंकों के पास सस्ती दरों पर उधार देने के लिए अधिक धन उपलब्ध होता है।',
+      'विदेशी प्रत्यक्ष निवेश स्वतः दोगुना हो जाता है।',
+      'सरकारी ऋण तत्काल शून्य हो जाता है।'
+    ],
+    correctOption: 0,
+    explanationEn: 'An increase in CRR forces commercial banks to park a higher share of their deposits with the RBI in cash, draining excess liquidity from circulation.',
+    explanationHi: 'CRR बढ़ने से बैंकों को अपनी जमा पूंजी का बड़ा हिस्सा RBI के पास सुरक्षित रखना पड़ता है, जिससे बाजार में नकदी/तरलता घटती है।'
+  },
+
+  // ================= GEOGRAPHY =================
+  {
+    id: 'geo-1',
+    subjectId: 'geography',
+    subjectName: 'Geography & State Studies',
+    topic: 'Indian Drainage System',
+    questionEn: 'Which of the following peninsular rivers flows westwards through a rift valley into the Arabian Sea?',
+    questionHi: 'निम्नलिखित में से कौन सी प्रायद्वीपीय नदी भ्रंश घाटी (Rift Valley) से होकर पश्चिम की ओर बहती है और अरब सागर में गिरती है?',
+    optionsEn: ['Godavari', 'Narmada', 'Krishna', 'Mahanadi'],
+    optionsHi: ['गोदावरी', 'नर्मदा', 'कृष्णा', 'महानदी'],
+    correctOption: 1,
+    explanationEn: 'The Narmada and Tapi rivers flow westwards between the Vindhya and Satpura ranges through rift valleys and form estuaries.',
+    explanationHi: 'नर्मदा और तापी नदियां विंध्य और सतपुड़ा पर्वतमालाओं के बीच भ्रंश घाटी से बहती हुई अरब सागर में गिरती हैं।'
+  },
+
+  // ================= CSAT =================
+  {
+    id: 'csat-1',
+    subjectId: 'csat',
+    subjectName: 'CSAT & Logical Reasoning',
+    topic: 'Deductive Logic & Syllogism',
+    questionEn: 'Statements: 1. All officers are graduates. 2. Some graduates are researchers.\nConclusion I: Some officers are researchers. Conclusion II: All researchers are officers.',
+    questionHi: 'कथन: 1. सभी अधिकारी स्नातक हैं। 2. कुछ स्नातक शोधकर्ता हैं।\nनिष्कर्ष I: कुछ अधिकारी शोधकर्ता हैं। निष्कर्ष II: सभी शोधकर्ता अधिकारी हैं।',
+    optionsEn: [
+      'Only Conclusion I follows',
+      'Only Conclusion II follows',
+      'Both I and II follow',
+      'Neither Conclusion I nor II follows'
+    ],
+    optionsHi: [
+      'केवल निष्कर्ष I सही है',
+      'केवल निष्कर्ष II सही है',
+      'निष्कर्ष I और II दोनों सही हैं',
+      'न तो निष्कर्ष I और न ही II सही है'
+    ],
+    correctOption: 3,
+    explanationEn: 'Without an overlapping middle term distributed across premises, no definitive conclusion can be drawn between officers and researchers.',
+    explanationHi: 'दिए गए कथनों से अधिकारी और शोधकर्ता के बीच कोई निश्चित प्रत्यक्ष संबंध सिद्ध नहीं होता। अतः कोई भी निष्कर्ष मान्य नहीं है।'
+  }
+];
 
 function QuizPlayerContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const subjectParam = searchParams.get('subject') || 'polity';
 
-  // Dynamic Subject-specific questions
-  const activeQuestions: Question[] = useMemo(() => {
-    const filtered = QUESTIONS_BANK.filter((q) => q.subjectId === subjectParam);
-    return filtered.length > 0 ? filtered : QUESTIONS_BANK;
+  const activeQuestions = useMemo(() => {
+    const filtered = GLOBAL_QUESTIONS_DB.filter(
+      (q) => q.subjectId.toLowerCase() === subjectParam.toLowerCase()
+    );
+    return filtered.length > 0 ? filtered : GLOBAL_QUESTIONS_DB.filter((q) => q.subjectId === 'polity');
   }, [subjectParam]);
-
-  const activeSubjectInfo = SUBJECT_METADATA[subjectParam] || SUBJECT_METADATA.polity;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [markedForReview, setMarkedForReview] = useState<number[]>([]);
   const [visited, setVisited] = useState<number[]>([0]);
-  
-  // Timer State (10 Minutes = 600 seconds)
+
   const [timeLeft, setTimeLeft] = useState(600);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [showExitModal, setShowExitModal] = useState(false);
 
-  // Anti-Cheat Proctoring States
   const [warningsCount, setWarningsCount] = useState(0);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
-  // Reset when subject changes
   useEffect(() => {
     setCurrentIndex(0);
     setAnswers({});
@@ -79,18 +218,10 @@ function QuizPlayerContent() {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        handleCheatAttempt();
-      }
+      if (document.hidden) handleCheatAttempt();
     };
-
-    const handleWindowBlur = () => {
-      handleCheatAttempt();
-    };
-
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
+    const handleWindowBlur = () => handleCheatAttempt();
+    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
@@ -103,7 +234,7 @@ function QuizPlayerContent() {
     };
   }, [handleCheatAttempt]);
 
-  // Timer Countdown
+  // Timer Tick
   useEffect(() => {
     if (isSubmitted) return;
     const timer = setInterval(() => {
@@ -127,10 +258,7 @@ function QuizPlayerContent() {
   };
 
   const handleSelectOption = (optIndex: number) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [currentIndex]: optIndex,
-    }));
+    setAnswers((prev) => ({ ...prev, [currentIndex]: optIndex }));
   };
 
   const handleClearResponse = () => {
@@ -143,9 +271,7 @@ function QuizPlayerContent() {
 
   const handleToggleReview = () => {
     setMarkedForReview((prev) =>
-      prev.includes(currentIndex)
-        ? prev.filter((i) => i !== currentIndex)
-        : [...prev, currentIndex]
+      prev.includes(currentIndex) ? prev.filter((i) => i !== currentIndex) : [...prev, currentIndex]
     );
   };
 
@@ -156,7 +282,6 @@ function QuizPlayerContent() {
     }
   };
 
-  // Performance Evaluation Metrics
   const resultMetrics = useMemo(() => {
     let correct = 0;
     let incorrect = 0;
@@ -166,7 +291,7 @@ function QuizPlayerContent() {
       const ans = answers[idx];
       if (ans === undefined) {
         unattempted += 1;
-      } else if (ans === q.correctAnswer) {
+      } else if (ans === q.correctOption) {
         correct += 1;
       } else {
         incorrect += 1;
@@ -191,26 +316,24 @@ function QuizPlayerContent() {
 
   if (!currentQ) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <p className="text-slate-600 font-bold">Loading Drill Questions...</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-100">
+        <p className="text-slate-600 font-bold text-sm">Loading Examination Arena...</p>
       </div>
     );
   }
 
-  // --------------------------------------------------------------------------
-  // SCREEN 1: POST-TEST DIAGNOSTIC SCORECARD
-  // --------------------------------------------------------------------------
+  // ================= 1. POST-TEST DIAGNOSTIC SCORECARD =================
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white pb-20">
+      <div className="min-h-screen bg-slate-50 text-slate-800 pb-20">
         <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
             <Link
               href="/practice"
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 transition"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-blue-600 transition"
             >
               <ArrowLeft className="w-4 h-4 text-blue-600" />
-              Back to Practice Bank
+              <span>Back to Practice Bank</span>
             </Link>
             <span className="text-[11px] font-bold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full uppercase">
               Evaluation Completed
@@ -224,13 +347,12 @@ function QuizPlayerContent() {
               <Award className="w-7 h-7" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Test Performance &amp; AI Diagnostic Report
+              Test Performance &amp; Diagnostic Report
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-              {activeSubjectInfo.title} • {activeSubjectInfo.subtitle}
+              Subject: {currentQ.subjectName}
             </p>
 
-            {/* Score Highlights Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6">
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Final Score</p>
@@ -262,16 +384,15 @@ function QuizPlayerContent() {
             </div>
           </div>
 
-          {/* Solutions Review */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-600" />
-              Detailed Solutions &amp; Question Review (विस्तृत उत्तर एवं व्याख्या)
+              Detailed Solutions &amp; Question Review
             </h2>
 
             {activeQuestions.map((q, idx) => {
               const userAns = answers[idx];
-              const isCorrect = userAns === q.correctAnswer;
+              const isCorrect = userAns === q.correctOption;
               const isUnattempted = userAns === undefined;
 
               return (
@@ -283,7 +404,7 @@ function QuizPlayerContent() {
                     <div>
                       {isUnattempted ? (
                         <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md">
-                          Unattempted (अनुत्तरित)
+                          Unattempted
                         </span>
                       ) : isCorrect ? (
                         <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md flex items-center gap-1">
@@ -308,7 +429,7 @@ function QuizPlayerContent() {
 
                   <div className="grid sm:grid-cols-2 gap-2.5">
                     {q.optionsEn.map((opt, optIdx) => {
-                      const isThisCorrect = optIdx === q.correctAnswer;
+                      const isThisCorrect = optIdx === q.correctOption;
                       const isThisUserSelected = optIdx === userAns;
 
                       let style = 'bg-slate-50 border-slate-200 text-slate-700';
@@ -335,7 +456,7 @@ function QuizPlayerContent() {
                   <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1">
                     <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                      Editorial Explanation (उत्तर व्याख्या):
+                      Editorial Explanation:
                     </p>
                     <p className="text-xs text-slate-700 leading-relaxed">
                       {q.explanationEn}
@@ -376,45 +497,28 @@ function QuizPlayerContent() {
     );
   }
 
-  // --------------------------------------------------------------------------
-  // SCREEN 2: ACTIVE LIVE EXAMINATION PLAYER (NTA / TCS-iON STANDARD)
-  // --------------------------------------------------------------------------
+  // ================= 2. CLEAN PROCTORED TEST ARENA =================
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 selection:bg-blue-600 selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col justify-between">
       
-      {/* 1. Header Bar: Exit Button, Live Timer & Proctored Badge */}
+      {/* Sleek Minimal Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowExitModal(true)}
-              className="p-2 text-slate-600 hover:text-rose-600 hover:bg-slate-100 rounded-xl transition flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-              title="Exit Test"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Exit</span>
-            </button>
-
             <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm">
               <Zap className="w-4 h-4" />
             </div>
             <div>
               <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-none">
-                {activeSubjectInfo.title}
+                {currentQ.subjectName}
               </h1>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                {activeQuestions.length} Questions • +2.00 / -0.66 Marking Scheme
+                {activeQuestions.length} Questions • +2.00 / -0.66 Marking
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Proctoring Active</span>
-            </div>
-
             <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-black tracking-wider ${
               timeLeft < 120
                 ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
@@ -434,19 +538,18 @@ function QuizPlayerContent() {
         </div>
       </header>
 
-      {/* 2. Main Examination Area */}
+      {/* Main Focus Question Arena */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
         <div className="grid lg:grid-cols-12 gap-6 items-start">
           
-          {/* Left Column: Active Question & Options (Span 8) */}
+          {/* Left: Active Question & Interactive Options (Span 8) */}
           <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black px-3 py-1 bg-slate-900 text-white rounded-lg">
                   Question {currentIndex + 1} of {activeQuestions.length}
                 </span>
-                <span className="text-xs text-slate-500 font-semibold">
+                <span className="text-xs text-slate-500 font-semibold truncate max-w-[200px] sm:max-w-md">
                   Section: {currentQ.topic}
                 </span>
               </div>
@@ -548,7 +651,7 @@ function QuizPlayerContent() {
             </div>
           </div>
 
-          {/* Right Column: NTA-Style Question Palette (Span 4) */}
+          {/* Right: Question Palette Grid & Security Monitor (Span 4) */}
           <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-3">
               Question Palette (प्रश्न ग्रिड)
@@ -616,38 +719,7 @@ function QuizPlayerContent() {
         </div>
       </main>
 
-      {/* Exit Test Confirmation Modal */}
-      {showExitModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-black text-base text-slate-900">Exit Assessment?</h3>
-              <button onClick={() => setShowExitModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to leave this practice drill? Your current progress and responses will be discarded.
-            </p>
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={() => setShowExitModal(false)}
-                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => router.push('/practice')}
-                className="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Exit to Bank
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Anti-Cheat Violation Warning Modal */}
+      {/* Anti-Cheat Warning Modal */}
       {showWarningModal && !isSubmitted && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-rose-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 text-center">
@@ -662,7 +734,7 @@ function QuizPlayerContent() {
                 Screen Focus Lost / Tab Switch Detected
               </h3>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                You navigated away from the active examination screen. As per the Abhyaas Examination Integrity Code, <strong>3 consecutive violations will auto-submit your test and forfeit merit ranking</strong>.
+                You navigated away from the active examination screen. 3 consecutive violations will auto-submit your test.
               </p>
             </div>
 

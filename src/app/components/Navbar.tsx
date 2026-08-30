@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   ChevronDown, 
   BookOpen, 
   Award, 
   Trophy, 
   Sparkles,
+  ArrowLeft,
   ArrowRight,
   Menu,
   X,
@@ -17,7 +18,8 @@ import {
   Compass,
   User as UserIcon,
   LogOut,
-  Wallet
+  Wallet,
+  Home
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -25,54 +27,56 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const { user, signInWithGoogle, logout } = useAuth();
+  const isHomePage = pathname === '/';
 
-  // Close menus on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setActiveDropdown(null);
-        setUserDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Auto-close menu on route navigation
+  // Auto-close menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
     setActiveDropdown(null);
     setUserDropdownOpen(false);
   }, [pathname]);
 
-  // Quiz screen par proctored test mode (Hide navbar)
+  // Quiz screen par 100% distraction-free (Navbar completely hidden)
   if (pathname === '/quiz') {
     return null;
   }
 
-  const toggleDropdown = (menu: string) => {
-    setActiveDropdown(activeDropdown === menu ? null : menu);
-  };
-
   return (
-    <header ref={navRef} className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="flex flex-col items-center justify-center w-6 h-6">
-              <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-amber-500 mb-[1px]" />
-              <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-blue-600" />
-            </div>
-            <span className="font-black text-xl tracking-wider text-slate-900 leading-none">
-              ABHYAAS<span className="text-blue-600">.</span>
-            </span>
-          </Link>
+          {/* Left: Brand Logo + Universal Back Button */}
+          <div className="flex items-center gap-3">
+            
+            {/* Universal Back to Home Button (Visible on all sub-pages) */}
+            {!isHomePage && (
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                title="Back to Homepage"
+              >
+                <ArrowLeft className="w-4 h-4 text-blue-600" />
+                <span className="hidden sm:inline">Home</span>
+              </button>
+            )}
+
+            {/* Brand Logo */}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-col items-center justify-center w-6 h-6">
+                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-amber-500 mb-[1px]" />
+                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-blue-600" />
+              </div>
+              <span className="font-black text-xl tracking-wider text-slate-900 leading-none">
+                ABHYAAS<span className="text-blue-600">.</span>
+              </span>
+            </Link>
+          </div>
 
           {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-semibold">
@@ -81,7 +85,7 @@ export default function Navbar() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => toggleDropdown('exams')}
+                onClick={() => setActiveDropdown(activeDropdown === 'exams' ? null : 'exams')}
                 className={`px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeDropdown === 'exams' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:text-blue-600 hover:bg-slate-50'
                 }`}
@@ -92,7 +96,7 @@ export default function Navbar() {
               </button>
 
               {activeDropdown === 'exams' && (
-                <div className="absolute left-0 top-full mt-2 w-[680px] bg-white border border-slate-200 rounded-2xl shadow-xl p-5 grid grid-cols-3 gap-5 animate-in fade-in slide-in-from-top-2 duration-150 z-50">
+                <div className="absolute left-0 top-full mt-2 w-[680px] bg-white border border-slate-200 rounded-2xl shadow-xl p-5 grid grid-cols-3 gap-5 animate-in fade-in duration-150 z-50">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 pb-2 border-b border-slate-100 text-slate-900 font-bold text-xs uppercase tracking-wide">
                       <Landmark className="w-3.5 h-3.5 text-blue-600" />
@@ -112,20 +116,20 @@ export default function Navbar() {
                     </div>
                     <ul className="space-y-2 text-slate-600 font-medium">
                       <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">SSC CGL Tier 1 &amp; 2</Link></li>
-                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Banking (SBI / IBPS PO)</Link></li>
-                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Quantitative &amp; CSAT</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Banking (SBI / IBPS)</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">CSAT &amp; Quantitative</Link></li>
                     </ul>
                   </div>
 
                   <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-2 pb-2 border-b border-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wide">
                       <Award className="w-3.5 h-3.5 text-emerald-600" />
-                      National Olympiads
+                      National Olympiad
                     </div>
                     <ul className="space-y-2 text-slate-600 font-medium text-xs">
                       <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Weekly Sprint (₹49)</Link></li>
                       <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Monthly Mega (₹199)</Link></li>
-                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block text-blue-600 font-bold">View Merit Grants →</Link></li>
+                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block text-blue-600 font-bold">Merit Grants Info →</Link></li>
                     </ul>
                   </div>
                 </div>
@@ -149,7 +153,7 @@ export default function Navbar() {
             </Link>
           </nav>
 
-          {/* Right Action Desktop */}
+          {/* Right Action: Speed Drill CTA + Candidate Auth */}
           <div className="hidden lg:flex items-center gap-3">
             <Link
               href="/practice"
@@ -221,7 +225,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Buttons */}
+          {/* Mobile Right Controls: Profile/Auth + Dedicated Menu Button */}
           <div className="lg:hidden flex items-center gap-2">
             {user ? (
               <Link
@@ -240,24 +244,36 @@ export default function Navbar() {
               </button>
             )}
             
+            {/* Hamburger / Close Button */}
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-700 active:bg-slate-100 cursor-pointer"
-              aria-label="Toggle Menu"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-800 active:bg-slate-200 cursor-pointer"
+              aria-label="Toggle Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 text-rose-600" /> : <Menu className="w-5 h-5 text-slate-800" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Actual Mobile Slide-Down Drawer */}
+      {/* Mobile Slide-Down Menu (Solid & Guaranteed Visible) */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-6 space-y-3 shadow-xl animate-in slide-in-from-top-2 duration-150">
+        <div className="lg:hidden fixed inset-x-0 top-16 bg-white border-b-2 border-blue-600 shadow-2xl z-50 p-4 space-y-2 animate-in slide-in-from-top-2 duration-150 max-h-[calc(100vh-4rem)] overflow-y-auto">
+          
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
+          >
+            <Home className="w-4 h-4 text-blue-600" />
+            <span>Home Page</span>
+          </Link>
+
           <Link
             href="/practice"
-            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-800 font-bold text-xs active:bg-blue-50"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
           >
             <BookOpen className="w-4 h-4 text-blue-600" />
             <span>Practice Bank &amp; All Subjects</span>
@@ -265,18 +281,20 @@ export default function Navbar() {
 
           <Link
             href="/olympiad"
-            className="flex items-center justify-between p-3 rounded-xl bg-slate-50 text-slate-800 font-bold text-xs active:bg-blue-50"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
           >
             <div className="flex items-center gap-3">
               <Award className="w-4 h-4 text-emerald-600" />
               <span>National Olympiads</span>
             </div>
-            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded-full font-black">Live</span>
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs rounded-full font-black">Live</span>
           </Link>
 
           <Link
             href="/leaderboard"
-            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-800 font-bold text-xs active:bg-blue-50"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
           >
             <Trophy className="w-4 h-4 text-amber-500" />
             <span>Rankings &amp; Merit Board</span>
@@ -284,7 +302,8 @@ export default function Navbar() {
 
           <Link
             href="/profile"
-            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-slate-800 font-bold text-xs active:bg-blue-50"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm active:bg-blue-50"
           >
             <Wallet className="w-4 h-4 text-amber-600" />
             <span>Candidate Profile &amp; Wallet</span>
@@ -293,7 +312,8 @@ export default function Navbar() {
           <div className="pt-2">
             <Link
               href="/practice"
-              className="w-full py-3 bg-blue-600 active:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full py-3.5 bg-blue-600 active:bg-blue-700 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-md"
             >
               <Sparkles className="w-4 h-4" />
               <span>Start Speed Drill</span>
@@ -303,8 +323,11 @@ export default function Navbar() {
           {user && (
             <button
               type="button"
-              onClick={() => logout()}
-              className="w-full p-3 rounded-xl border border-rose-200 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 active:bg-rose-50"
+              onClick={() => {
+                logout();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full p-3.5 rounded-xl border border-rose-200 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 active:bg-rose-50 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out Account</span>
