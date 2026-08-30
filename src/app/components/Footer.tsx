@@ -8,8 +8,8 @@ import { ShieldCheck, Mail, HelpCircle } from 'lucide-react';
 export default function Footer() {
   const pathname = usePathname();
 
-  // Quiz screen par hide rahega
-  if (pathname === '/quiz') {
+  // Quiz screen aur Admin Portal dono par footer 100% hide rahega
+  if (pathname === '/quiz' || pathname.startsWith('/admin')) {
     return null;
   }
 
