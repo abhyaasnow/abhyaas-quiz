@@ -31,7 +31,6 @@ interface SubCategory {
   id: string;
   name: string;
   icon: any;
-  colorBg?: string;
 }
 
 export default function MegaOlympiadBanner() {
@@ -64,7 +63,7 @@ export default function MegaOlympiadBanner() {
     fetchBannerConfig();
   }, []);
 
-  // Live Timer
+  // Live Synchronized Timer
   const [timeLeft, setTimeLeft] = useState({ hours: 1, minutes: 59, seconds: 58 });
   useEffect(() => {
     const timer = setInterval(() => {
@@ -78,32 +77,32 @@ export default function MegaOlympiadBanner() {
     return () => clearInterval(timer);
   }, []);
 
-  // 1. EXAMS Subcategories (Matching Screenshot with circular badges)
+  // 1. EXAMS Subcategories
   const examSubCategories: SubCategory[] = [
-    { id: 'civil', name: 'Civil Services', icon: Landmark, colorBg: 'bg-amber-100 text-amber-800' },
-    { id: 'ssc', name: 'SSC Exams', icon: Briefcase, colorBg: 'bg-blue-100 text-blue-800' },
-    { id: 'banking', name: 'Banking Exams', icon: Building2, colorBg: 'bg-cyan-100 text-cyan-800' },
-    { id: 'teaching', name: 'Teaching Exams', icon: UserCheck, colorBg: 'bg-emerald-100 text-emerald-800' },
-    { id: 'railway', name: 'Railway Exams', icon: Train, colorBg: 'bg-indigo-100 text-indigo-800' },
-    { id: 'defense', name: 'Defense & Police', icon: Shield, colorBg: 'bg-rose-100 text-rose-800' },
+    { id: 'civil', name: 'Civil Services', icon: Landmark },
+    { id: 'ssc', name: 'SSC Exams', icon: Briefcase },
+    { id: 'banking', name: 'Banking Exams', icon: Building2 },
+    { id: 'teaching', name: 'Teaching Exams', icon: UserCheck },
+    { id: 'railway', name: 'Railway Exams', icon: Train },
+    { id: 'defense', name: 'Defense & Police', icon: Shield },
   ];
 
   // 2. TOPICS Subcategories
   const topicSubCategories: SubCategory[] = [
-    { id: 'preamble', name: 'Preamble & Philosophy', icon: BookMarked, colorBg: 'bg-amber-100 text-amber-800' },
-    { id: 'fr', name: 'Fundamental Rights (Art 12-35)', icon: ShieldCheck, colorBg: 'bg-blue-100 text-blue-800' },
-    { id: 'panchayat', name: 'Panchayati Raj (73rd Amend)', icon: Landmark, colorBg: 'bg-emerald-100 text-emerald-800' },
-    { id: 'dpsp', name: 'DPSP & Fundamental Duties', icon: Layers, colorBg: 'bg-purple-100 text-purple-800' },
-    { id: 'parliament', name: 'Parliament & Legislation', icon: Building2, colorBg: 'bg-indigo-100 text-indigo-800' },
+    { id: 'preamble', name: 'Preamble & Philosophy', icon: BookMarked },
+    { id: 'fr', name: 'Fundamental Rights (Art 12-35)', icon: ShieldCheck },
+    { id: 'panchayat', name: 'Panchayati Raj (73rd Amend)', icon: Landmark },
+    { id: 'dpsp', name: 'DPSP & Fundamental Duties', icon: Layers },
+    { id: 'parliament', name: 'Parliament & Legislation', icon: Building2 },
   ];
 
   // 3. SUBJECTS Subcategories
   const subjectSubCategories: SubCategory[] = [
-    { id: 'polity', name: 'Indian Polity & Constitution', icon: Landmark, colorBg: 'bg-blue-100 text-blue-800' },
-    { id: 'history', name: 'Modern Indian History', icon: BookMarked, colorBg: 'bg-amber-100 text-amber-800' },
-    { id: 'economy', name: 'Economy & Budget', icon: Building2, colorBg: 'bg-emerald-100 text-emerald-800' },
-    { id: 'geography', name: 'Geography & Ecology', icon: Layers, colorBg: 'bg-cyan-100 text-cyan-800' },
-    { id: 'csat', name: 'CSAT Aptitude & Logic', icon: Zap, colorBg: 'bg-purple-100 text-purple-800' },
+    { id: 'polity', name: 'Indian Polity & Constitution', icon: Landmark },
+    { id: 'history', name: 'Modern Indian History', icon: BookMarked },
+    { id: 'economy', name: 'Economy & Budget', icon: Building2 },
+    { id: 'geography', name: 'Geography & Ecology', icon: Layers },
+    { id: 'csat', name: 'CSAT Aptitude & Logic', icon: Zap },
   ];
 
   const currentSubCategories = 
@@ -113,9 +112,9 @@ export default function MegaOlympiadBanner() {
   return (
     <div className="w-full">
       
-      {/* ================= 1. TOP BLUE BAR WITH 3 BIG BUTTONS ================= */}
-      <div className="bg-[#14536f] py-4 px-4 sm:px-6 shadow-md">
-        <div className="max-w-5xl mx-auto flex items-center justify-center gap-3 sm:gap-6 overflow-x-auto scrollbar-none py-1">
+      {/* ================= 1. TOP BAR: 3 LARGE PILL BUTTONS (EXAMS / TOPICS / SUBJECTS) ================= */}
+      <div className="bg-slate-900 border-b border-slate-800 py-3 px-4 sm:px-6 shadow-md">
+        <div className="max-w-4xl mx-auto flex items-center justify-center gap-3 sm:gap-6 overflow-x-auto scrollbar-none py-1">
           
           {/* BUTTON 1: EXAMS */}
           <button
@@ -123,13 +122,13 @@ export default function MegaOlympiadBanner() {
               setActiveTab('exams');
               setActiveSubCat('Civil Services');
             }}
-            className={`flex items-center gap-2.5 sm:gap-3.5 px-6 sm:px-9 py-2.5 sm:py-3.5 rounded-full font-black text-sm sm:text-lg transition-all duration-150 cursor-pointer shadow-lg whitespace-nowrap ${
+            className={`flex items-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3 rounded-full font-black text-xs sm:text-sm tracking-wide transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm ${
               activeTab === 'exams'
-                ? 'bg-[#0077b6] text-white border-2 border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] scale-105'
-                : 'bg-white text-slate-900 hover:bg-slate-100 border border-slate-300'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400/40 scale-105'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
             }`}
           >
-            <FileCheck2 className={`w-6 h-6 sm:w-7 sm:h-7 ${activeTab === 'exams' ? 'text-white' : 'text-slate-800'}`} />
+            <FileCheck2 className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === 'exams' ? 'text-white' : 'text-slate-400'}`} />
             <span>Exams</span>
           </button>
 
@@ -139,15 +138,13 @@ export default function MegaOlympiadBanner() {
               setActiveTab('topics');
               setActiveSubCat('Preamble & Philosophy');
             }}
-            className={`flex items-center gap-2.5 sm:gap-3.5 px-6 sm:px-9 py-2.5 sm:py-3.5 rounded-full font-black text-sm sm:text-lg transition-all duration-150 cursor-pointer shadow-lg whitespace-nowrap ${
+            className={`flex items-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3 rounded-full font-black text-xs sm:text-sm tracking-wide transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm ${
               activeTab === 'topics'
-                ? 'bg-[#0077b6] text-white border-2 border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] scale-105'
-                : 'bg-white text-slate-900 hover:bg-slate-100 border border-slate-300'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400/40 scale-105'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
             }`}
           >
-            <div className="flex items-center">
-              <BookMarked className={`w-6 h-6 sm:w-7 sm:h-7 ${activeTab === 'topics' ? 'text-white' : 'text-slate-800'}`} />
-            </div>
+            <BookMarked className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === 'topics' ? 'text-white' : 'text-slate-400'}`} />
             <span>Topics</span>
           </button>
 
@@ -157,13 +154,13 @@ export default function MegaOlympiadBanner() {
               setActiveTab('subjects');
               setActiveSubCat('Indian Polity & Constitution');
             }}
-            className={`flex items-center gap-2.5 sm:gap-3.5 px-6 sm:px-9 py-2.5 sm:py-3.5 rounded-full font-black text-sm sm:text-lg transition-all duration-150 cursor-pointer shadow-lg whitespace-nowrap ${
+            className={`flex items-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3 rounded-full font-black text-xs sm:text-sm tracking-wide transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm ${
               activeTab === 'subjects'
-                ? 'bg-[#0077b6] text-white border-2 border-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] scale-105'
-                : 'bg-white text-slate-900 hover:bg-slate-100 border border-slate-300'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400/40 scale-105'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
             }`}
           >
-            <span className={`text-xl sm:text-2xl font-black font-serif leading-none ${activeTab === 'subjects' ? 'text-white' : 'text-slate-900'}`}>
+            <span className={`text-base sm:text-lg font-black font-serif leading-none ${activeTab === 'subjects' ? 'text-white' : 'text-slate-400'}`}>
               अ
             </span>
             <span>Subjects</span>
@@ -172,9 +169,9 @@ export default function MegaOlympiadBanner() {
         </div>
       </div>
 
-      {/* ================= 2. WHITE SUBCATEGORIES STRIP (PILL BADGES) ================= */}
+      {/* ================= 2. SUBCATEGORIES CAPSULE BAR ================= */}
       <div className="bg-white border-b border-slate-200 py-3 px-4 sm:px-6 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center gap-2.5 sm:gap-3 overflow-x-auto scrollbar-none">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-none">
           {currentSubCategories.map((sub) => {
             const isSelected = activeSubCat === sub.name;
             const IconComponent = sub.icon;
@@ -183,17 +180,17 @@ export default function MegaOlympiadBanner() {
               <button
                 key={sub.id}
                 onClick={() => setActiveSubCat(sub.name)}
-                className={`flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+                className={`flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                   isSelected
-                    ? 'bg-white border-2 border-blue-600 text-blue-700 shadow-md ring-2 ring-blue-500/20'
-                    : 'bg-[#dedede] hover:bg-[#d3d3d3] border border-slate-400 text-slate-800 shadow-sm'
+                    ? 'bg-blue-50 border-2 border-blue-600 text-blue-700 shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700'
                 }`}
               >
-                {/* Circular Icon on the Left */}
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner ${
-                  isSelected ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white'
+                {/* Circular Icon Emblem on the Left */}
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 text-white'
                 }`}>
-                  <IconComponent className="w-3.5 h-3.5" />
+                  <IconComponent className="w-3 h-3" />
                 </div>
                 <span>{sub.name}</span>
               </button>
