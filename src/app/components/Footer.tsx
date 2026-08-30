@@ -8,7 +8,7 @@ import { ShieldCheck, Mail, HelpCircle } from 'lucide-react';
 export default function Footer() {
   const pathname = usePathname();
 
-  // Test arena mein distraction-free rakhne ke liye hide hoga
+  // Quiz screen par hide rahega
   if (pathname === '/quiz') {
     return null;
   }
@@ -16,13 +16,13 @@ export default function Footer() {
   return (
     <footer className="bg-[#080e1a] text-slate-400 text-xs border-t border-slate-800/80 selection:bg-blue-600 selection:text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
         {/* Top 4 Columns Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-10 border-b border-slate-800/70">
           
-          {/* Column 1: Brand & Bio (Span 4) */}
+          {/* Column 1: Brand & Bio */}
           <div className="lg:col-span-4 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2.5">
-              {/* Dual Triangle Logo Icon */}
               <div className="flex flex-col items-center justify-center w-6 h-6">
                 <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-amber-500 mb-[1px]" />
                 <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-blue-500" />
@@ -40,75 +40,35 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 2: Programs & Practice (Span 3) */}
+          {/* Column 2: Programs & Practice */}
           <div className="lg:col-span-3 space-y-3.5">
             <h4 className="text-white font-bold text-xs tracking-wider uppercase">
               PROGRAMS &amp; PRACTICE
             </h4>
             <ul className="space-y-2.5 text-slate-400 text-xs">
-              <li>
-                <Link href="/olympiad" className="hover:text-white transition-colors">
-                  National Scholarship Olympiad
-                </Link>
-              </li>
-              <li>
-                <Link href="/quiz" className="hover:text-white transition-colors">
-                  Daily Free Speed Drills (24x7)
-                </Link>
-              </li>
-              <li>
-                <Link href="/practice" className="hover:text-white transition-colors">
-                  UPSC CSE Prelims PYQ Bank
-                </Link>
-              </li>
-              <li>
-                <Link href="/practice" className="hover:text-white transition-colors">
-                  State PSC Topic Mastery
-                </Link>
-              </li>
-              <li>
-                <Link href="/leaderboard" className="hover:text-white transition-colors">
-                  All-India Merit Scholarship List
-                </Link>
-              </li>
+              <li><Link href="/olympiad" className="hover:text-white transition-colors">National Scholarship Olympiad</Link></li>
+              <li><Link href="/quiz" className="hover:text-white transition-colors">Daily Free Speed Drills (24x7)</Link></li>
+              <li><Link href="/practice" className="hover:text-white transition-colors">UPSC CSE Prelims PYQ Bank</Link></li>
+              <li><Link href="/practice" className="hover:text-white transition-colors">State PSC Topic Mastery</Link></li>
+              <li><Link href="/leaderboard" className="hover:text-white transition-colors">All-India Merit Scholarship List</Link></li>
             </ul>
           </div>
 
-          {/* Column 3: Legal & Compliance (Span 3) */}
+          {/* Column 3: Legal & Compliance */}
           <div className="lg:col-span-3 space-y-3.5">
             <h4 className="text-white font-bold text-xs tracking-wider uppercase">
               LEGAL &amp; COMPLIANCE
             </h4>
             <ul className="space-y-2.5 text-slate-400 text-xs">
-              <li>
-                <Link href="/terms" className="hover:text-white transition-colors">
-                  Terms of Examination &amp; Service
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="hover:text-white transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/refund" className="hover:text-white transition-colors">
-                  Refund &amp; Cancellation Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/scholarship-rules" className="hover:text-white transition-colors">
-                  Merit Scholarship &amp; Grant Criteria
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="hover:text-white transition-colors">
-                  Anti-Cheating &amp; Integrity Code
-                </Link>
-              </li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Examination &amp; Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/refund" className="hover:text-white transition-colors">Refund &amp; Cancellation Policy</Link></li>
+              <li><Link href="/scholarship-rules" className="hover:text-white transition-colors">Merit Scholarship &amp; Grant Criteria</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Anti-Cheating &amp; Integrity Code</Link></li>
             </ul>
           </div>
 
-          {/* Column 4: Aspirant Support (Span 2) */}
+          {/* Column 4: Aspirant Support */}
           <div className="lg:col-span-2 space-y-3.5">
             <h4 className="text-white font-bold text-xs tracking-wider uppercase">
               ASPIRANT SUPPORT
@@ -117,10 +77,7 @@ export default function Footer() {
               Have queries regarding Olympiad registration or scholarship disbursement?
             </p>
             <div className="space-y-2 pt-1 text-xs">
-              <Link
-                href="/contact"
-                className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
-              >
+              <Link href="/contact" className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
                 <Mail className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                 <span>support@abhyaasnow.in</span>
               </Link>
@@ -132,7 +89,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Middle Notice Bar */}
+        {/* Notice Bar */}
         <div className="py-6 border-b border-slate-800/70 text-[11px] text-slate-400 leading-relaxed">
           <p>
             <strong className="text-slate-200 font-semibold">Academic Assessment Notice:</strong>{' '}

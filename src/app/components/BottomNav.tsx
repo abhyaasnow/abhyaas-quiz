@@ -1,44 +1,47 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Home, Trophy, BookOpen, GraduationCap, User } from 'lucide-react';
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Home, Award, BookOpen, Trophy, User } from 'lucide-react';
 
 export default function BottomNav() {
-  const [activeTab, setActiveTab] = useState('home');
+  const pathname = usePathname();
+
+  // Hide on quiz screen
+  if (pathname === '/quiz') {
+    return null;
+  }
 
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'olympiad', label: 'Olympiad', icon: Trophy },
-    { id: 'practice', label: 'Practice', icon: BookOpen },
-    { id: 'grants', label: 'Grants', icon: GraduationCap },
-    { id: 'profile', label: 'Profile', icon: User },
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'Olympiad', href: '/olympiad', icon: Award },
+    { name: 'Practice', href: '/practice', icon: BookOpen },
+    { name: 'Rankings', href: '/leaderboard', icon: Trophy },
+    { name: 'Profile', href: '/profile', icon: User },
   ];
 
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg">
+    <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-1 shadow-lg">
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = pathname === item.href;
+
           return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-                isActive ? 'text-blue-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-colors ${
+                isActive ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900 font-medium'
               }`}
             >
-              <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                {item.id === 'olympiad' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                )}
-              </div>
-              <span className="text-[10px] tracking-tight mt-0.5">{item.label}</span>
-            </button>
+              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+              <span className="text-[10px] mt-0.5">{item.name}</span>
+            </Link>
           );
         })}
       </div>
-    </nav>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import BottomNav from "./components/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Abhyaas | All-India Scholarship Olympiad & Practice Platform",
-  description: "Pure merit-based assessments and topic drills for UPSC CSE, State PSC, and Competitive Exams.",
+  description: "Pure merit-based assessments and high-yield practice drills for UPSC CSE, State PSC, and Competitive Aspirants.",
 };
 
 export default function RootLayout({
@@ -30,11 +31,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-800">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-800 selection:bg-blue-600 selection:text-white">
         <AuthProvider>
+          {/* Global Header */}
           <Navbar />
-          <main className="flex-1">{children}</main>
+
+          {/* Dynamic Page Content */}
+          <main className="flex-1 w-full pb-16 lg:pb-0">{children}</main>
+
+          {/* Persistent Dark Compliance Footer */}
           <Footer />
+
+          {/* Mobile Bottom Navigation Bar */}
+          <BottomNav />
         </AuthProvider>
       </body>
     </html>
