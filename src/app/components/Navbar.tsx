@@ -27,11 +27,28 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [customLogo, setCustomLogo] = useState<string | null>(null);
+
   const pathname = usePathname();
   const router = useRouter();
-
   const { user, signInWithGoogle, logout } = useAuth();
   const isHomePage = pathname === '/';
+
+  // Load custom logo from Admin storage on load & on storage updates
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('abhyaas_header_logo');
+    if (savedLogo) {
+      setCustomLogo(savedLogo);
+    }
+
+    const handleStorageChange = () => {
+      const updated = localStorage.getItem('abhyaas_header_logo');
+      setCustomLogo(updated);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Route change par sab menu reset
   useEffect(() => {
@@ -40,8 +57,8 @@ export default function Navbar() {
     setUserDropdownOpen(false);
   }, [pathname]);
 
-  // Quiz screen par navbar 100% hide
-  if (pathname === '/quiz') {
+  // HIDE NAVBAR ON /quiz AND /admin (Admin panel par public navbar 100% hide rahega)
+  if (pathname === '/quiz' || pathname.startsWith('/admin')) {
     return null;
   }
 
@@ -64,13 +81,19 @@ export default function Navbar() {
             )}
 
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex flex-col items-center justify-center w-6 h-6">
-                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-amber-500 mb-[1px]" />
-                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-blue-600" />
-              </div>
-              <span className="font-black text-xl tracking-wider text-slate-900 leading-none">
-                ABHYAAS<span className="text-blue-600">.</span>
-              </span>
+              {customLogo ? (
+                <img src={customLogo} alt="Abhyaas" className="h-8 max-w-[140px] object-contain" />
+              ) : (
+                <>
+                  <div className="flex flex-col items-center justify-center w-6 h-6">
+                    <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px] border-b-amber-500 mb-[1px]" />
+                    <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-blue-600" />
+                  </div>
+                  <span className="font-black text-xl tracking-wider text-slate-900 leading-none">
+                    ABHYAAS<span className="text-blue-600">.</span>
+                  </span>
+                </>
+              )}
             </Link>
           </div>
 
