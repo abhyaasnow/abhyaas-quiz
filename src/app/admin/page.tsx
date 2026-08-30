@@ -7,169 +7,65 @@ import {
   Image as ImageIcon,
   CreditCard,
   MessageSquare,
+  Upload,
+  ShieldCheck,
+  Eye,
+  CheckCircle,
+  Save,
+  Layers,
+  Award,
+  Star,
+  Video,
   Plus,
   Trash2,
-  FileSpreadsheet,
-  Upload,
-  Sparkles,
-  ShieldCheck,
-  Search,
-  Eye,
-  Download,
-  CheckCircle,
-  CheckCircle2,
-  Clock,
-  Layers,
-  Save,
-  Mail,
-  Send,
-  UserCheck,
-  AlertCircle,
-  FileText
+  Sparkles
 } from 'lucide-react';
 
-interface QuestionItem {
+interface WinnerCard {
   id: string;
-  subject: string;
-  topic: string;
-  questionEn: string;
-  questionHi: string;
-  optionsEn: string[];
-  optionsHi: string[];
-  correctOption: number;
+  name: string;
+  rank: string;
+  exam: string;
+  grantWon: string;
+  quote: string;
+  photoUrl: string | null;
+  videoUrl?: string;
 }
 
-interface PaymentRecord {
-  id: string;
-  candidateName: string;
-  email: string;
-  phone: string;
-  rollNo: string;
-  olympiadTier: string;
-  amount: number;
-  date: string;
-  paymentMethod: string;
-  status: 'SUCCESS' | 'PENDING' | 'FAILED';
-  tokenGenerated: boolean;
-}
-
-interface SupportTicket {
-  id: string;
-  candidateName: string;
-  email: string;
-  subject: string;
-  message: string;
-  date: string;
-  status: 'OPEN' | 'RESOLVED';
-  replyText?: string;
-}
-
-const INITIAL_QUESTIONS: QuestionItem[] = [
+const INITIAL_WINNERS: WinnerCard[] = [
   {
-    id: 'q-101',
-    subject: 'polity',
-    topic: 'Constitutional Framework & Preamble',
-    questionEn: 'Which Article of the Constitution guarantees the Right to Constitutional Remedies?',
-    questionHi: 'संविधान का कौन सा अनुच्छेद संवैधानिक उपचारों के अधिकार की गारंटी देता है?',
-    optionsEn: ['Article 14', 'Article 19', 'Article 21', 'Article 32'],
-    optionsHi: ['अनुच्छेद 14', 'अनुच्छेद 19', 'अनुच्छेद 21', 'अनुच्छेद 32'],
-    correctOption: 3,
+    id: 'w-1',
+    name: 'Anjali Sharma',
+    rank: 'AIR 01',
+    exam: 'Weekly Speed Sprint (Polity)',
+    grantWon: '₹15,000 Fellowship',
+    quote: 'Real-time proctored interface gave me exact UPSC Prelims pressure.',
+    photoUrl: null,
+    videoUrl: 'https://youtube.com/watch?v=sample'
   },
   {
-    id: 'q-102',
-    subject: 'history',
-    topic: 'Modern Freedom Struggle',
-    questionEn: 'In which year did the historic Champaran Satyagraha take place?',
-    questionHi: 'ऐतिहासिक चंपारण सत्याग्रह किस वर्ष में हुआ था?',
-    optionsEn: ['1915', '1917', '1919', '1922'],
-    optionsHi: ['1915', '1917', '1919', '1922'],
-    correctOption: 1,
-  }
-];
-
-const INITIAL_PAYMENTS: PaymentRecord[] = [
-  {
-    id: 'pay_98234710',
-    candidateName: 'Rahul Sharma',
-    email: 'rahul.ias2026@gmail.com',
-    phone: '+91 98765 43210',
-    rollNo: 'ABH-2026-0891',
-    olympiadTier: 'Weekly Speed Sprint',
-    amount: 49,
-    date: 'Today, 02:45 PM',
-    paymentMethod: 'UPI (GPay)',
-    status: 'SUCCESS',
-    tokenGenerated: true,
-  },
-  {
-    id: 'pay_98234711',
-    candidateName: 'Priya Verma',
-    email: 'priya.upsc@gmail.com',
-    phone: '+91 98111 22334',
-    rollNo: 'ABH-2026-0892',
-    olympiadTier: 'Monthly Mega Assessment',
-    amount: 199,
-    date: 'Today, 01:15 PM',
-    paymentMethod: 'UPI (PhonePe)',
-    status: 'SUCCESS',
-    tokenGenerated: true,
-  },
-  {
-    id: 'pay_98234712',
-    candidateName: 'Amit Patel',
-    email: 'amit.patel@gmail.com',
-    phone: '+91 97234 56789',
-    rollNo: 'ABH-2026-0893',
-    olympiadTier: 'Weekly Speed Sprint',
-    amount: 49,
-    date: 'Yesterday',
-    paymentMethod: 'Net Banking',
-    status: 'PENDING',
-    tokenGenerated: false,
-  }
-];
-
-const INITIAL_TICKETS: SupportTicket[] = [
-  {
-    id: 'tkt-401',
-    candidateName: 'Aakash Dwivedi',
-    email: 'aakash.d@gmail.com',
-    subject: 'Olympiad Slot Timing Confirmation',
-    message: 'Sir, Maine Sunday 11 AM sprint ke liye ₹49 pay kar diya hai. Slot admit card token kab email par aayega?',
-    date: 'Today, 11:30 AM',
-    status: 'OPEN'
-  },
-  {
-    id: 'tkt-402',
-    candidateName: 'Sunita Meena',
-    email: 'sunita.m@gmail.com',
-    subject: 'Bilingual Hindi Font Query in CSAT',
-    message: 'Hindi medium ke questions standard font mein clear rahenge ya font size increase kar sakte hain test ke dauran?',
-    date: 'Yesterday',
-    status: 'RESOLVED',
-    replyText: 'Namaste Sunita ji, Test interface mein font auto-scalable aur crystal-clear bilingual rendering ke saath optimize hai.'
+    id: 'w-2',
+    name: 'Vikas Kumar',
+    rank: 'AIR 02',
+    exam: 'Monthly Mega Assessment',
+    grantWon: '₹10,000 Fellowship',
+    quote: 'The bilingual explanations and instant scorecard analysis are top notch.',
+    photoUrl: null,
   }
 ];
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<'questions' | 'media' | 'payments' | 'support'>('questions');
+  const [activeTab, setActiveTab] = useState<'media' | 'questions' | 'payments' | 'support'>('media');
 
-  // ================= 1. QUESTION STUDIO STATE =================
-  const [questionsList, setQuestionsList] = useState<QuestionItem[]>(INITIAL_QUESTIONS);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showCsvModal, setShowCsvModal] = useState(false);
+  // ================= MEDIA SUB-TABS =================
+  const [mediaSubTab, setMediaSubTab] = useState<'brand' | 'banners' | 'winners'>('brand');
 
-  // New Question Form Fields
-  const [selectedSubject, setSelectedSubject] = useState('polity');
-  const [topicName, setTopicName] = useState('');
-  const [questionEn, setQuestionEn] = useState('');
-  const [questionHi, setQuestionHi] = useState('');
-  const [optEn, setOptEn] = useState(['', '', '', '']);
-  const [optHi, setOptHi] = useState(['', '', '', '']);
-  const [correctOpt, setCorrectOpt] = useState<number>(0);
+  // Section 1: Brand Slots
+  const [headerLogoUrl, setHeaderLogoUrl] = useState<string | null>(null);
+  const [footerEmblemUrl, setFooterEmblemUrl] = useState<string | null>(null);
+  const [brandSaved, setBrandSaved] = useState(false);
 
-  // ================= 2. MEDIA & BANNER STATE =================
+  // Section 2: Banner Controls
   const [bannerTitleHi, setBannerTitleHi] = useState('राष्ट्रीय राज्यव्यवस्था ओलंपियाड : संवैधानिक ढांचा');
   const [bannerTitleEn, setBannerTitleEn] = useState('National Polity Olympiad : Constitutional Framework & Preamble');
   const [bannerScholarship, setBannerScholarship] = useState('₹50,000');
@@ -177,108 +73,43 @@ export default function AdminDashboardPage() {
   const [bannerSavedSuccess, setBannerSavedSuccess] = useState(false);
   const [uploadedBannerPreview, setUploadedBannerPreview] = useState<string | null>(null);
 
-  // ================= 3. PAYMENTS STATE =================
-  const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>(INITIAL_PAYMENTS);
-  const [paymentSearch, setPaymentSearch] = useState('');
+  // Section 3: Winner Cards
+  const [winnersList, setWinnersList] = useState<WinnerCard[]>(INITIAL_WINNERS);
+  const [winnerName, setWinnerName] = useState('');
+  const [winnerRank, setWinnerRank] = useState('');
+  const [winnerExam, setWinnerExam] = useState('');
+  const [winnerGrant, setWinnerGrant] = useState('');
+  const [winnerQuote, setWinnerQuote] = useState('');
+  const [winnerPhoto, setWinnerPhoto] = useState<string | null>(null);
+  const [showWinnerForm, setShowWinnerForm] = useState(false);
 
-  // ================= 4. SUPPORT CRM STATE =================
-  const [ticketsList, setTicketsList] = useState<SupportTicket[]>(INITIAL_TICKETS);
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  // File Input Refs
+  const headerLogoRef = useRef<HTMLInputElement | null>(null);
+  const footerLogoRef = useRef<HTMLInputElement | null>(null);
+  const bannerGraphicRef = useRef<HTMLInputElement | null>(null);
+  const winnerPhotoRef = useRef<HTMLInputElement | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const csvInputRef = useRef<HTMLInputElement | null>(null);
+  // Handlers for Brand Uploads
+  const handleHeaderLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setHeaderLogoUrl(URL.createObjectURL(file));
+  };
 
-  // Question Form Submission
-  const handleCreateQuestion = (e: React.FormEvent) => {
+  const handleFooterLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setFooterEmblemUrl(URL.createObjectURL(file));
+  };
+
+  const handleSaveBrand = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!questionEn.trim() || !questionHi.trim()) {
-      alert('Kripya English aur Hindi dono statements bharein.');
-      return;
-    }
-
-    const newQ: QuestionItem = {
-      id: `q-${Date.now()}`,
-      subject: selectedSubject,
-      topic: topicName || 'General Topic',
-      questionEn,
-      questionHi,
-      optionsEn: [...optEn],
-      optionsHi: [...optHi],
-      correctOption: correctOpt,
-    };
-
-    setQuestionsList([newQ, ...questionsList]);
-    setShowAddForm(false);
-    
-    // Reset
-    setTopicName('');
-    setQuestionEn('');
-    setQuestionHi('');
-    setOptEn(['', '', '', '']);
-    setOptHi(['', '', '', '']);
-    setCorrectOpt(0);
-    alert('Question successfully add ho gaya!');
+    setBrandSaved(true);
+    setTimeout(() => setBrandSaved(false), 3000);
   };
 
-  // CSV Import
-  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handlers for Banners
+  const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split('\n').filter(line => line.trim().length > 0);
-      
-      const parsedQuestions: QuestionItem[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-        if (cols.length >= 11) {
-          parsedQuestions.push({
-            id: `q-csv-${Date.now()}-${i}`,
-            subject: cols[0] || 'polity',
-            topic: cols[1] || 'General Chapter',
-            questionEn: cols[2],
-            questionHi: cols[3],
-            optionsEn: [cols[4], cols[5], cols[6], cols[7]],
-            optionsHi: [cols[8], cols[9], cols[10], cols[11]],
-            correctOption: parseInt(cols[12] || '0', 10) || 0
-          });
-        }
-      }
-
-      if (parsedQuestions.length > 0) {
-        setQuestionsList([...parsedQuestions, ...questionsList]);
-        setShowCsvModal(false);
-        alert(`Badhai! ${parsedQuestions.length} Questions successfully upload ho gaye.`);
-      } else {
-        alert('CSV format match nahi hua. Kripya Sample Template download karke check karein.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const downloadSampleCsv = () => {
-    const csvContent = 'data:text/csv;charset=utf-8,' + 
-      'Subject,Topic,Question_EN,Question_HI,OptA_EN,OptB_EN,OptC_EN,OptD_EN,OptA_HI,OptB_HI,OptC_HI,OptD_HI,CorrectOptionIndex(0-3)\n' +
-      'polity,Preamble,What is the Preamble?,प्रस्तावना क्या है?,Introduction,Law,Article,None,परिचय,कानून,अनुच्छेद,कोई नहीं,0\n' +
-      'history,1857 Revolt,Where did revolt start?,1857 विद्रोह कहाँ शुरू हुआ?,Meerut,Delhi,Kanpur,Jhansi,मेरठ,दिल्ली,कानपुर,झांसी,0';
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'abhyaas_questions_template.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setUploadedBannerPreview(imageUrl);
-    }
+    if (file) setUploadedBannerPreview(URL.createObjectURL(file));
   };
 
   const handleSaveBanner = (e: React.FormEvent) => {
@@ -287,53 +118,45 @@ export default function AdminDashboardPage() {
     setTimeout(() => setBannerSavedSuccess(false), 3000);
   };
 
-  const handleDeleteQuestion = (id: string) => {
-    if (confirm('Kya aap is question ko delete karna chahte hain?')) {
-      setQuestionsList(questionsList.filter(q => q.id !== id));
-    }
+  // Handlers for Winners
+  const handleWinnerPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setWinnerPhoto(URL.createObjectURL(file));
   };
 
-  // Payment Approval Toggle
-  const handleApprovePayment = (id: string) => {
-    setPaymentsList(prev => prev.map(p => {
-      if (p.id === id) {
-        return { ...p, status: 'SUCCESS', tokenGenerated: true };
-      }
-      return p;
-    }));
-    alert('Candidate registration verify aur Admit Slot Token release ho gaya!');
-  };
-
-  // Ticket Response
-  const handleSendTicketReply = (ticketId: string) => {
-    const text = replyDrafts[ticketId];
-    if (!text || !text.trim()) {
-      alert('Kripya reply message likhein.');
+  const handleCreateWinner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!winnerName.trim() || !winnerRank.trim()) {
+      alert('Kripya Candidate Name aur Rank bharein.');
       return;
     }
 
-    setTicketsList(prev => prev.map(t => {
-      if (t.id === ticketId) {
-        return { ...t, status: 'RESOLVED', replyText: text };
-      }
-      return t;
-    }));
+    const newW: WinnerCard = {
+      id: `w-${Date.now()}`,
+      name: winnerName,
+      rank: winnerRank,
+      exam: winnerExam || 'All-India Olympiad',
+      grantWon: winnerGrant || '₹10,000 Grant',
+      quote: winnerQuote,
+      photoUrl: winnerPhoto,
+    };
 
-    setReplyDrafts(prev => ({ ...prev, [ticketId]: '' }));
-    alert('Aspirant ko reply email bhej diya gaya aur ticket Resolved mark ho gaya!');
+    setWinnersList([newW, ...winnersList]);
+    setShowWinnerForm(false);
+    setWinnerName('');
+    setWinnerRank('');
+    setWinnerExam('');
+    setWinnerGrant('');
+    setWinnerQuote('');
+    setWinnerPhoto(null);
+    alert('Winner card successfully add ho gaya!');
   };
 
-  const filteredQuestions = questionsList.filter(q => 
-    q.questionEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    q.questionHi.includes(searchQuery) ||
-    q.topic.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredPayments = paymentsList.filter(p =>
-    p.candidateName.toLowerCase().includes(paymentSearch.toLowerCase()) ||
-    p.rollNo.toLowerCase().includes(paymentSearch.toLowerCase()) ||
-    p.id.toLowerCase().includes(paymentSearch.toLowerCase())
-  );
+  const handleDeleteWinner = (id: string) => {
+    if (confirm('Kya aap is winner card ko delete karna chahte hain?')) {
+      setWinnersList(winnersList.filter((w) => w.id !== id));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col selection:bg-blue-600 selection:text-white">
@@ -350,7 +173,7 @@ export default function AdminDashboardPage() {
                 Abhyaas Master Control Center
               </h1>
               <p className="text-[10px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Visual Admin Panel (No Coding Mode)
+                <ShieldCheck className="w-3 h-3" /> Visual Media &amp; Asset Management Hub
               </p>
             </div>
           </div>
@@ -368,20 +191,8 @@ export default function AdminDashboardPage() {
       {/* Main Admin Workspace */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
         
-        {/* Navigation Tabs */}
+        {/* Main 4 Navigation Tabs */}
         <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('questions')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'questions'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Question Bank Studio ({questionsList.length})</span>
-          </button>
-
           <button
             onClick={() => setActiveTab('media')}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
@@ -391,7 +202,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <ImageIcon className="w-4 h-4" />
-            <span>Media &amp; Banner Manager</span>
+            <span>Media &amp; Asset Manager</span>
           </button>
 
           <button
@@ -403,7 +214,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <CreditCard className="w-4 h-4" />
-            <span>Payments &amp; Registrations ({paymentsList.length})</span>
+            <span>Payments &amp; Registrations</span>
           </button>
 
           <button
@@ -415,628 +226,538 @@ export default function AdminDashboardPage() {
             }`}
           >
             <MessageSquare className="w-4 h-4" />
-            <span>Support &amp; Student Inbox ({ticketsList.filter(t => t.status === 'OPEN').length} Open)</span>
+            <span>Support &amp; Student Inbox</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'questions'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Question Studio (Next Stage)</span>
           </button>
         </div>
 
-        {/* ================= TAB 1: QUESTION BANK STUDIO ================= */}
-        {activeTab === 'questions' && (
+        {/* ================= TAB: MEDIA & ASSET MANAGER ================= */}
+        {activeTab === 'media' && (
           <div className="space-y-6">
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search questions by text or chapter topic..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
-                />
-              </div>
+            {/* Sub-Tabs: Brand / Banners / Winners */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+              <button
+                onClick={() => setMediaSubTab('brand')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                  mediaSubTab === 'brand'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Award className="w-4 h-4" />
+                <span>1. Brand Logos &amp; Core Icons</span>
+              </button>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowCsvModal(true)}
-                  className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <span>Bulk Excel / CSV</span>
-                </button>
+              <button
+                onClick={() => setMediaSubTab('banners')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                  mediaSubTab === 'banners'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>2. Homepage Hero &amp; Banners</span>
+              </button>
 
-                <button
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{showAddForm ? 'Close Form' : 'Add New Question'}</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setMediaSubTab('winners')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                  mediaSubTab === 'winners'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Star className="w-4 h-4 text-amber-500" />
+                <span>3. Winner Wall &amp; Video Reviews ({winnersList.length})</span>
+              </button>
             </div>
 
-            {/* CSV Import Modal */}
-            {showCsvModal && (
-              <div className="bg-emerald-950 text-white border border-emerald-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-                    <h3 className="font-bold text-sm sm:text-base">Upload Bulk Questions Sheet (.CSV)</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowCsvModal(false)}
-                    className="text-xs text-slate-400 hover:text-white"
-                  >
-                    ✕ Close
-                  </button>
-                </div>
-
-                <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                  Aap ek hi click mein 50 ya 100 questions upload kar sakte hain. Pehle hamara template download karein aur usme questions fill karke upload karein.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <button
-                    onClick={downloadSampleCsv}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-2"
-                  >
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Download Sample Template</span>
-                  </button>
-
-                  <input
-                    type="file"
-                    accept=".csv"
-                    ref={csvInputRef}
-                    onChange={handleCsvUpload}
-                    className="hidden"
-                  />
-
-                  <button
-                    onClick={() => csvInputRef.current?.click()}
-                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-2 cursor-pointer shadow-lg"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Select &amp; Upload CSV File</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Single Question Entry Form */}
-            {showAddForm && (
-              <form onSubmit={handleCreateQuestion} className="bg-white border-2 border-blue-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    New Question Studio
-                  </h3>
-                  <span className="text-xs text-slate-400 font-semibold">Bilingual (Hindi + English)</span>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
+            {/* SUB-TAB 1: BRAND LOGOS & CORE ICONS */}
+            {mediaSubTab === 'brand' && (
+              <form onSubmit={handleSaveBrand} className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Select Subject</label>
-                    <select
-                      value={selectedSubject}
-                      onChange={(e) => setSelectedSubject(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                    >
-                      <option value="polity">Indian Polity &amp; Constitution</option>
-                      <option value="history">Modern Indian History</option>
-                      <option value="economy">Indian Economy &amp; Banking</option>
-                      <option value="geography">Geography &amp; Environment</option>
-                      <option value="csat">CSAT &amp; Logical Reasoning</option>
-                    </select>
+                    <h3 className="font-black text-base text-slate-900">Brand Identity &amp; Target Slots</h3>
+                    <p className="text-xs text-slate-500">Upload SVG/PNG brand logos for header navbar and dark footer</p>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Topic / Chapter Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Fundamental Rights, RBI Monetary Policy"
-                      value={topicName}
-                      onChange={(e) => setTopicName(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
+                  {brandSaved && (
+                    <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" /> Brand Assets Saved!
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Question in English</label>
-                    <textarea
-                      rows={3}
-                      placeholder="Type the question statement in English..."
-                      value={questionEn}
-                      onChange={(e) => setQuestionEn(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Question in Hindi (प्रश्न हिन्दी में)</label>
-                    <textarea
-                      rows={3}
-                      placeholder="यहाँ प्रश्न हिन्दी में लिखें..."
-                      value={questionHi}
-                      onChange={(e) => setQuestionHi(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Options &amp; Correct Answer Selection
-                  </label>
+                <div className="grid md:grid-cols-2 gap-6">
                   
-                  {[0, 1, 2, 3].map((idx) => (
-                    <div key={idx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl grid sm:grid-cols-12 gap-3 items-center">
-                      <div className="sm:col-span-1 flex items-center justify-center">
-                        <input
-                          type="radio"
-                          name="correctOptionRadio"
-                          checked={correctOpt === idx}
-                          onChange={() => setCorrectOpt(idx)}
-                          className="w-4 h-4 text-blue-600 cursor-pointer"
-                        />
+                  {/* Slot A: Header Brand Logo */}
+                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <span className="text-xs font-bold text-slate-900 block uppercase tracking-wider">
+                      Slot A: Header Navbar Brand Logo
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Renders at top navigation on all pages. Recommended size: 240x60 transparent PNG or SVG.
+                    </p>
+
+                    <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {headerLogoUrl ? (
+                          <img src={headerLogoUrl} alt="Header Logo" className="h-8 object-contain" />
+                        ) : (
+                          <div className="flex items-center gap-2 font-black text-slate-900 text-lg">
+                            <div className="flex flex-col items-center justify-center w-5 h-5">
+                              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[7px] border-b-amber-500 mb-[1px]" />
+                              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[7px] border-t-blue-600" />
+                            </div>
+                            <span>ABHYAAS.</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="sm:col-span-1 text-xs font-black text-slate-500">
-                        Option {String.fromCharCode(65 + idx)}
-                      </div>
-                      <div className="sm:col-span-5">
-                        <input
-                          type="text"
-                          placeholder={`Option ${String.fromCharCode(65 + idx)} in English`}
-                          value={optEn[idx]}
-                          onChange={(e) => {
-                            const copy = [...optEn];
-                            copy[idx] = e.target.value;
-                            setOptEn(copy);
-                          }}
-                          className="w-full p-2 rounded-xl bg-white border border-slate-200 text-xs"
-                          required
-                        />
-                      </div>
-                      <div className="sm:col-span-5">
-                        <input
-                          type="text"
-                          placeholder={`विकल्प ${String.fromCharCode(65 + idx)} हिन्दी में`}
-                          value={optHi[idx]}
-                          onChange={(e) => {
-                            const copy = [...optHi];
-                            copy[idx] = e.target.value;
-                            setOptHi(copy);
-                          }}
-                          className="w-full p-2 rounded-xl bg-white border border-slate-200 text-xs"
-                          required
-                        />
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => headerLogoRef.current?.click()}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                      >
+                        Change Logo
+                      </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={headerLogoRef}
+                        onChange={handleHeaderLogoChange}
+                        className="hidden"
+                      />
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Slot B: Dark Footer Emblem */}
+                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <span className="text-xs font-bold text-slate-900 block uppercase tracking-wider">
+                      Slot B: Dark Footer Brand Emblem
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Renders on #080e1a dark footer background across all screens.
+                    </p>
+
+                    <div className="p-4 bg-[#080e1a] rounded-xl border border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {footerEmblemUrl ? (
+                          <img src={footerEmblemUrl} alt="Footer Logo" className="h-8 object-contain" />
+                        ) : (
+                          <div className="flex items-center gap-2 font-black text-white text-lg">
+                            <div className="flex flex-col items-center justify-center w-5 h-5">
+                              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[7px] border-b-amber-500 mb-[1px]" />
+                              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[7px] border-t-blue-500" />
+                            </div>
+                            <span>ABHYAAS</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => footerLogoRef.current?.click()}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer"
+                      >
+                        Change Emblem
+                      </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={footerLogoRef}
+                        onChange={handleFooterLogoChange}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
+                <div className="pt-2">
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-md cursor-pointer"
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-md cursor-pointer"
                   >
-                    Publish Question to Live Bank
+                    <Save className="w-4 h-4" />
+                    <span>Save Core Brand Logos</span>
                   </button>
                 </div>
               </form>
             )}
 
-            {/* Questions Table List */}
-            <div className="space-y-3">
-              {filteredQuestions.map((q, idx) => (
-                <div
-                  key={q.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3"
-                >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            {/* SUB-TAB 2: HOMEPAGE HERO & PROMO BANNERS */}
+            {mediaSubTab === 'banners' && (
+              <div className="grid lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left Form (Span 7) */}
+                <form onSubmit={handleSaveBanner} className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black px-2.5 py-0.5 bg-slate-900 text-white rounded-md uppercase">
-                        {q.subject}
+                      <Layers className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-black text-base text-slate-900">Homepage Live Hero Banner</h3>
+                    </div>
+                    {bannerSavedSuccess && (
+                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4" /> Live Banner Updated!
                       </span>
-                      <span className="text-xs font-bold text-slate-500">
-                        {q.topic}
-                      </span>
+                    )}
+                  </div>
+
+                  {/* Banner Image Slot */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">Upload Olympiad Featured Graphic (PNG / JPEG / WebP)</label>
+                    <div
+                      onClick={() => bannerGraphicRef.current?.click()}
+                      className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer bg-slate-50/50 transition-colors"
+                    >
+                      <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-700">Click to upload custom graphic or map poster</p>
+                      <p className="text-[11px] text-slate-400">Recommended dimension: 1200x500 px (Max 5MB)</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={bannerGraphicRef}
+                      onChange={handleBannerImageChange}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {/* Banner Titles */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Olympiad Hindi Headline</label>
+                      <input
+                        type="text"
+                        value={bannerTitleHi}
+                        onChange={(e) => setBannerTitleHi(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
+                        required
+                      />
                     </div>
 
-                    <button
-                      onClick={() => handleDeleteQuestion(q.id)}
-                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                      title="Delete Question"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Olympiad English Title</label>
+                      <input
+                        type="text"
+                        value={bannerTitleEn}
+                        onChange={(e) => setBannerTitleEn(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
+                        required
+                      />
+                    </div>
 
-                  <div className="space-y-1">
-                    <p className="font-bold text-xs sm:text-sm text-slate-900">
-                      #{idx + 1}. {q.questionEn}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {q.questionHi}
-                    </p>
-                  </div>
-
-                  <div className="grid sm:grid-cols-4 gap-2 pt-1">
-                    {q.optionsEn.map((opt, oIdx) => (
-                      <div
-                        key={oIdx}
-                        className={`p-2 rounded-xl text-[11px] border ${
-                          oIdx === q.correctOption
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
-                            : 'bg-slate-50 border-slate-100 text-slate-600'
-                        }`}
-                      >
-                        <span className="font-black mr-1">{String.fromCharCode(65 + oIdx)}.</span> {opt}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        )}
-
-        {/* ================= TAB 2: MEDIA & BANNER CONTROLLER ================= */}
-        {activeTab === 'media' && (
-          <div className="grid lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Left: Banner Form */}
-            <form onSubmit={handleSaveBanner} className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-black text-base text-slate-900">Homepage Live Banner Settings</h3>
-                </div>
-                {bannerSavedSuccess && (
-                  <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4" /> Live Changes Saved!
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">Custom Banner Graphic (PNG / JPEG / SVG)</label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer bg-slate-50/50 transition-colors"
-                >
-                  <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="text-xs font-bold text-slate-700">Click to upload new banner/logo image</p>
-                  <p className="text-[11px] text-slate-400">Supports JPG, PNG, WebP up to 5MB</p>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Olympiad Hindi Headline</label>
-                  <input
-                    type="text"
-                    value={bannerTitleHi}
-                    onChange={(e) => setBannerTitleHi(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Olympiad English Title</label>
-                  <input
-                    type="text"
-                    value={bannerTitleEn}
-                    onChange={(e) => setBannerTitleEn(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Scholarship Pool Amount</label>
-                    <input
-                      type="text"
-                      value={bannerScholarship}
-                      onChange={(e) => setBannerScholarship(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Assessment Fee (₹)</label>
-                    <input
-                      type="text"
-                      value={bannerFee}
-                      onChange={(e) => setBannerFee(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Update Live Homepage Banner</span>
-                </button>
-              </div>
-            </form>
-
-            {/* Right: Live Preview Card */}
-            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <span className="text-[10px] font-bold px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">
-                  LIVE HOMEPAGE PREVIEW
-                </span>
-                <Clock className="w-4 h-4 text-slate-500" />
-              </div>
-
-              {uploadedBannerPreview && (
-                <div className="rounded-2xl overflow-hidden border border-slate-700">
-                  <img src={uploadedBannerPreview} alt="Uploaded Graphic" className="w-full h-32 object-cover" />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-blue-600/30 text-blue-300 border border-blue-500/30">
-                  Scholarship: {bannerScholarship}
-                </span>
-                <h4 className="text-base font-black text-amber-400 leading-tight pt-1">
-                  {bannerTitleHi}
-                </h4>
-                <p className="text-xs font-bold text-slate-300">
-                  {bannerTitleEn}
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-semibold">Fee: {bannerFee}</span>
-                <span className="px-3 py-1.5 bg-amber-500 text-slate-950 font-black rounded-xl text-[11px]">
-                  REGISTER • {bannerFee}
-                </span>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ================= TAB 3: PAYMENTS & REGISTRATIONS ================= */}
-        {activeTab === 'payments' && (
-          <div className="space-y-6">
-            
-            {/* Payment Summary Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
-                <p className="text-xs font-bold text-slate-400 uppercase">Total Registrations</p>
-                <h3 className="text-2xl font-black text-slate-900 mt-1">{paymentsList.length} Candidates</h3>
-                <span className="text-[10px] text-emerald-600 font-bold">100% Verified Slots</span>
-              </div>
-
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
-                <p className="text-xs font-bold text-slate-400 uppercase">Fees Collected (Pool)</p>
-                <h3 className="text-2xl font-black text-blue-600 mt-1">
-                  ₹{paymentsList.filter(p => p.status === 'SUCCESS').reduce((acc, curr) => acc + curr.amount, 0)}
-                </h3>
-                <span className="text-[10px] text-slate-500 font-medium">Auto-synced with Razorpay</span>
-              </div>
-
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
-                <p className="text-xs font-bold text-slate-400 uppercase">Admit Tokens Issued</p>
-                <h3 className="text-2xl font-black text-emerald-600 mt-1">
-                  {paymentsList.filter(p => p.tokenGenerated).length} / {paymentsList.length}
-                </h3>
-                <span className="text-[10px] text-emerald-600 font-bold">Ready for Proctored Test</span>
-              </div>
-            </div>
-
-            {/* Search Filter Bar */}
-            <div className="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="relative flex-1 w-full max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search by candidate name, Roll No or Payment ID..."
-                  value={paymentSearch}
-                  onChange={(e) => setPaymentSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <span className="text-xs font-bold text-slate-500">
-                Showing {filteredPayments.length} records
-              </span>
-            </div>
-
-            {/* Payments Table */}
-            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="p-4">Candidate &amp; Roll No</th>
-                      <th className="p-4">Olympiad Tier</th>
-                      <th className="p-4">Fee Paid</th>
-                      <th className="p-4">Method &amp; Time</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Admit Card Token</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredPayments.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="p-4">
-                          <p className="font-bold text-slate-900">{p.candidateName}</p>
-                          <p className="text-[11px] text-blue-600 font-mono font-bold">{p.rollNo}</p>
-                          <p className="text-[10px] text-slate-400">{p.email} • {p.phone}</p>
-                        </td>
-                        <td className="p-4 font-semibold text-slate-700">
-                          {p.olympiadTier}
-                        </td>
-                        <td className="p-4 font-black text-slate-900">
-                          ₹{p.amount}
-                        </td>
-                        <td className="p-4">
-                          <p className="font-medium text-slate-800">{p.paymentMethod}</p>
-                          <p className="text-[10px] text-slate-400">{p.date}</p>
-                        </td>
-                        <td className="p-4">
-                          {p.status === 'SUCCESS' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">
-                              <CheckCircle2 className="w-3 h-3" /> Paid &amp; Active
-                            </span>
-                          )}
-                          {p.status === 'PENDING' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[10px]">
-                              <AlertCircle className="w-3 h-3" /> Verifying
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-right">
-                          {p.tokenGenerated ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-xs">
-                              <UserCheck className="w-3.5 h-3.5" /> Token Issued
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleApprovePayment(p.id)}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[11px] transition shadow-sm cursor-pointer"
-                            >
-                              Approve &amp; Release
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ================= TAB 4: SUPPORT & STUDENT INBOX ================= */}
-        {activeTab === 'support' && (
-          <div className="space-y-6">
-            
-            <div className="flex items-center justify-between bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
-              <div>
-                <h3 className="font-black text-base text-slate-900">Aspirant Support &amp; Query Desk</h3>
-                <p className="text-xs text-slate-500">Incoming inquiries from /contact form with one-click response tool</p>
-              </div>
-              <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold">
-                {ticketsList.filter(t => t.status === 'OPEN').length} Pending Responses
-              </span>
-            </div>
-
-            {/* Tickets Stream */}
-            <div className="space-y-4">
-              {ticketsList.map((t) => (
-                <div
-                  key={t.id}
-                  className={`bg-white border rounded-3xl p-6 shadow-sm space-y-4 transition-all ${
-                    t.status === 'OPEN' ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs flex items-center justify-center">
-                        {t.candidateName.charAt(0)}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Scholarship Pool (₹)</label>
+                        <input
+                          type="text"
+                          value={bannerScholarship}
+                          onChange={(e) => setBannerScholarship(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
+                          required
+                        />
                       </div>
                       <div>
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900">{t.candidateName}</h4>
-                        <p className="text-[11px] text-slate-400">{t.email} • {t.date}</p>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Assessment Processing Fee (₹)</label>
+                        <input
+                          type="text"
+                          value={bannerFee}
+                          onChange={(e) => setBannerFee(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Publish Changes to Live Homepage</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Right Preview Card (Span 5) */}
+                <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">
+                      LIVE HOMEPAGE PREVIEW
+                    </span>
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                  </div>
+
+                  {uploadedBannerPreview && (
+                    <div className="rounded-2xl overflow-hidden border border-slate-700">
+                      <img src={uploadedBannerPreview} alt="Uploaded Graphic" className="w-full h-32 object-cover" />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-blue-600/30 text-blue-300 border border-blue-500/30">
+                      Scholarship: {bannerScholarship}
+                    </span>
+                    <h4 className="text-base font-black text-amber-400 leading-tight pt-1">
+                      {bannerTitleHi}
+                    </h4>
+                    <p className="text-xs font-bold text-slate-300">
+                      {bannerTitleEn}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-semibold">One-time Fee: {bannerFee}</span>
+                    <span className="px-3 py-1.5 bg-amber-500 text-slate-950 font-black rounded-xl text-[11px]">
+                      REGISTER • {bannerFee}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* SUB-TAB 3: WINNER WALL & STUDENT REVIEWS */}
+            {mediaSubTab === 'winners' && (
+              <div className="space-y-6">
+                
+                {/* Action Bar */}
+                <div className="flex items-center justify-between bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">Merit Rankers &amp; Video Testimonials</h3>
+                    <p className="text-xs text-slate-500">Manage student photos, rank achievements and video review embeds</p>
+                  </div>
+
+                  <button
+                    onClick={() => setShowWinnerForm(!showWinnerForm)}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{showWinnerForm ? 'Close Form' : 'Add New Winner Card'}</span>
+                  </button>
+                </div>
+
+                {/* Add Winner Form */}
+                {showWinnerForm && (
+                  <form onSubmit={handleCreateWinner} className="bg-white border-2 border-blue-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
+                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        Create Merit Ranker Card
+                      </h4>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Candidate Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Anjali Sharma"
+                          value={winnerName}
+                          onChange={(e) => setWinnerName(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Rank Secured</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. AIR 01 / All-India Rank 1"
+                          value={winnerRank}
+                          onChange={(e) => setWinnerRank(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Exam / Olympiad Title</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Weekly Speed Sprint (Polity)"
+                          value={winnerExam}
+                          onChange={(e) => setWinnerExam(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Grant / Scholarship Won</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. ₹15,000 Academic Fellowship"
+                          value={winnerGrant}
+                          onChange={(e) => setWinnerGrant(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Candidate Photo Upload */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-700">Ranker Photo / Cheque Ceremony Image (PNG/JPG)</label>
+                      <div className="flex items-center gap-4">
+                        {winnerPhoto && (
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-slate-300">
+                            <img src={winnerPhoto} alt="Winner" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => winnerPhotoRef.current?.click()}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                        >
+                          {winnerPhoto ? 'Replace Candidate Photo' : 'Upload Candidate Photo'}
+                        </button>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={winnerPhotoRef}
+                          onChange={handleWinnerPhotoChange}
+                          className="hidden"
+                        />
                       </div>
                     </div>
 
                     <div>
-                      {t.status === 'OPEN' ? (
-                        <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-black uppercase">
-                          Action Required
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-black uppercase flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Resolved
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Question / Inquiry Text */}
-                  <div className="space-y-1">
-                    <p className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-blue-600" />
-                      Subject: {t.subject}
-                    </p>
-                    <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100 leading-relaxed">
-                      &quot;{t.message}&quot;
-                    </p>
-                  </div>
-
-                  {/* Previous Reply Display if Resolved */}
-                  {t.replyText && (
-                    <div className="bg-emerald-50/60 border border-emerald-200 p-3.5 rounded-2xl space-y-1">
-                      <span className="text-[10px] font-bold text-emerald-800 uppercase flex items-center gap-1">
-                        <Mail className="w-3 h-3" /> Sent Official Response:
-                      </span>
-                      <p className="text-xs text-emerald-950 font-medium">
-                        {t.replyText}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Reply Input Box for Open Tickets */}
-                  {t.status === 'OPEN' && (
-                    <div className="space-y-2 pt-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Student Review / Feedback Quote</label>
                       <textarea
                         rows={2}
-                        placeholder={`Type your reply to ${t.candidateName} (${t.email})...`}
-                        value={replyDrafts[t.id] || ''}
-                        onChange={(e) => setReplyDrafts({ ...replyDrafts, [t.id]: e.target.value })}
-                        className="w-full p-3 rounded-2xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
+                        placeholder="Type student review statement..."
+                        value={winnerQuote}
+                        onChange={(e) => setWinnerQuote(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600"
+                        required
                       />
-                      <div className="flex justify-end gap-2">
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowWinnerForm(false)}
+                        className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-md cursor-pointer"
+                      >
+                        Publish to Live Winner Wall
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Winner Cards Stream */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {winnersList.map((w) => (
+                    <div
+                      key={w.id}
+                      className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3"
+                    >
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 font-black text-xs flex items-center justify-center overflow-hidden">
+                            {w.photoUrl ? (
+                              <img src={w.photoUrl} alt={w.name} className="w-full h-full object-cover" />
+                            ) : (
+                              w.name.charAt(0)
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm text-slate-900">{w.name}</h4>
+                            <p className="text-xs text-blue-600 font-bold">{w.rank} • {w.exam}</p>
+                          </div>
+                        </div>
+
                         <button
-                          type="button"
-                          onClick={() => handleSendTicketReply(t.id)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          onClick={() => handleDeleteWinner(w.id)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          title="Delete Card"
                         >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>Send Response to Aspirant</span>
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
 
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 italic">
+                        &quot;{w.quote}&quot;
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <span className="font-black text-emerald-600">{w.grantWon}</span>
+                        {w.videoUrl && (
+                          <span className="text-[11px] text-blue-600 font-bold flex items-center gap-1">
+                            <Video className="w-3.5 h-3.5" /> Video Verified
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* Tab 2: Payments (Clean Placeholder for next small turn) */}
+        {activeTab === 'payments' && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-4 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+              <CreditCard className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">Razorpay &amp; Registration Logs</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Media Manager test hone ke baad hum is slot table ko fully active karenge.
+            </p>
+          </div>
+        )}
+
+        {/* Tab 3: Support Desk */}
+        {activeTab === 'support' && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-4 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+              <MessageSquare className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">Aspirant Support &amp; Ticket CRM</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Student complaints aur email responses yahan manage honge.
+            </p>
+          </div>
+        )}
+
+        {/* Tab 4: Question Studio */}
+        {activeTab === 'questions' && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-4 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+              <BookOpen className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">Question Bank &amp; Olympiad Vault</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Saare chhote modules ready hone ke baad isme diagram uploader aur approval engine connect hoga.
+            </p>
           </div>
         )}
 
