@@ -28,7 +28,15 @@ import {
   ShieldAlert,
   ArrowRight,
   RefreshCw,
-  Crown
+  Crown,
+  FileSpreadsheet,
+  Download,
+  UploadCloud,
+  FileText,
+  HelpCircle,
+  X,
+  CheckCircle2,
+  Filter
 } from 'lucide-react';
 import { 
   createQuestion, 
@@ -81,8 +89,11 @@ export default function AdminMasterGatewayPage() {
   const [changeEmailOtpSent, setChangeEmailOtpSent] = useState(false);
 
   // ================= 2. DASHBOARD DATA STATE =================
-  const [activeTab, setActiveTab] = useState<'media' | 'questions' | 'payments' | 'support'>('media');
+  const [activeTab, setActiveTab] = useState<'media' | 'questions' | 'payments' | 'support'>('questions');
   const [mediaSubTab, setMediaSubTab] = useState<'brand' | 'banners'>('brand');
+  const [questionStudioMode, setQuestionStudioMode] = useState<'manual' | 'csv'>('manual');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<'ALL' | 'APPROVED_OLYMPIAD' | 'APPROVED_PRACTICE' | 'PENDING'>('ALL');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
 
   // Brand & Banners
@@ -95,20 +106,32 @@ export default function AdminMasterGatewayPage() {
   const [bannerGraphicUrl, setBannerGraphicUrl] = useState<string | null>(null);
   const [bannerSavedSuccess, setBannerSavedSuccess] = useState(false);
 
-  // Questions
+  // Questions State
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [previewQuestion, setPreviewQuestion] = useState<QuestionData | null>(null);
 
-  // New Question form
+  // New Question Form Fields
   const [selectedSubject, setSelectedSubject] = useState('polity');
+  const [targetCategory, setTargetCategory] = useState('UPSC Civil Services (IAS / IPS)');
   const [topicName, setTopicName] = useState('');
+  const [difficultyLevel, setDifficultyLevel] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
   const [questionEn, setQuestionEn] = useState('');
   const [questionHi, setQuestionHi] = useState('');
   const [optEn, setOptEn] = useState(['', '', '', '']);
   const [optHi, setOptHi] = useState(['', '', '', '']);
   const [correctOpt, setCorrectOpt] = useState<number>(0);
+  const [diagramUrl, setDiagramUrl] = useState<string>('');
+  const [diagramUploadPreview, setDiagramUploadPreview] = useState<string | null>(null);
+  const [explanationEn, setExplanationEn] = useState('');
+  const [explanationHi, setExplanationHi] = useState('');
   const [formApprovalStatus, setFormApprovalStatus] = useState<ApprovalStatus>('APPROVED_OLYMPIAD');
+
+  // CSV Bulk Upload State
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvParsedCount, setCsvParsedCount] = useState<number | null>(null);
+  const [csvUploadSuccess, setCsvUploadSuccess] = useState(false);
 
   // Payments & Support
   const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>([]);
@@ -117,7 +140,8 @@ export default function AdminMasterGatewayPage() {
 
   const headerLogoRef = useRef<HTMLInputElement | null>(null);
   const footerLogoRef = useRef<HTMLInputElement | null>(null);
-  const bannerGraphicRef = useRef<HTMLInputElement | null>(null);
+  const questionDiagramInputRef = useRef<HTMLInputElement | null>(null);
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Check Local Session on mount
   useEffect(() => {
@@ -170,8 +194,6 @@ export default function AdminMasterGatewayPage() {
   }, [currentUser]);
 
   // ================= AUTH HANDLERS =================
-
-  // 1. Handle Login
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -186,17 +208,15 @@ export default function AdminMasterGatewayPage() {
         setCurrentUser(userObj);
         localStorage.setItem('abhyaas_admin_session', JSON.stringify(userObj));
       } else if (loginPassword === 'Team@123' && emailClean.includes('@')) {
-        // Team member login
         const userObj = { email: emailClean, isMaster: false };
         setCurrentUser(userObj);
         localStorage.setItem('abhyaas_admin_session', JSON.stringify(userObj));
       } else {
-        alert('Galat Email ya Password! Kripya dobara check karein.');
+        alert('गलत Email या Password! कृपया पुनः जाँच करें।');
       }
     }, 600);
   };
 
-  // 2. Handle Master Registration & Password Setup
   const handleSendSetupCode = () => {
     setSetupCodeSent(true);
     alert(`Verification Code sent to ${setupEmail}! (Dev Mode Code: 8921)`);
@@ -205,25 +225,24 @@ export default function AdminMasterGatewayPage() {
   const handleCompleteSetup = (e: React.FormEvent) => {
     e.preventDefault();
     if (setupCode !== '8921') {
-      alert('Galat Verification Code! Kripya sahi code dalein.');
+      alert('गलत Verification Code! कृपया सही कोड दर्ज करें।');
       return;
     }
     if (setupPassword.length < 6) {
-      alert('Password kam se kam 6 characters ka hona chahiye.');
+      alert('Password कम से कम 6 अक्षरों का होना चाहिए।');
       return;
     }
     if (setupPassword !== setupConfirmPassword) {
-      alert('Password match nahi hua.');
+      alert('Password मेल नहीं खा रहे हैं।');
       return;
     }
 
     localStorage.setItem('abhyaas_master_pass', setupPassword);
-    alert('Master Admin registration aur Password successfully create ho gaya!');
+    alert('Master Admin registration और Password सफलतापूर्वक बन गया!');
     setAuthMode('LOGIN');
     setLoginEmail(setupEmail);
   };
 
-  // 3. Handle 2FA Phone Recovery
   const handleSendPhoneOtp = () => {
     setRecoveryOtpSent(true);
     alert(`Recovery OTP sent to ${selectedRecoveryPhone}! (Dev Mode OTP: 4402)`);
@@ -232,21 +251,20 @@ export default function AdminMasterGatewayPage() {
   const handleResetPasswordViaPhone = (e: React.FormEvent) => {
     e.preventDefault();
     if (recoveryOtp !== '4402') {
-      alert('Galat OTP! Kripya mobile par aaya code check karein.');
+      alert('गलत OTP! कृपया मोबाइल पर प्राप्त कोड दर्ज करें।');
       return;
     }
     if (newResetPassword.length < 6) {
-      alert('Password kam se kam 6 characters ka hona chahiye.');
+      alert('Password कम से कम 6 अक्षरों का होना चाहिए।');
       return;
     }
 
     localStorage.setItem('abhyaas_master_pass', newResetPassword);
-    alert('Master Password successfully reset ho gaya! Ab naye password se login karein.');
+    alert('Master Password सफलतापूर्वक रीसेट हो गया! अब नए पासवर्ड से लॉगिन करें।');
     setAuthMode('LOGIN');
     setLoginEmail(MASTER_ADMIN_EMAIL);
   };
 
-  // 4. Handle Master Email Change via Phone OTP
   const handleSendChangeEmailOtp = () => {
     setChangeEmailOtpSent(true);
     alert(`Authorization OTP sent to ${selectedRecoveryPhone}! (Dev Mode OTP: 7719)`);
@@ -255,15 +273,15 @@ export default function AdminMasterGatewayPage() {
   const handleConfirmChangeEmail = (e: React.FormEvent) => {
     e.preventDefault();
     if (changeEmailOtp !== '7719') {
-      alert('Galat OTP! Authentication fail ho gaya.');
+      alert('गलत OTP! प्रमाणीकरण विफल रहा।');
       return;
     }
     if (!newMasterEmailInput.includes('@')) {
-      alert('Kripya valid email address dalein.');
+      alert('कृपया वैध ईमेल पता दर्ज करें।');
       return;
     }
 
-    alert(`Master Admin Email successfully change ho gaya: ${newMasterEmailInput}`);
+    alert(`Master Admin Email सफलतापूर्वक बदल दिया गया: ${newMasterEmailInput}`);
     setAuthMode('LOGIN');
     setLoginEmail(newMasterEmailInput);
   };
@@ -274,59 +292,27 @@ export default function AdminMasterGatewayPage() {
     setAuthMode('LOGIN');
   };
 
-  // ================= DASHBOARD ACTIONS =================
-  const handleSaveBrand = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    await updateSiteSettings({ headerLogoUrl, footerLogoUrl: footerEmblemUrl });
-    setLoading(false);
-    setBannerSavedSuccess(true);
-    setTimeout(() => setBannerSavedSuccess(false), 3000);
-    alert('Brand assets saved to Cloud!');
-  };
-
-  const handleSaveBanner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    await updateSiteSettings({
-      bannerTitleHi,
-      bannerTitleEn,
-      scholarshipPool: bannerScholarship,
-      assessmentFee: bannerFee,
-      bannerGraphicUrl,
-    });
-    setLoading(false);
-    setBannerSavedSuccess(true);
-    setTimeout(() => setBannerSavedSuccess(false), 3000);
-    alert('Homepage Banner updated on Cloud!');
-  };
-
-  const handleHeaderLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ================= DIAGRAM & IMAGE ATTACHMENT =================
+  const handleDiagramFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setHeaderLogoUrl(reader.result as string);
+      reader.onloadend = () => {
+        setDiagramUploadPreview(reader.result as string);
+        setDiagramUrl(reader.result as string);
+      };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleFooterLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFooterEmblemUrl(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
+  // ================= CREATE MANUAL QUESTION =================
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!questionEn.trim() || !questionHi.trim()) {
-      alert('Kripya English aur Hindi statements bharein.');
+      alert('कृपया English और Hindi दोनों प्रश्न विवरण दर्ज करें।');
       return;
     }
 
-    // Security Gate: Sub-admins can ONLY create PENDING questions
     const finalApprovalStatus: ApprovalStatus = currentUser?.isMaster 
       ? formApprovalStatus 
       : 'PENDING';
@@ -334,7 +320,7 @@ export default function AdminMasterGatewayPage() {
     setLoading(true);
     const newQuestionData: Omit<QuestionData, 'id'> = {
       subject: selectedSubject,
-      topic: topicName || 'General Topic',
+      topic: topicName || targetCategory,
       questionEn,
       questionHi,
       optionsEn: [...optEn],
@@ -342,7 +328,7 @@ export default function AdminMasterGatewayPage() {
       correctOption: correctOpt,
       approvalStatus: finalApprovalStatus,
       timesUsedInOlympiad: 0,
-      diagramUrl: null,
+      diagramUrl: diagramUploadPreview || (diagramUrl.trim() ? diagramUrl.trim() : null),
     };
 
     const res = await createQuestion(newQuestionData);
@@ -357,30 +343,160 @@ export default function AdminMasterGatewayPage() {
       setOptEn(['', '', '', '']);
       setOptHi(['', '', '', '']);
       setCorrectOpt(0);
+      setDiagramUrl('');
+      setDiagramUploadPreview(null);
+      setExplanationEn('');
+      setExplanationHi('');
       alert(currentUser?.isMaster 
-        ? 'Question successfully published to Cloud Vault!' 
+        ? 'Question successfully published to Cloud Repository!' 
         : 'Draft saved as PENDING for Master Admin approval.');
     } else {
-      alert('Error saving question.');
+      alert('प्रश्न सुरक्षित करने में समस्या आई।');
     }
   };
 
-  const handleStatusUpdate = async (id: string, newStatus: ApprovalStatus) => {
-    if (!currentUser?.isMaster && newStatus === 'APPROVED_OLYMPIAD') {
-      alert('Security Alert: Only Master Admin (admin.abhyaas@gmail.com) can approve questions for Live Olympiad!');
+  // ================= CSV PARSER & BULK IMPORT ENGINE =================
+  const downloadSampleCsv = () => {
+    const csvContent = 
+      "subject,topic,difficulty,targetCategory,questionType,questionEn,questionHi,opt1En,opt1Hi,opt2En,opt2Hi,opt3En,opt3Hi,opt4En,opt4Hi,correctOption,diagramUrl,explanationEn,explanationHi\n" +
+      "polity,Preamble,Medium,UPSC CSE,APPROVED_OLYMPIAD,\"Which constitutional amendment added 'Secular' and 'Socialist' to the Preamble?\",\"किस संविधान संशोधन द्वारा प्रस्तावना में 'धर्मनिरपेक्ष' और 'समाजवादी' शब्द जोड़े गए?\",\"42nd Amendment\",\"42वां संशोधन\",\"44th Amendment\",\"44वां संशोधन\",\"52nd Amendment\",\"52वां संशोधन\",\"73rd Amendment\",\"73वां संशोधन\",0,\"https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600\",\"Added by 42nd Amendment Act 1976.\",\"42वें संविधान संशोधन 1976 द्वारा जोड़ा गया।\"\n" +
+      "science,Physics Circuits,Hard,Class 11-12,APPROVED_PRACTICE,\"What is the equivalent resistance in a series circuit?\",\"श्रेणी परिपथ में तुल्य प्रतिरोध क्या होता है?\",\"R = R1 + R2\",\"R = R1 + R2\",\"1/R = 1/R1 + 1/R2\",\"1/R = 1/R1 + 1/R2\",\"R = R1 * R2\",\"R = R1 * R2\",\"R = R1 - R2\",\"R = R1 - R2\",0,\"\",\"In series connection resistances add linearly.\",\"श्रेणी संयोजन में प्रतिरोध सीधे जुड़ते हैं।\"";
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'Abhyaas_Questions_Standard_Template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCsvFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        setCsvParsedCount(Math.max(0, lines.length - 1)); // subtract header
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleProcessBulkCsv = async () => {
+    if (!csvFile) {
+      alert('कृपया पहले एक वैध .CSV फ़ाइल चुनें।');
       return;
     }
 
+    setLoading(true);
+    try {
+      const text = await csvFile.text();
+      const lines = text.split('\n').filter(line => line.trim().length > 0);
+      if (lines.length <= 1) {
+        alert('CSV फ़ाइल खाली है या इसमें कोई प्रश्न डेटा नहीं है।');
+        setLoading(false);
+        return;
+      }
+
+      const importedQuestions: QuestionData[] = [];
+
+      // Parse lines (skipping header)
+      for (let i = 1; i < lines.length; i++) {
+        // Regex to handle quoted commas
+        const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+        if (row.length >= 16) {
+          const clean = (val: string) => val ? val.replace(/^"|"$/g, '').trim() : '';
+          
+          const subject = clean(row[0]) || 'polity';
+          const topic = clean(row[1]) || 'General Topic';
+          const qType = (clean(row[4]) as ApprovalStatus) || 'APPROVED_OLYMPIAD';
+          const qEn = clean(row[5]);
+          const qHi = clean(row[6]);
+          const o1En = clean(row[7]);
+          const o1Hi = clean(row[8]);
+          const o2En = clean(row[9]);
+          const o2Hi = clean(row[10]);
+          const o3En = clean(row[11]);
+          const o3Hi = clean(row[12]);
+          const o4En = clean(row[13]);
+          const o4Hi = clean(row[14]);
+          const correct = parseInt(clean(row[15])) || 0;
+          const diag = clean(row[16]) || null;
+
+          if (qEn && qHi) {
+            const newQ: QuestionData = {
+              id: `q-csv-${Date.now()}-${i}`,
+              subject,
+              topic,
+              questionEn: qEn,
+              questionHi: qHi,
+              optionsEn: [o1En, o2En, o3En, o4En],
+              optionsHi: [o1Hi, o2Hi, o3Hi, o4Hi],
+              correctOption: correct,
+              approvalStatus: currentUser?.isMaster ? qType : 'PENDING',
+              timesUsedInOlympiad: 0,
+              diagramUrl: diag,
+            };
+
+            await createQuestion(newQ);
+            importedQuestions.push(newQ);
+          }
+        }
+      }
+
+      setQuestionsList([...importedQuestions, ...questionsList]);
+      setCsvUploadSuccess(true);
+      setTimeout(() => {
+        setCsvUploadSuccess(false);
+        setCsvFile(null);
+        setCsvParsedCount(null);
+        setShowAddForm(false);
+      }, 1500);
+
+      alert(`बधाई! ${importedQuestions.length} प्रश्न सफलतापूर्वक रिपॉजिटरी में अपलोड हो गए!`);
+    } catch (err) {
+      console.error('CSV Parsing Error:', err);
+      alert('CSV प्रोसेस करने में त्रुटि आई। कृपया टेम्पलेट प्रारूप की जाँच करें।');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportEntireBankCsv = () => {
+    let csv = "subject,topic,questionEn,questionHi,opt1En,opt1Hi,opt2En,opt2Hi,opt3En,opt3Hi,opt4En,opt4Hi,correctOption,approvalStatus,diagramUrl\n";
+    questionsList.forEach((q) => {
+      const escape = (text: string) => `"${(text || '').replace(/"/g, '""')}"`;
+      csv += `${q.subject},${escape(q.topic)},${escape(q.questionEn)},${escape(q.questionHi)},${escape(q.optionsEn[0])},${escape(q.optionsHi[0])},${escape(q.optionsEn[1])},${escape(q.optionsHi[1])},${escape(q.optionsEn[2])},${escape(q.optionsHi[2])},${escape(q.optionsEn[3])},${escape(q.optionsHi[3])},${q.correctOption},${q.approvalStatus},${escape(q.diagramUrl || '')}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `Abhyaas_Question_Vault_Export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Status and Delete Handlers
+  const handleStatusUpdate = async (id: string, newStatus: ApprovalStatus) => {
+    if (!currentUser?.isMaster && newStatus === 'APPROVED_OLYMPIAD') {
+      alert('सुरक्षा चेतावनी: केवल मास्टर एडमिन ही लाइव ओलंपियाड के लिए प्रश्न स्वीकृत कर सकते हैं!');
+      return;
+    }
     await updateQuestionStatus(id, newStatus);
     setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, approvalStatus: newStatus } : q));
   };
 
   const handleDeleteQ = async (id: string) => {
     if (!currentUser?.isMaster) {
-      alert('Security Alert: Only Master Admin can delete questions.');
+      alert('सुरक्षा चेतावनी: केवल मास्टर एडमिन ही प्रश्न हटा सकते हैं।');
       return;
     }
-    if (confirm('Kya aap is question ko Cloud Vault se delete karna chahte hain?')) {
+    if (confirm('क्या आप इस प्रश्न को रिपॉजिटरी से हमेशा के लिए हटाना चाहते हैं?')) {
       await deleteQuestion(id);
       setQuestionsList(prev => prev.filter(q => q.id !== id));
     }
@@ -395,21 +511,27 @@ export default function AdminMasterGatewayPage() {
   const handleResolveTicket = async (ticketId: string) => {
     const reply = replyDrafts[ticketId];
     if (!reply || !reply.trim()) {
-      alert('Kripya reply likhein.');
+      alert('कृपया उत्तर संदेश दर्ज करें।');
       return;
     }
-
     await resolveSupportTicket(ticketId, reply);
     setTicketsList(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'RESOLVED', replyText: reply } : t));
     setReplyDrafts(prev => ({ ...prev, [ticketId]: '' }));
     alert('Response sent and saved to Cloud!');
   };
 
-  const filteredQuestions = questionsList.filter(q => 
-    q.questionEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    q.questionHi.includes(searchQuery) ||
-    q.topic.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtered List
+  const filteredQuestions = questionsList.filter((q) => {
+    const matchesSearch = 
+      q.questionEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      q.questionHi.includes(searchQuery) ||
+      q.topic.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesType = selectedTypeFilter === 'ALL' || q.approvalStatus === selectedTypeFilter;
+    const matchesSubject = selectedSubjectFilter === 'ALL' || q.subject.toLowerCase() === selectedSubjectFilter.toLowerCase();
+
+    return matchesSearch && matchesType && matchesSubject;
+  });
 
   // =========================================================================
   // AUTH VIEW 1: NOT LOGGED IN - MASTER ACCESS GATEWAY
@@ -419,7 +541,6 @@ export default function AdminMasterGatewayPage() {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-blue-600 selection:text-white">
         <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
           
-          {/* Top Brand & Gateway Icon */}
           <div className="text-center space-y-2">
             <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto">
               <KeyRound className="w-7 h-7" />
@@ -430,7 +551,6 @@ export default function AdminMasterGatewayPage() {
             </p>
           </div>
 
-          {/* MODE 1: STANDARD LOGIN */}
           {authMode === 'LOGIN' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
@@ -493,11 +613,10 @@ export default function AdminMasterGatewayPage() {
             </form>
           )}
 
-          {/* MODE 2: FIRST TIME MASTER REGISTRATION & SETUP */}
           {authMode === 'FIRST_TIME_SETUP' && (
             <form onSubmit={handleCompleteSetup} className="space-y-4 animate-in fade-in duration-150">
               <div className="p-3 bg-blue-950/60 border border-blue-800/80 rounded-2xl text-[11px] text-blue-300 leading-relaxed">
-                <strong>Master Admin Registration:</strong> Central email <code className="text-white font-bold">{MASTER_ADMIN_EMAIL}</code> par ek verification code bhej kar initial password setup karein.
+                <strong>Master Admin Registration:</strong> Central email <code className="text-white font-bold">{MASTER_ADMIN_EMAIL}</code> पर एक verification code भेज कर initial password setup करें।
               </div>
 
               <div>
@@ -577,13 +696,12 @@ export default function AdminMasterGatewayPage() {
             </form>
           )}
 
-          {/* MODE 3: 2FA PHONE PASSWORD RESET */}
           {authMode === 'PHONE_RECOVERY' && (
             <form onSubmit={handleResetPasswordViaPhone} className="space-y-4 animate-in fade-in duration-150">
               <div className="p-3 bg-amber-950/60 border border-amber-800/80 rounded-2xl text-[11px] text-amber-300 leading-relaxed flex items-start gap-2">
                 <Smartphone className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong>Dual-Phone 2FA Reset:</strong> Password reset ke liye registered recovery mobile number par SMS OTP bheja jayega.
+                  <strong>Dual-Phone 2FA Reset:</strong> Password reset के लिए registered recovery mobile number पर SMS OTP भेजा जाएगा।
                 </span>
               </div>
 
@@ -674,11 +792,10 @@ export default function AdminMasterGatewayPage() {
             </form>
           )}
 
-          {/* MODE 4: CHANGE MASTER EMAIL VIA PHONE OTP */}
           {authMode === 'CHANGE_MASTER_EMAIL' && (
             <form onSubmit={handleConfirmChangeEmail} className="space-y-4 animate-in fade-in duration-150">
               <div className="p-3 bg-rose-950/60 border border-rose-800/80 rounded-2xl text-[11px] text-rose-300 leading-relaxed">
-                <strong>Critical Security Action:</strong> Master Email change karne ke liye recovery mobile number <code className="text-white font-bold">{selectedRecoveryPhone}</code> par authorization OTP verify karna anivarya hai.
+                <strong>Critical Security Action:</strong> Master Email change करने के लिए recovery mobile number <code className="text-white font-bold">{selectedRecoveryPhone}</code> पर authorization OTP verify करना अनिवार्य है।
               </div>
 
               <div>
@@ -746,7 +863,7 @@ export default function AdminMasterGatewayPage() {
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col selection:bg-blue-600 selection:text-white">
       
       {/* Top Admin Header Bar */}
-      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40">
+      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-black text-sm">
@@ -798,20 +915,20 @@ export default function AdminMasterGatewayPage() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
         
-        {/* Permission Notification Banner */}
-        {!currentUser.isMaster && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-center justify-between text-amber-900 text-xs">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span>
-                <strong>Team Editor Mode:</strong> You can add drafts and manage media. Question approval for the live Olympiad is restricted to Master Admin (<code className="font-bold">{MASTER_ADMIN_EMAIL}</code>).
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm mb-6 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'questions'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Question Studio &amp; Vault ({questionsList.length})</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('media')}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
@@ -822,18 +939,6 @@ export default function AdminMasterGatewayPage() {
           >
             <ImageIcon className="w-4 h-4" />
             <span>Media &amp; Banner Hub</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('questions')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'questions'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Question Vault ({questionsList.length})</span>
           </button>
 
           <button
@@ -861,7 +966,577 @@ export default function AdminMasterGatewayPage() {
           </button>
         </div>
 
-        {/* ================= TAB 1: MEDIA & BANNER HUB ================= */}
+        {/* ========================================================================= */}
+        {/* TAB 1: ENHANCED QUESTIONS STUDIO & REPOSITORY ENGINE                     */}
+        {/* ========================================================================= */}
+        {activeTab === 'questions' && (
+          <div className="space-y-6">
+            
+            {/* Top Controls & Action Bar */}
+            <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">National Question Repository &amp; Bank</h3>
+                  <p className="text-xs text-slate-500">Live bilingual questions powering Olympiad CBT windows and daily practice drills.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={downloadSampleCsv}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Download CSV Template</span>
+                  </button>
+
+                  <button
+                    onClick={exportEntireBankCsv}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Export Bank CSV</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowAddForm(!showAddForm)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    <span>{showAddForm ? 'Close Studio' : 'Create / Upload Questions'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Search and Category Filters */}
+              <div className="grid sm:grid-cols-12 gap-3 pt-3 border-t border-slate-100">
+                <div className="sm:col-span-5 relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search by keyword, topic, or question text..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div className="sm:col-span-4 flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-slate-400" />
+                  <select
+                    value={selectedTypeFilter}
+                    onChange={(e) => setSelectedTypeFilter(e.target.value as any)}
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600"
+                  >
+                    <option value="ALL">All Vaults (Olympiad + Practice)</option>
+                    <option value="APPROVED_OLYMPIAD">🛡️ Live Olympiad Vault</option>
+                    <option value="APPROVED_PRACTICE">📘 Free Practice Drills</option>
+                    <option value="PENDING">⏳ Pending Review</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-3">
+                  <select
+                    value={selectedSubjectFilter}
+                    onChange={(e) => setSelectedSubjectFilter(e.target.value)}
+                    className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600"
+                  >
+                    <option value="ALL">All Subjects</option>
+                    <option value="polity">Indian Polity</option>
+                    <option value="history">Modern History</option>
+                    <option value="economy">Indian Economy</option>
+                    <option value="geography">Geography</option>
+                    <option value="csat">CSAT &amp; Logic</option>
+                    <option value="science">General Science</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* ================= QUESTION UPLOAD STUDIO (MANUAL VS CSV) ================= */}
+            {showAddForm && (
+              <div className="bg-white border-2 border-blue-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
+                
+                {/* Studio Subtabs */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuestionStudioMode('manual')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                        questionStudioMode === 'manual'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>1. Single Manual Question Studio</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setQuestionStudioMode('csv')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                        questionStudioMode === 'csv'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>2. Bulk CSV Import Engine</span>
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg uppercase">
+                    Bilingual Format
+                  </span>
+                </div>
+
+                {/* --- MODE A: MANUAL QUESTION STUDIO --- */}
+                {questionStudioMode === 'manual' && (
+                  <form onSubmit={handleCreateQuestion} className="space-y-5 text-xs">
+                    
+                    <div className="grid sm:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Subject</label>
+                        <select
+                          value={selectedSubject}
+                          onChange={(e) => setSelectedSubject(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600 font-semibold"
+                        >
+                          <option value="polity">Indian Polity &amp; Constitution</option>
+                          <option value="history">Modern Indian History</option>
+                          <option value="economy">Indian Economy &amp; Macro</option>
+                          <option value="geography">Geography &amp; Ecology</option>
+                          <option value="csat">Quantitative &amp; CSAT Logic</option>
+                          <option value="science">General Science &amp; Tech</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Target Category / Stream</label>
+                        <select
+                          value={targetCategory}
+                          onChange={(e) => setTargetCategory(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600 font-semibold"
+                        >
+                          <option>UPSC Civil Services (IAS / IPS)</option>
+                          <option>State PSC (UPPSC / BPSC / MPPCS)</option>
+                          <option>SSC CGL / Banking PO</option>
+                          <option>Class 1 - 5 (Primary Wing)</option>
+                          <option>Class 6 - 8 (Middle School)</option>
+                          <option>Class 9 - 10 (Secondary Board)</option>
+                          <option>Class 11 - 12 (Senior Secondary)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Topic / Sub-Chapter Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Fundamental Rights &amp; Writs"
+                          value={topicName}
+                          onChange={(e) => setTopicName(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Vault Destination</label>
+                        <select
+                          value={formApprovalStatus}
+                          onChange={(e) => setFormApprovalStatus(e.target.value as ApprovalStatus)}
+                          disabled={!currentUser.isMaster}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-emerald-50 text-emerald-900 font-bold focus:outline-none focus:border-emerald-600"
+                        >
+                          <option value="APPROVED_OLYMPIAD">🛡️ Live Olympiad Vault (₹49/₹199)</option>
+                          <option value="APPROVED_PRACTICE">📘 Free Practice Drills Vault</option>
+                          <option value="PENDING">⏳ Draft (Pending Review)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Question Statements (English & Hindi) */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Question Statement in English *</label>
+                        <textarea
+                          rows={3}
+                          placeholder="Type comprehensive question statement in English..."
+                          value={questionEn}
+                          onChange={(e) => setQuestionEn(e.target.value)}
+                          className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">प्रश्न विवरण हिन्दी में *</label>
+                        <textarea
+                          rows={3}
+                          placeholder="यहाँ पूर्ण प्रश्न हिन्दी में लिखें..."
+                          value={questionHi}
+                          onChange={(e) => setQuestionHi(e.target.value)}
+                          className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Scientific Diagram, Theorem or Map Visual Attachment */}
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800 flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4 text-blue-600" />
+                          Attach Diagram / Map / Scientific Theorem Visual (Optional)
+                        </span>
+                        {diagramUploadPreview && (
+                          <button
+                            type="button"
+                            onClick={() => { setDiagramUploadPreview(null); setDiagramUrl(''); }}
+                            className="text-rose-600 text-xs font-bold hover:underline"
+                          >
+                            Remove Image
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4 items-center">
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">Option A: Image Direct URL</label>
+                          <input
+                            type="url"
+                            placeholder="https://example.com/map-diagram.png"
+                            value={diagramUrl}
+                            onChange={(e) => {
+                              setDiagramUrl(e.target.value);
+                              setDiagramUploadPreview(e.target.value);
+                            }}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">Option B: Upload Image File (PNG / JPG)</label>
+                          <button
+                            type="button"
+                            onClick={() => questionDiagramInputRef.current?.click()}
+                            className="w-full py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-700 flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Choose Local File</span>
+                          </button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={questionDiagramInputRef}
+                            onChange={handleDiagramFileSelect}
+                            className="hidden"
+                          />
+                        </div>
+                      </div>
+
+                      {diagramUploadPreview && (
+                        <div className="pt-2 flex items-center gap-4">
+                          <img
+                            src={diagramUploadPreview}
+                            alt="Question Diagram Preview"
+                            className="h-28 w-auto rounded-xl border border-slate-300 object-contain bg-white p-1"
+                          />
+                          <p className="text-[11px] text-slate-500">
+                            Attached diagram will be shown directly beneath the question statement in both Hindi and English CBT drill views.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 4 Options Matrix */}
+                    <div className="space-y-3 pt-2">
+                      <label className="block font-bold text-slate-900 uppercase tracking-wide">
+                        Four Bilingual Options &amp; Set Correct Key
+                      </label>
+
+                      {[0, 1, 2, 3].map((idx) => (
+                        <div key={idx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl grid sm:grid-cols-12 gap-3 items-center">
+                          <div className="sm:col-span-1 flex items-center justify-center">
+                            <input
+                              type="radio"
+                              name="optRadio"
+                              checked={correctOpt === idx}
+                              onChange={() => setCorrectOpt(idx)}
+                              className="w-4 h-4 text-blue-600 cursor-pointer"
+                            />
+                          </div>
+                          
+                          <div className="sm:col-span-2 text-xs font-black text-slate-700">
+                            Option {String.fromCharCode(65 + idx)} {correctOpt === idx && <span className="text-emerald-600 text-[10px] block">✓ Correct Key</span>}
+                          </div>
+
+                          <div className="sm:col-span-4">
+                            <input
+                              type="text"
+                              placeholder={`Option ${String.fromCharCode(65 + idx)} in English`}
+                              value={optEn[idx]}
+                              onChange={(e) => {
+                                const copy = [...optEn];
+                                copy[idx] = e.target.value;
+                                setOptEn(copy);
+                              }}
+                              className="w-full p-2 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600"
+                              required
+                            />
+                          </div>
+
+                          <div className="sm:col-span-5">
+                            <input
+                              type="text"
+                              placeholder={`विकल्प ${String.fromCharCode(65 + idx)} हिन्दी में`}
+                              value={optHi[idx]}
+                              onChange={(e) => {
+                                const copy = [...optHi];
+                                copy[idx] = e.target.value;
+                                setOptHi(copy);
+                              }}
+                              className="w-full p-2 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600"
+                              required
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Explanations (Hindi & English) */}
+                    <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Explanation in English (AI Diagnostic Solution)</label>
+                        <textarea
+                          rows={2}
+                          placeholder="Detailed solution logic in English..."
+                          value={explanationEn}
+                          onChange={(e) => setExplanationEn(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">उत्तर व्याख्या हिन्दी में</label>
+                        <textarea
+                          rows={2}
+                          placeholder="विस्तृत उत्तर व्याख्या हिन्दी में..."
+                          value={explanationHi}
+                          onChange={(e) => setExplanationHi(e.target.value)}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddForm(false)}
+                        className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md cursor-pointer flex items-center gap-2"
+                      >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        <span>Publish Question to Live Cloud Vault</span>
+                      </button>
+                    </div>
+
+                  </form>
+                )}
+
+                {/* --- MODE B: BULK CSV UPLOADER --- */}
+                {questionStudioMode === 'csv' && (
+                  <div className="space-y-6 text-xs">
+                    
+                    <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-2xl space-y-2">
+                      <h4 className="font-extrabold text-blue-900 text-sm flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                        Bulk CSV Upload Instructions
+                      </h4>
+                      <p className="text-slate-600 leading-relaxed">
+                        Upload a standard CSV file with bilingual question sets, 4 options, answers (0, 1, 2, 3), and diagram image URLs.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={downloadSampleCsv}
+                        className="text-blue-700 font-bold underline inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Pre-formatted CSV Template</span>
+                      </button>
+                    </div>
+
+                    {/* Drag & Drop Box */}
+                    <div 
+                      onClick={() => csvFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-3xl p-8 text-center space-y-3 bg-slate-50 cursor-pointer transition"
+                    >
+                      <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm">
+                          {csvFile ? csvFile.name : 'Click to select .CSV file from your computer'}
+                        </p>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          {csvParsedCount !== null 
+                            ? `✓ Detected ~${csvParsedCount} questions ready for batch processing` 
+                            : 'Supported format: .csv with UTF-8 encoding'}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        ref={csvFileInputRef}
+                        onChange={handleCsvFileUpload}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {csvFile && (
+                      <div className="flex items-center justify-end gap-3 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => { setCsvFile(null); setCsvParsedCount(null); }}
+                          className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl"
+                        >
+                          Clear File
+                        </button>
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={handleProcessBulkCsv}
+                          className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-md flex items-center gap-2 cursor-pointer"
+                        >
+                          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                          <span>Import {csvParsedCount || ''} Questions to Cloud Bank</span>
+                        </button>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* ================= REPOSITORY DIRECTORY LIST ================= */}
+            <div className="space-y-3">
+              {filteredQuestions.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-2">
+                  <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-sm font-bold text-slate-700">No questions found matching your filter.</p>
+                  <p className="text-xs text-slate-400">Click &apos;Create / Upload Questions&apos; to add bilingual questions to the vault.</p>
+                </div>
+              ) : (
+                filteredQuestions.map((q, idx) => (
+                  <div key={q.id || idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 hover:border-slate-300 transition">
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black px-2.5 py-0.5 bg-slate-900 text-white rounded-md uppercase">
+                          {q.subject}
+                        </span>
+                        <span className="text-xs font-bold text-slate-600">{q.topic}</span>
+                        {q.diagramUrl && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3" /> Diagram Attached
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={q.approvalStatus}
+                          onChange={(e) => q.id && handleStatusUpdate(q.id, e.target.value as ApprovalStatus)}
+                          disabled={!currentUser.isMaster}
+                          className={`text-xs font-bold px-2.5 py-1 rounded-xl border cursor-pointer ${
+                            q.approvalStatus === 'APPROVED_OLYMPIAD' ? 'bg-amber-50 text-amber-900 border-amber-300' :
+                            q.approvalStatus === 'APPROVED_PRACTICE' ? 'bg-blue-50 text-blue-900 border-blue-300' :
+                            'bg-slate-50 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <option value="APPROVED_OLYMPIAD">🛡️ Live Olympiad</option>
+                          <option value="APPROVED_PRACTICE">📘 Free Practice</option>
+                          <option value="PENDING">⏳ Draft (Pending)</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => setPreviewQuestion(q)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                          title="Preview Question Modal"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+
+                        {currentUser.isMaster && (
+                          <button
+                            onClick={() => q.id && handleDeleteQ(q.id)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                            title="Delete Question"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Question Statements */}
+                    <div>
+                      <p className="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug">
+                        #{idx + 1}. {q.questionEn}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-0.5 font-medium">
+                        {q.questionHi}
+                      </p>
+                    </div>
+
+                    {/* Diagram Thumbnail if exists */}
+                    {q.diagramUrl && (
+                      <div className="pt-1">
+                        <img
+                          src={q.diagramUrl}
+                          alt="Question Visual"
+                          className="h-20 w-auto rounded-xl border border-slate-200 object-contain bg-slate-50 p-1"
+                        />
+                      </div>
+                    )}
+
+                    {/* Options Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-2 border-t border-slate-100">
+                      {q.optionsEn.map((opt, optIdx) => (
+                        <div
+                          key={optIdx}
+                          className={`p-2 rounded-xl border ${
+                            optIdx === q.correctOption
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                              : 'bg-slate-50 border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <span className="font-bold mr-1">{String.fromCharCode(65 + optIdx)}.</span>
+                          <span>{opt}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                ))
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ================= TAB 2: MEDIA & BANNER HUB ================= */}
         {activeTab === 'media' && (
           <div className="space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
@@ -887,7 +1562,7 @@ export default function AdminMasterGatewayPage() {
             </div>
 
             {mediaSubTab === 'brand' && (
-              <form onSubmit={handleSaveBrand} className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h3 className="font-black text-base text-slate-900">Brand Identity &amp; Target Slots</h3>
                   {bannerSavedSuccess && <span className="text-xs font-bold text-emerald-600 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Cloud Updated!</span>}
@@ -903,7 +1578,17 @@ export default function AdminMasterGatewayPage() {
                         <span className="font-black text-slate-900 text-base">ABHYAAS.</span>
                       )}
                       <button type="button" onClick={() => headerLogoRef.current?.click()} className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">Change</button>
-                      <input type="file" accept="image/*" ref={headerLogoRef} onChange={handleHeaderLogoChange} className="hidden" />
+                      <input type="file" accept="image/*" ref={headerLogoRef} onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setHeaderLogoUrl(reader.result as string);
+                            localStorage.setItem('abhyaas_header_logo', reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }} className="hidden" />
                     </div>
                   </div>
 
@@ -916,42 +1601,52 @@ export default function AdminMasterGatewayPage() {
                         <span className="font-black text-white text-base">ABHYAAS</span>
                       )}
                       <button type="button" onClick={() => footerLogoRef.current?.click()} className="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-bold rounded-xl cursor-pointer">Change</button>
-                      <input type="file" accept="image/*" ref={footerLogoRef} onChange={handleFooterLogoChange} className="hidden" />
+                      <input type="file" accept="image/*" ref={footerLogoRef} onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setFooterEmblemUrl(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }} className="hidden" />
                     </div>
                   </div>
                 </div>
-
-                <button type="submit" disabled={loading} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md cursor-pointer">
-                  <Save className="w-4 h-4" />
-                  <span>{loading ? 'Saving...' : 'Save Brand Assets to Cloud'}</span>
-                </button>
-              </form>
+              </div>
             )}
 
             {mediaSubTab === 'banners' && (
               <div className="grid lg:grid-cols-12 gap-8 items-start">
-                <form onSubmit={handleSaveBanner} className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLoading(true);
+                  await updateSiteSettings({ bannerTitleHi, bannerTitleEn, scholarshipPool: bannerScholarship, assessmentFee: bannerFee, bannerGraphicUrl });
+                  setLoading(false);
+                  setBannerSavedSuccess(true);
+                  setTimeout(() => setBannerSavedSuccess(false), 3000);
+                  alert('Homepage Banner updated on Cloud!');
+                }} className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <h3 className="font-black text-base text-slate-900">Live Homepage Banner Settings</h3>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-xs">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Olympiad Hindi Headline</label>
-                      <input type="text" value={bannerTitleHi} onChange={(e) => setBannerTitleHi(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600" required />
+                      <label className="block font-bold text-slate-700 mb-1">Olympiad Hindi Headline</label>
+                      <input type="text" value={bannerTitleHi} onChange={(e) => setBannerTitleHi(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-blue-600" required />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Olympiad English Title</label>
-                      <input type="text" value={bannerTitleEn} onChange={(e) => setBannerTitleEn(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600" required />
+                      <label className="block font-bold text-slate-700 mb-1">Olympiad English Title</label>
+                      <input type="text" value={bannerTitleEn} onChange={(e) => setBannerTitleEn(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-blue-600" required />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">Scholarship Pool Amount</label>
-                        <input type="text" value={bannerScholarship} onChange={(e) => setBannerScholarship(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600" required />
+                        <label className="block font-bold text-slate-700 mb-1">Scholarship Pool Amount</label>
+                        <input type="text" value={bannerScholarship} onChange={(e) => setBannerScholarship(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-blue-600" required />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">Assessment Fee (₹)</label>
-                        <input type="text" value={bannerFee} onChange={(e) => setBannerFee(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600" required />
+                        <label className="block font-bold text-slate-700 mb-1">Assessment Fee (₹)</label>
+                        <input type="text" value={bannerFee} onChange={(e) => setBannerFee(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-blue-600" required />
                       </div>
                     </div>
                   </div>
@@ -967,140 +1662,13 @@ export default function AdminMasterGatewayPage() {
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-blue-600/30 text-blue-300 block">Scholarship: {bannerScholarship}</span>
                   <h4 className="text-base font-black text-amber-400 leading-tight">{bannerTitleHi}</h4>
                   <p className="text-xs font-bold text-slate-300">{bannerTitleEn}</p>
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                    <span className="text-slate-400 font-semibold">Fee: {bannerFee}</span>
-                    <span className="px-3 py-1.5 bg-amber-500 text-slate-950 font-black rounded-xl text-[11px]">REGISTER • {bannerFee}</span>
-                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ================= TAB 2: QUESTIONS VAULT ================= */}
-        {activeTab === 'questions' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-5 rounded-3xl shadow-sm">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input type="text" placeholder="Search questions in cloud vault..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600" />
-              </div>
-              <button onClick={() => setShowAddForm(!showAddForm)} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
-                <Plus className="w-4 h-4" />
-                <span>{showAddForm ? 'Close Form' : 'Add New Question'}</span>
-              </button>
-            </div>
-
-            {showAddForm && (
-              <form onSubmit={handleCreateQuestion} className="bg-white border-2 border-blue-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    New Question Studio
-                  </h3>
-                </div>
-
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Subject</label>
-                    <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-600">
-                      <option value="polity">Indian Polity &amp; Constitution</option>
-                      <option value="history">Modern Indian History</option>
-                      <option value="economy">Indian Economy &amp; Banking</option>
-                      <option value="geography">Geography &amp; Environment</option>
-                      <option value="csat">CSAT &amp; Quantitative</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Topic / Sub-Chapter</label>
-                    <input type="text" placeholder="e.g. Fundamental Rights" value={topicName} onChange={(e) => setTopicName(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600" required />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Approval Destination</label>
-                    <select 
-                      value={formApprovalStatus} 
-                      onChange={(e) => setFormApprovalStatus(e.target.value as ApprovalStatus)} 
-                      disabled={!currentUser.isMaster}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-emerald-700 bg-emerald-50/40 focus:outline-none focus:border-emerald-600"
-                    >
-                      <option value="APPROVED_OLYMPIAD">🛡️ Approve for Olympiad Vault (Master Only)</option>
-                      <option value="APPROVED_PRACTICE">📘 Approve for Practice Bank</option>
-                      <option value="PENDING">⏳ Keep as Draft (Pending)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Question Statement in English</label>
-                    <textarea rows={3} placeholder="Type statement in English..." value={questionEn} onChange={(e) => setQuestionEn(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600" required />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Question Statement in Hindi (हिन्दी)</label>
-                    <textarea rows={3} placeholder="यहाँ प्रश्न हिन्दी में लिखें..." value={questionHi} onChange={(e) => setQuestionHi(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600" required />
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <label className="block text-xs font-bold text-slate-900 uppercase">Options &amp; Correct Answer Selection</label>
-                  {[0, 1, 2, 3].map((idx) => (
-                    <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl grid sm:grid-cols-12 gap-3 items-center">
-                      <div className="sm:col-span-1 flex items-center justify-center">
-                        <input type="radio" name="optRadio" checked={correctOpt === idx} onChange={() => setCorrectOpt(idx)} className="w-4 h-4 text-blue-600" />
-                      </div>
-                      <div className="sm:col-span-1 text-xs font-black text-slate-500">Option {String.fromCharCode(65 + idx)}</div>
-                      <div className="sm:col-span-5">
-                        <input type="text" placeholder={`Option ${String.fromCharCode(65 + idx)} in English`} value={optEn[idx]} onChange={(e) => { const copy = [...optEn]; copy[idx] = e.target.value; setOptEn(copy); }} className="w-full p-2 rounded-xl bg-white border border-slate-200 text-xs" required />
-                      </div>
-                      <div className="sm:col-span-5">
-                        <input type="text" placeholder={`विकल्प ${String.fromCharCode(65 + idx)} हिन्दी में`} value={optHi[idx]} onChange={(e) => { const copy = [...optHi]; copy[idx] = e.target.value; setOptHi(copy); }} className="w-full p-2 rounded-xl bg-white border border-slate-200 text-xs" required />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowAddForm(false)} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                  <button type="submit" disabled={loading} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">
-                    {loading ? 'Publishing to Cloud...' : 'Publish Question to Cloud Vault'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="space-y-3">
-              {filteredQuestions.map((q, idx) => (
-                <div key={q.id || idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black px-2.5 py-0.5 bg-slate-900 text-white rounded-md uppercase">{q.subject}</span>
-                      <span className="text-xs font-bold text-slate-500">{q.topic}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select 
-                        value={q.approvalStatus} 
-                        onChange={(e) => q.id && handleStatusUpdate(q.id, e.target.value as ApprovalStatus)} 
-                        disabled={!currentUser.isMaster}
-                        className="text-xs font-bold px-2.5 py-1 rounded-xl border bg-slate-50 cursor-pointer"
-                      >
-                        <option value="APPROVED_OLYMPIAD">🛡️ Olympiad Vault</option>
-                        <option value="APPROVED_PRACTICE">📘 Practice Bank</option>
-                        <option value="PENDING">⏳ Pending Review</option>
-                      </select>
-                      {currentUser.isMaster && (
-                        <button onClick={() => q.id && handleDeleteQ(q.id)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"><Trash2 className="w-4 h-4" /></button>
-                      )}
-                    </div>
-                  </div>
-                  <p className="font-bold text-xs sm:text-sm text-slate-900">#{idx + 1}. {q.questionEn}</p>
-                  <p className="text-xs text-slate-500">{q.questionHi}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 3: PAYMENTS ================= */}
+        {/* ================= TAB 3: PAYMENTS & REGISTRATIONS ================= */}
         {activeTab === 'payments' && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="font-black text-base text-slate-900">Live Razorpay Registrations</h3>
@@ -1160,6 +1728,64 @@ export default function AdminMasterGatewayPage() {
         )}
 
       </div>
+
+      {/* Visual Modal for Previewing Question */}
+      {previewQuestion && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <span className="text-[10px] font-black px-2.5 py-0.5 bg-blue-600 text-white rounded-md uppercase">
+                {previewQuestion.subject} • {previewQuestion.topic}
+              </span>
+              <button
+                onClick={() => setPreviewQuestion(null)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <p className="font-extrabold text-slate-900 text-sm">{previewQuestion.questionEn}</p>
+              <p className="text-slate-600">{previewQuestion.questionHi}</p>
+            </div>
+
+            {previewQuestion.diagramUrl && (
+              <img
+                src={previewQuestion.diagramUrl}
+                alt="Diagram"
+                className="max-h-44 w-auto mx-auto rounded-xl border border-slate-200 object-contain p-1 bg-slate-50"
+              />
+            )}
+
+            <div className="space-y-1.5 text-xs">
+              {previewQuestion.optionsEn.map((opt, i) => (
+                <div
+                  key={i}
+                  className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                    i === previewQuestion.correctOption
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                      : 'bg-slate-50 border-slate-200 text-slate-700'
+                  }`}
+                >
+                  <span>{String.fromCharCode(65 + i)}. {opt} / {previewQuestion.optionsHi[i]}</span>
+                  {i === previewQuestion.correctOption && (
+                    <span className="text-[10px] uppercase font-black text-emerald-700">Correct Key</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setPreviewQuestion(null)}
+              className="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl"
+            >
+              Close Preview
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
