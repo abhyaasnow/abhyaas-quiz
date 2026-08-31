@@ -8,11 +8,11 @@ import {
   updateDoc, 
   deleteDoc, 
   query, 
-  where, 
   orderBy,
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { MOCK_QUESTIONS } from '@/data/mockQuestions';
 
 // ================= TYPES =================
 export type ApprovalStatus = 'PENDING' | 'APPROVED_PRACTICE' | 'APPROVED_OLYMPIAD';
@@ -29,17 +29,21 @@ export interface QuestionData {
   diagramUrl?: string | null;
   approvalStatus: ApprovalStatus;
   timesUsedInOlympiad: number;
+  explanationEn?: string;
+  explanationHi?: string;
+  difficulty?: string;
+  targetCategory?: string;
   createdAt?: any;
 }
 
 export interface SiteSettings {
   headerLogoUrl?: string | null;
   footerLogoUrl?: string | null;
-  bannerTitleHi: string;
-  bannerTitleEn: string;
+  bannerTitleHi?: string;
+  bannerTitleEn?: string;
   bannerGraphicUrl?: string | null;
-  scholarshipPool: string;
-  assessmentFee: string;
+  scholarshipPool?: string;
+  assessmentFee?: string;
   examDate?: string;
 }
 
@@ -51,7 +55,7 @@ export interface PaymentRecord {
   rollNo: string;
   olympiadTier: string;
   amount: number;
-  paymentMethod: string;
+  paymentMethod?: string;
   status: 'SUCCESS' | 'PENDING' | 'FAILED';
   tokenGenerated: boolean;
   createdAt?: any;
@@ -61,12 +65,75 @@ export interface SupportTicket {
   id?: string;
   candidateName: string;
   email: string;
-  subject: string;
+  subject?: string;
   message: string;
   status: 'OPEN' | 'RESOLVED';
   replyText?: string;
   createdAt?: any;
 }
+
+// ---------------- NEW TYPES FOR OLYMPIADS & CATEGORIES ----------------
+export interface OlympiadConfig {
+  id?: string;
+  titleHi: string;
+  titleEn: string;
+  category: string;
+  description: string;
+  assessmentFee: string;
+  scholarshipPool: string;
+  examDate: string;
+  status: 'ACTIVE' | 'UPCOMING' | 'CLOSED';
+  createdAt?: any;
+}
+
+export interface CategoryConfig {
+  id?: string;
+  name: string;
+  description?: string;
+  createdAt?: any;
+}
+
+// ================= FALLBACK SEED CONVERTORS =================
+const getFallbackMockQuestions = (): QuestionData[] => {
+  return MOCK_QUESTIONS.map((q) => ({
+    id: q.id,
+    subject: q.subject,
+    topic: q.topic,
+    questionEn: q.text.en,
+    questionHi: q.text.hi,
+    optionsEn: q.options.map((o) => o.text.en),
+    optionsHi: q.options.map((o) => o.text.hi),
+    correctOption: q.correctAnswer,
+    diagramUrl: null,
+    approvalStatus: 'APPROVED_OLYMPIAD',
+    timesUsedInOlympiad: 1,
+    explanationEn: q.explanation?.en || '',
+    explanationHi: q.explanation?.hi || '',
+    difficulty: q.difficulty || 'Medium',
+    targetCategory: 'UPSC Civil Services',
+  }));
+};
+
+const getFallbackCategories = (): CategoryConfig[] => [
+  { id: 'cat-1', name: 'UPSC Civil Services (IAS / IPS)' },
+  { id: 'cat-2', name: 'State PSC (UPPSC / BPSC / MPPCS)' },
+  { id: 'cat-3', name: 'SSC CGL / Banking PO' },
+  { id: 'cat-4', name: 'School Olympiad (Class 6-12)' }
+];
+
+const getFallbackOlympiads = (): OlympiadConfig[] => [
+  { 
+    id: 'ol-1', 
+    titleHi: 'राष्ट्रीय राज्यव्यवस्था ओलंपियाड', 
+    titleEn: 'National Polity Olympiad', 
+    category: 'UPSC Civil Services (IAS / IPS)', 
+    description: 'Comprehensive Indian Polity test.', 
+    assessmentFee: '49', 
+    scholarshipPool: '50000', 
+    examDate: '2026-06-30', 
+    status: 'ACTIVE' 
+  }
+];
 
 // ================= 1. QUESTIONS CRUD =================
 
@@ -78,7 +145,7 @@ export async function createQuestion(question: Omit<QuestionData, 'id'>) {
     });
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error('Error creating question:', error);
+    console.error('Error creating question in Firestore:', error);
     return { success: false, error };
   }
 }
@@ -87,10 +154,15 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
   try {
     const q = query(collection(db, 'questions'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return getFallbackMockQuestions();
+    }
+    
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuestionData));
   } catch (error) {
-    console.error('Error fetching questions:', error);
-    return [];
+    console.warn('Firestore questions fetch fallback to mock questions:', error);
+    return getFallbackMockQuestions();
   }
 }
 
@@ -107,7 +179,8 @@ export async function updateQuestionStatus(id: string, approvalStatus: ApprovalS
 
 export async function deleteQuestion(id: string) {
   try {
-    await deleteDoc(doc(db, 'questions', id));
+    const ref = doc(db, 'questions', id);
+    await deleteDoc(ref);
     return { success: true };
   } catch (error) {
     console.error('Error deleting question:', error);
@@ -146,7 +219,6 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>) {
 
 export async function createPaymentRecord(data: Omit<PaymentRecord, 'id' | 'rollNo' | 'createdAt' | 'tokenGenerated' | 'status'>) {
   try {
-    // Generate Standard National Roll Number format: ABH-2026-XXXX
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
     const rollNo = `ABH-2026-${randomDigits}`;
 
@@ -179,6 +251,8 @@ export async function getAllPayments(): Promise<PaymentRecord[]> {
     return [];
   }
 }
+
+export const getPaymentRecords = getAllPayments;
 
 export async function approvePaymentToken(paymentId: string) {
   try {
@@ -220,5 +294,63 @@ export async function resolveSupportTicket(ticketId: string, replyText: string) 
   } catch (error) {
     console.error('Error resolving support ticket:', error);
     return { success: false, error };
+  }
+}
+
+// ================= 5. OLYMPIAD MANAGER (NEW) =================
+
+export async function saveCustomOlympiad(olympiad: Omit<OlympiadConfig, 'id'>) {
+  try {
+    const docRef = await addDoc(collection(db, 'olympiads'), {
+      ...olympiad,
+      createdAt: serverTimestamp(),
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error saving olympiad:', error);
+    return { success: false, error };
+  }
+}
+
+export async function getCustomOlympiads(): Promise<OlympiadConfig[]> {
+  try {
+    const q = query(collection(db, 'olympiads'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return getFallbackOlympiads();
+    }
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as OlympiadConfig));
+  } catch (error) {
+    console.warn('Error fetching Olympiads, using fallback:', error);
+    return getFallbackOlympiads();
+  }
+}
+
+// ================= 6. CATEGORY & STRUCTURE BUILDER (NEW) =================
+
+export async function saveCustomCategory(category: Omit<CategoryConfig, 'id'>) {
+  try {
+    const docRef = await addDoc(collection(db, 'categories'), {
+      ...category,
+      createdAt: serverTimestamp(),
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error saving category:', error);
+    return { success: false, error };
+  }
+}
+
+export async function getCustomCategories(): Promise<CategoryConfig[]> {
+  try {
+    const q = query(collection(db, 'categories'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return getFallbackCategories();
+    }
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CategoryConfig));
+  } catch (error) {
+    console.warn('Error fetching Categories, using fallback:', error);
+    return getFallbackCategories();
   }
 }

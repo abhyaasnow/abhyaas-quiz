@@ -11,18 +11,14 @@ import {
   Flag, 
   Sparkles, 
   Trophy, 
-  Globe, 
   BookOpen, 
   ArrowRight,
   ShieldCheck,
   Check,
   Loader2,
-  AlertTriangle,
   RotateCcw,
   CheckCircle,
-  HelpCircle,
-  Layers,
-  Award
+  ImageIcon
 } from 'lucide-react';
 import { getAllQuestions } from '@/lib/db';
 
@@ -35,6 +31,7 @@ interface QuestionItem {
   optionsEn: string[];
   optionsHi: string[];
   correctOption: number;
+  diagramUrl?: string | null;
   explanationEn: string;
   explanationHi: string;
 }
@@ -59,6 +56,7 @@ const RICH_PRACTICE_QUESTIONS: QuestionItem[] = [
       'प्रतिष्ठा और अवसर की समता'
     ],
     correctOption: 2,
+    diagramUrl: null,
     explanationEn: 'Fraternity means a sense of common brotherhood among all Indians. The Preamble declares that fraternity has to assure two things: the dignity of the individual and the unity and integrity of the nation. The word "integrity" was added by the 42nd Constitutional Amendment Act (1976).',
     explanationHi: 'प्रस्तावना में "बंधुता" का अर्थ सभी भारतीयों के बीच भाईचारे की भावना से है। प्रस्तावना स्पष्ट करती है कि बंधुता को दो प्रमुख उद्देश्यों को सुनिश्चित करना है: व्यक्ति की गरिमा और राष्ट्र की एकता एवं अखंडता। "अखंडता" शब्द को 42वें संविधान संशोधन अधिनियम (1976) द्वारा जोड़ा गया था।'
   },
@@ -81,6 +79,7 @@ const RICH_PRACTICE_QUESTIONS: QuestionItem[] = [
       'अनुच्छेद 25 (धर्म की स्वतंत्रता)'
     ],
     correctOption: 2,
+    diagramUrl: null,
     explanationEn: 'A nine-judge Constitutional Bench of the Supreme Court unanimously ruled in 2017 that the Right to Privacy is a Fundamental Right protected under Article 21 (Right to Life and Personal Liberty) and within the overarching freedoms guaranteed by Part III of the Constitution.',
     explanationHi: '2017 में 9 न्यायाधीशों की संविधान पीठ ने सर्वसम्मति से निर्णय दिया कि निजता का अधिकार (Right to Privacy) अनुच्छेद 21 के तहत प्राण और दैहिक स्वतंत्रता का एक स्वाभाविक और अभिन्न अंग है तथा यह संविधान के भाग III द्वारा संरक्षित मौलिक अधिकार है।'
   },
@@ -103,6 +102,7 @@ const RICH_PRACTICE_QUESTIONS: QuestionItem[] = [
       '86वां संविधान संशोधन अधिनियम, 2002'
     ],
     correctOption: 1,
+    diagramUrl: null,
     explanationEn: 'The 73rd Constitutional Amendment Act, 1992 came into force on 24th April 1993. It added Part IX (Articles 243 to 243-O) and the 11th Schedule containing 29 functional matters over which Panchayati Raj Institutions have administrative jurisdiction.',
     explanationHi: '73वां संविधान संशोधन अधिनियम, 1992 (लागू: 24 अप्रैल 1993) द्वारा संविधान में "भाग IX" और "11वीं अनुसूची" जोड़ी गई, जिसमें पंचायतों के अधिकार क्षेत्र के अंतर्गत 29 कार्यात्मक विषय (functional items) शामिल हैं।'
   },
@@ -125,6 +125,7 @@ const RICH_PRACTICE_QUESTIONS: QuestionItem[] = [
       'सरदार वल्लभभाई पटेल'
     ],
     correctOption: 1,
+    diagramUrl: null,
     explanationEn: 'In December 1929, under the presidency of Jawaharlal Nehru, the Indian National Congress declared Purna Swaraj (Complete Independence) as its goal at the Lahore session. It was decided to celebrate 26 January 1930 as Independence Day.',
     explanationHi: 'दिसंबर 1929 में जवाहरलाल नेहरू की अध्यक्षता में कांग्रेस के लाहौर अधिवेशन में "पूर्ण स्वराज" को मुख्य लक्ष्य घोषित किया गया तथा 26 जनवरी 1930 को पूरे देश में प्रथम स्वतंत्रता दिवस मनाने का निर्णय लिया गया।'
   },
@@ -147,6 +148,7 @@ const RICH_PRACTICE_QUESTIONS: QuestionItem[] = [
       'कृषि उर्वरकों और खाद्यान्न पर दी जाने वाली सब्सिडी'
     ],
     correctOption: 2,
+    diagramUrl: null,
     explanationEn: 'Capital Expenditure creates long-term physical or financial assets for the country (like expressways, hospitals, railways, school infrastructure) or causes a reduction in government liabilities. Interest, salaries, and subsidies are Revenue Expenditures.',
     explanationHi: 'पूंजीगत व्यय (Capital Expenditure) वह व्यय है जिससे देश में नई भौतिक या वित्तीय परिसंपत्तियों का निर्माण होता है (जैसे राष्ट्रीय राजमार्ग, अस्पताल, रेलवे लाइन) अथवा सरकारी देनदारियों में कमी आती है। वेतन, ब्याज और सब्सिडी राजस्व व्यय (Revenue Expenditure) के अंतर्गत आते हैं।'
   }
@@ -168,7 +170,11 @@ export default function ProctoredQuizArenaPage() {
       try {
         const cloudData = await getAllQuestions();
         if (cloudData && cloudData.length > 0) {
-          const mapped: QuestionItem[] = cloudData.map((q, idx) => ({
+          // Filter only approved questions (skip pending drafts)
+          const approved = cloudData.filter((q) => q.approvalStatus !== 'PENDING');
+          const finalSet = approved.length > 0 ? approved : cloudData;
+
+          const mapped: QuestionItem[] = finalSet.map((q, idx) => ({
             id: q.id || `q_${idx}`,
             subject: q.subject,
             topic: q.topic,
@@ -177,8 +183,9 @@ export default function ProctoredQuizArenaPage() {
             optionsEn: q.optionsEn,
             optionsHi: q.optionsHi,
             correctOption: q.correctOption,
-            explanationEn: `The verified correct answer is Option ${String.fromCharCode(65 + q.correctOption)}. Evaluated under statutory syllabus guidelines.`,
-            explanationHi: `सत्यापित सही उत्तर विकल्प ${String.fromCharCode(65 + q.correctOption)} है। यह प्रश्न आधिकारिक पाठ्यक्रम मानकों के अनुसार परीक्षित है।`
+            diagramUrl: q.diagramUrl || null,
+            explanationEn: q.explanationEn || `The verified correct answer is Option ${String.fromCharCode(65 + q.correctOption)}. Evaluated under statutory syllabus guidelines.`,
+            explanationHi: q.explanationHi || `सत्यापित सही उत्तर विकल्प ${String.fromCharCode(65 + q.correctOption)} है। यह प्रश्न आधिकारिक पाठ्यक्रम मानकों के अनुसार परीक्षित है।`
           }));
           setQuestions(mapped);
         }
@@ -382,7 +389,7 @@ export default function ProctoredQuizArenaPage() {
                   </div>
 
                   {/* Bilingual Question Text */}
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-start gap-2.5">
                       <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 font-black text-xs flex items-center justify-center flex-shrink-0">
                         Q.{idx + 1}
@@ -392,6 +399,17 @@ export default function ProctoredQuizArenaPage() {
                         <p className="text-xs text-slate-500 leading-relaxed font-medium">{q.questionEn}</p>
                       </div>
                     </div>
+
+                    {/* Diagram in Explanation Review */}
+                    {q.diagramUrl && (
+                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-2xl inline-block max-w-md">
+                        <img
+                          src={q.diagramUrl}
+                          alt="Question Visual"
+                          className="max-h-52 w-auto rounded-xl object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Options Matrix */}
@@ -465,9 +483,13 @@ export default function ProctoredQuizArenaPage() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-6 h-16 flex items-center justify-between shadow-sm">
         
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-sm">
-            A
-          </div>
+          <Link
+            href="/"
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
+            title="Leave Assessment"
+          >
+            <ChevronLeft className="w-4 h-4 text-slate-800" />
+          </Link>
           <div>
             <h1 className="font-black text-xs sm:text-sm text-slate-900">
               Abhyaas National Test Arena
@@ -537,6 +559,17 @@ export default function ProctoredQuizArenaPage() {
                 </p>
               </div>
             </div>
+
+            {/* Diagram / Scientific Visual (Rendered if attached in Admin) */}
+            {currentQ.diagramUrl && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl inline-block max-w-md">
+                <img
+                  src={currentQ.diagramUrl}
+                  alt="Question Diagram"
+                  className="max-h-56 w-auto rounded-xl object-contain bg-white p-1"
+                />
+              </div>
+            )}
           </div>
 
           {/* 4 Interactive Bilingual Options */}
