@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Lock, Eye, Database, Bell, CheckCircle2, ShieldCheck } from 'lucide-react';

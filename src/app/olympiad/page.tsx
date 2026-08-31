@@ -23,7 +23,9 @@ import {
   AlertCircle,
   User,
   Mail,
-  Phone
+  Phone,
+  QrCode,
+  Check
 } from 'lucide-react';
 import { createPaymentRecord } from '@/lib/db';
 
@@ -142,11 +144,11 @@ export default function OlympiadPage() {
   const handleEnrollmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateName.trim() || !candidateEmail.trim() || candidatePhone.trim().length < 10) {
-      alert('Kripya valid Name, Email aur 10-digit Mobile Number darj karein.');
+      alert('कृपया मान्य Name, Email और 10-अंकों का Mobile Number दर्ज करें।');
       return;
     }
     if (!acceptIntegrityCode) {
-      alert('Kripya Academic Integrity Code accept karein.');
+      alert('कृपया Academic Integrity Code स्वीकार करें।');
       return;
     }
 
@@ -154,7 +156,7 @@ export default function OlympiadPage() {
 
     try {
       const res = await createPaymentRecord({
-        candidateName,
+        candidateName: candidateName.trim(),
         email: candidateEmail.trim().toLowerCase(),
         phone: candidatePhone.trim(),
         olympiadTier: activeTier.name,
@@ -165,19 +167,19 @@ export default function OlympiadPage() {
       if (res.success && res.rollNo) {
         setConfirmedRegistration({
           rollNo: res.rollNo,
-          candidateName,
+          candidateName: candidateName.trim(),
           tierTitle: activeTier.name,
           examSlot: activeTier.scheduleText,
           amount: activeTier.fee,
-          paymentMethod: 'Razorpay Online',
+          paymentMethod: 'Online Verified',
         });
         setShowRegisterModal(false);
       } else {
-        alert('Registration save karne mein dikkat aayi. Kripya punah prayas karein.');
+        alert('पंजीकरण सुरक्षित करने में समस्या आई। कृपया पुनः प्रयास करें।');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Server error. Kripya dobara check karein.');
+      alert('सर्वर त्रुटि। कृपया पुनः प्रयास करें।');
     } finally {
       setLoading(false);
     }
@@ -267,7 +269,7 @@ export default function OlympiadPage() {
               </div>
               <h2 className="text-xl font-black text-slate-900">Registration Confirmed!</h2>
               <p className="text-xs text-slate-500">
-                Aapka digital assessment admit card aur roll number issue ho chuka hai.
+                आपका डिजिटल परीक्षा प्रवेश पत्र (Admit Card) एवं रोल नंबर जारी कर दिया गया है।
               </p>
             </div>
 
@@ -311,12 +313,13 @@ export default function OlympiadPage() {
                 <span>Print / Save Admit Card</span>
               </button>
 
-              <button
-                onClick={() => setConfirmedRegistration(null)}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              <Link
+                href={`/quiz?mode=olympiad&roll=${encodeURIComponent(confirmedRegistration.rollNo)}`}
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
-                <span>Done</span>
-              </button>
+                <span>Enter Test Arena</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         )}
@@ -481,7 +484,7 @@ export default function OlympiadPage() {
 
                 <Link
                   href="/quiz"
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>Try Free Practice Drill First</span>
                 </Link>
@@ -509,7 +512,7 @@ export default function OlympiadPage() {
       {/* Registration & Admit Card Modal */}
       {showRegisterModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 my-8">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded uppercase">

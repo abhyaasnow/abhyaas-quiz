@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Award, ShieldCheck, CheckCircle2, FileText, AlertCircle, TrendingUp, Users } from 'lucide-react';

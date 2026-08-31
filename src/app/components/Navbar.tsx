@@ -65,7 +65,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -279,8 +279,8 @@ export default function Navbar() {
           {/* Desktop Right CTA */}
           <div className="hidden lg:flex items-center gap-3">
             <Link
-              href="/practice"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-2"
+              href="/quiz"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Daily Speed Drill</span>
@@ -450,7 +450,7 @@ export default function Navbar() {
 
           <div className="pt-2">
             <Link
-              href="/practice"
+              href="/quiz"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full py-3 bg-blue-600 active:bg-blue-700 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-md"
             >
