@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -18,8 +18,6 @@ import {
   RotateCcw, 
   KeyRound, 
   Smartphone, 
-  GraduationCap, 
-  School,
   AlertCircle,
   Loader2
 } from 'lucide-react';
@@ -27,7 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 
 type AuthMode = 'login' | 'register' | 'otp' | 'forgot';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -80,7 +78,6 @@ export default function LoginPage() {
 
     setTimeout(() => {
       setLoading(false);
-      // Mock successful login - redirects to candidate profile
       router.push(redirectUrl);
     }, 1200);
   };
@@ -214,7 +211,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Mode Switcher Tabs (Login vs Register vs OTP) */}
+        {/* Mode Switcher Tabs */}
         {mode !== 'forgot' && (
           <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl text-xs font-bold text-slate-600">
             <button
@@ -606,5 +603,20 @@ export default function LoginPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+          <span>Loading portal...</span>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
