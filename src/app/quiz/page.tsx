@@ -183,7 +183,7 @@ export default function ProctoredQuizArenaPage() {
           setQuestions(mapped);
         }
       } catch (err) {
-        console.warn('Using standard offline practice questions:', err);
+        console.warn('Using standard practice questions:', err);
       } finally {
         setLoading(false);
       }
@@ -254,9 +254,9 @@ export default function ProctoredQuizArenaPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white space-y-3">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-800 space-y-3">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
           Loading Examination Portal...
         </p>
       </div>
@@ -264,51 +264,51 @@ export default function ProctoredQuizArenaPage() {
   }
 
   // =========================================================================
-  // VIEW 1: FINAL DIAGNOSTIC SCORECARD WITH DETAILED EXPLANATIONS
+  // VIEW 1: FINAL DIAGNOSTIC SCORECARD WITH DETAILED EXPLANATIONS (LIGHT THEME)
   // =========================================================================
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8 selection:bg-blue-600">
+      <div className="min-h-screen bg-slate-50 text-slate-800 py-10 px-4 sm:px-6 lg:px-8 selection:bg-blue-600 selection:text-white pb-24">
         <div className="max-w-4xl mx-auto space-y-8">
           
           {/* Summary Banner Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-2xl">
-            <div className="w-16 h-16 bg-amber-500/15 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-sm">
+            <div className="w-16 h-16 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto text-amber-600">
               <Trophy className="w-8 h-8" />
             </div>
 
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-black text-white">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
                 Assessment Concluded &amp; Audited
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-500">
                 अखिल भारतीय मूल्यांकन परिणाम • All-India Diagnostic Scorecard
               </p>
             </div>
 
             {/* Core Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Raw Score (+2 / -0.66)</span>
-                <span className="text-2xl font-black text-amber-400 mt-1 block">{rawScore}</span>
+                <span className="text-2xl font-black text-slate-900 mt-1 block">{rawScore}</span>
                 <span className="text-[10px] text-slate-500 block">Out of {totalQuestions * 2}</span>
               </div>
 
-              <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Accuracy Rate</span>
-                <span className="text-2xl font-black text-emerald-400 mt-1 block">{accuracyPercent}%</span>
+                <span className="text-2xl font-black text-emerald-600 mt-1 block">{accuracyPercent}%</span>
                 <span className="text-[10px] text-slate-500 block">Correct ratio</span>
               </div>
 
-              <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Correct / Attempted</span>
-                <span className="text-2xl font-black text-blue-400 mt-1 block">{correctCount} / {attemptedCount}</span>
+                <span className="text-2xl font-black text-blue-600 mt-1 block">{correctCount} / {attemptedCount}</span>
                 <span className="text-[10px] text-slate-500 block">Total {totalQuestions} Qs</span>
               </div>
 
-              <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Incorrect Marks</span>
-                <span className="text-2xl font-black text-rose-400 mt-1 block">-{(incorrectCount * 0.66).toFixed(2)}</span>
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Incorrect Penalty</span>
+                <span className="text-2xl font-black text-rose-600 mt-1 block">-{(incorrectCount * 0.66).toFixed(2)}</span>
                 <span className="text-[10px] text-slate-500 block">{incorrectCount} Negative</span>
               </div>
             </div>
@@ -316,7 +316,7 @@ export default function ProctoredQuizArenaPage() {
             <div className="flex flex-col sm:flex-row gap-3 pt-3 justify-center">
               <Link
                 href="/leaderboard"
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
                 <Trophy className="w-4 h-4" />
                 <span>View All-India Rankings &amp; Grants</span>
@@ -329,9 +329,9 @@ export default function ProctoredQuizArenaPage() {
                   setTimeLeftSeconds(45 * 60);
                   setIsSubmitted(false);
                 }}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <RotateCcw className="w-4 h-4 text-amber-400" />
+                <RotateCcw className="w-4 h-4 text-amber-600" />
                 <span>Retake Practice Test</span>
               </button>
             </div>
@@ -339,12 +339,12 @@ export default function ProctoredQuizArenaPage() {
 
           {/* Detailed Question Keys & Step-by-Step Explanations */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h2 className="font-black text-lg text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-amber-400" />
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <h2 className="font-black text-lg text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-blue-600" />
                 प्रश्न व्याख्या एवं सत्यापित उत्तर कुंजी (Detailed Solutions)
               </h2>
-              <span className="text-xs text-slate-400 font-bold">Total {totalQuestions} Solutions</span>
+              <span className="text-xs text-slate-500 font-bold">Total {totalQuestions} Solutions</span>
             </div>
 
             {questions.map((q, idx) => {
@@ -353,29 +353,29 @@ export default function ProctoredQuizArenaPage() {
               const isAttempted = userChoice !== undefined;
 
               return (
-                <div key={q.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-5 shadow-xl">
+                <div key={q.id} className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 space-y-5 shadow-sm">
                   
                   {/* Top Q Metadata */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-lg bg-blue-600/20 text-blue-400 font-bold uppercase text-[10px] border border-blue-500/30">
+                      <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-bold uppercase text-[10px]">
                         {q.subject}
                       </span>
-                      <span className="text-slate-400 font-semibold">{q.topic}</span>
+                      <span className="text-slate-500 font-semibold">{q.topic}</span>
                     </div>
 
                     {isAttempted ? (
                       isCorrect ? (
-                        <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg font-bold text-xs flex items-center gap-1.5">
-                          <CheckCircle className="w-4 h-4" /> +2.00 Correct
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs flex items-center gap-1.5">
+                          <CheckCircle className="w-4 h-4 text-emerald-600" /> +2.00 Correct
                         </span>
                       ) : (
-                        <span className="px-3 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg font-bold text-xs flex items-center gap-1.5">
-                          <XCircle className="w-4 h-4" /> -0.66 Negative
+                        <span className="px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg font-bold text-xs flex items-center gap-1.5">
+                          <XCircle className="w-4 h-4 text-rose-600" /> -0.66 Negative
                         </span>
                       )
                     ) : (
-                      <span className="px-3 py-1 bg-slate-800 text-slate-400 rounded-lg font-bold text-xs">
+                      <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs">
                         Unattempted (0.00)
                       </span>
                     )}
@@ -384,12 +384,12 @@ export default function ProctoredQuizArenaPage() {
                   {/* Bilingual Question Text */}
                   <div className="space-y-2">
                     <div className="flex items-start gap-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-slate-800 text-amber-400 font-black text-xs flex items-center justify-center flex-shrink-0">
+                      <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 font-black text-xs flex items-center justify-center flex-shrink-0">
                         Q.{idx + 1}
                       </span>
                       <div className="space-y-1">
-                        <p className="font-bold text-base text-white leading-relaxed">{q.questionHi}</p>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">{q.questionEn}</p>
+                        <p className="font-bold text-base text-slate-900 leading-relaxed">{q.questionHi}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed font-medium">{q.questionEn}</p>
                       </div>
                     </div>
                   </div>
@@ -401,44 +401,44 @@ export default function ProctoredQuizArenaPage() {
                       const isOptionCorrect = oIdx === q.correctOption;
                       const isOptionSelected = oIdx === userChoice;
 
-                      let optionCardStyle = 'bg-slate-800/40 border-slate-800 text-slate-300';
+                      let optionCardStyle = 'bg-slate-50 border-slate-200 text-slate-700';
 
                       if (isOptionCorrect) {
-                        optionCardStyle = 'bg-emerald-500/20 border-emerald-500 text-emerald-200 ring-1 ring-emerald-500';
+                        optionCardStyle = 'bg-emerald-50 border-emerald-400 text-emerald-900 ring-1 ring-emerald-400';
                       } else if (isOptionSelected && !isOptionCorrect) {
-                        optionCardStyle = 'bg-rose-500/20 border-rose-500 text-rose-200 ring-1 ring-rose-500';
+                        optionCardStyle = 'bg-rose-50 border-rose-300 text-rose-900 ring-1 ring-rose-300';
                       }
 
                       return (
                         <div key={oIdx} className={`p-4 rounded-2xl border text-xs flex items-start justify-between gap-3 ${optionCardStyle}`}>
                           <div className="flex items-start gap-2.5">
                             <span className={`w-5 h-5 rounded-md text-[11px] font-black flex items-center justify-center flex-shrink-0 ${
-                              isOptionCorrect ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                              isOptionCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
                             }`}>
                               {String.fromCharCode(65 + oIdx)}
                             </span>
                             <div className="space-y-0.5">
-                              <p className="font-bold text-white text-xs sm:text-sm">{optHi}</p>
-                              <p className="text-[11px] text-slate-400 font-medium">{optEn}</p>
+                              <p className="font-bold text-slate-900 text-xs sm:text-sm">{optHi}</p>
+                              <p className="text-[11px] text-slate-500 font-medium">{optEn}</p>
                             </div>
                           </div>
-                          {isOptionCorrect && <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
+                          {isOptionCorrect && <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />}
                         </div>
                       );
                     })}
                   </div>
 
                   {/* Detailed Step-by-Step Explanation Box */}
-                  <div className="p-5 bg-gradient-to-b from-blue-950/30 to-slate-950/50 border border-blue-800/40 rounded-2xl space-y-2.5">
-                    <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wide">
-                      <Sparkles className="w-4 h-4" />
+                  <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-2.5">
+                    <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-wide">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
                       <span>विस्तृत व्याख्या / Detailed Solution Analysis</span>
                     </div>
 
-                    <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                    <p className="text-xs text-slate-800 leading-relaxed font-medium">
                       {q.explanationHi}
                     </p>
-                    <p className="text-[11px] text-slate-400 leading-relaxed border-t border-slate-800/80 pt-2 font-medium">
+                    <p className="text-[11px] text-slate-600 leading-relaxed border-t border-blue-100 pt-2 font-medium">
                       {q.explanationEn}
                     </p>
                   </div>
@@ -454,25 +454,25 @@ export default function ProctoredQuizArenaPage() {
   }
 
   // =========================================================================
-  // VIEW 2: ACTIVE PROCTORED TEST WORKSPACE (BILINGUAL & CLEAN)
+  // VIEW 2: ACTIVE PROCTORED TEST WORKSPACE (CLEAN LIGHT THEME)
   // =========================================================================
   const currentQ = questions[currentIndex];
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-between selection:bg-blue-600">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-blue-600 selection:text-white pb-16">
       
       {/* 1. Top Bar */}
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 sm:px-6 h-16 flex items-center justify-between shadow-lg">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-6 h-16 flex items-center justify-between shadow-sm">
         
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-md">
+          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-sm">
             A
           </div>
           <div>
-            <h1 className="font-black text-xs sm:text-sm text-white">
+            <h1 className="font-black text-xs sm:text-sm text-slate-900">
               Abhyaas National Test Arena
             </h1>
-            <p className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+            <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
               <ShieldCheck className="w-3 h-3" /> 100% Proctored Standard
             </p>
           </div>
@@ -482,15 +482,15 @@ export default function ProctoredQuizArenaPage() {
         <div className="flex items-center gap-3">
           
           {/* Live Timer Box */}
-          <div className="px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono font-black text-xs sm:text-sm flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+          <div className="px-3.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-mono font-black text-xs sm:text-sm flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
             <span>{formatTimer(timeLeftSeconds)}</span>
           </div>
 
           {/* Prominent Submit Paper Button */}
           <button
             onClick={() => setShowSubmitModal(true)}
-            className="px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xs rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+            className="px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             <CheckCircle className="w-4 h-4" />
             <span>Submit Test</span>
@@ -503,36 +503,36 @@ export default function ProctoredQuizArenaPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-grow grid lg:grid-cols-12 gap-6 items-start">
         
         {/* Left: Question Box (Span 8) */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 space-y-6 shadow-2xl">
+        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 space-y-6 shadow-sm">
           
           {/* Top Question Tagging */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-lg bg-blue-600/20 text-blue-400 font-black uppercase text-[10px] border border-blue-500/30">
+              <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-black uppercase text-[10px] border border-blue-200">
                 {currentQ.subject}
               </span>
-              <span className="text-slate-400 font-bold">{currentQ.topic}</span>
+              <span className="text-slate-500 font-bold">{currentQ.topic}</span>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400 font-medium">Marks:</span>
-              <span className="text-emerald-400 font-black">+2.00</span>
-              <span className="text-slate-600">/</span>
-              <span className="text-rose-400 font-black">-0.66</span>
+              <span className="text-slate-500 font-medium">Marks:</span>
+              <span className="text-emerald-600 font-black">+2.00</span>
+              <span className="text-slate-300">/</span>
+              <span className="text-rose-600 font-black">-0.66</span>
             </div>
           </div>
 
           {/* Bilingual Question Text (Both Hindi & English visible) */}
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <span className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0 shadow-md">
+              <span className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
                 Q.{currentIndex + 1}
               </span>
               <div className="space-y-1.5">
-                <p className="font-extrabold text-base sm:text-lg text-white leading-relaxed">
+                <p className="font-extrabold text-base sm:text-lg text-slate-900 leading-relaxed">
                   {currentQ.questionHi}
                 </p>
-                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-medium">
                   {currentQ.questionEn}
                 </p>
               </div>
@@ -551,36 +551,36 @@ export default function ProctoredQuizArenaPage() {
                   onClick={() => handleSelectOption(oIdx)}
                   className={`p-4 rounded-2xl border transition-all duration-150 cursor-pointer flex items-center justify-between gap-4 ${
                     isSelected
-                      ? 'bg-blue-600/20 border-blue-500 text-white font-bold ring-2 ring-blue-500/40 shadow-md'
-                      : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700/80 text-slate-300'
+                      ? 'bg-blue-50 border-blue-600 text-blue-900 ring-2 ring-blue-500/20 shadow-sm'
+                      : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 text-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className={`w-7 h-7 rounded-xl text-xs font-black flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
                     }`}>
                       {String.fromCharCode(65 + oIdx)}
                     </span>
                     <div>
-                      <p className="font-bold text-xs sm:text-sm text-white">{optHi}</p>
-                      <p className="text-[11px] text-slate-400 font-medium">{optEn}</p>
+                      <p className="font-bold text-xs sm:text-sm text-slate-900">{optHi}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">{optEn}</p>
                     </div>
                   </div>
-                  {isSelected && <Check className="w-5 h-5 text-blue-400 flex-shrink-0" />}
+                  {isSelected && <Check className="w-5 h-5 text-blue-600 flex-shrink-0" />}
                 </div>
               );
             })}
           </div>
 
           {/* Action Row */}
-          <div className="pt-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleMarkReview}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   markedForReview[currentIndex]
-                    ? 'bg-purple-600/30 text-purple-300 border border-purple-500/40'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 <Flag className="w-3.5 h-3.5" />
@@ -589,7 +589,7 @@ export default function ProctoredQuizArenaPage() {
 
               <button
                 onClick={clearCurrentResponse}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition cursor-pointer"
               >
                 Clear
               </button>
@@ -599,7 +599,7 @@ export default function ProctoredQuizArenaPage() {
               <button
                 disabled={currentIndex === 0}
                 onClick={() => setCurrentIndex((prev) => prev - 1)}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Previous</span>
@@ -608,7 +608,7 @@ export default function ProctoredQuizArenaPage() {
               {currentIndex === totalQuestions - 1 ? (
                 <button
                   onClick={() => setShowSubmitModal(true)}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/30 cursor-pointer"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <CheckCircle className="w-4 h-4" />
                   <span>Submit Paper</span>
@@ -616,7 +616,7 @@ export default function ProctoredQuizArenaPage() {
               ) : (
                 <button
                   onClick={() => setCurrentIndex((prev) => prev + 1)}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl transition flex items-center gap-1 cursor-pointer shadow-md shadow-blue-600/30"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl transition flex items-center gap-1 cursor-pointer shadow-sm"
                 >
                   <span>Save &amp; Next</span>
                   <ChevronRight className="w-4 h-4" />
@@ -628,14 +628,14 @@ export default function ProctoredQuizArenaPage() {
         </div>
 
         {/* Right: Question Navigation Palette (Span 4) */}
-        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-2xl sticky top-24">
+        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 space-y-5 shadow-sm sticky top-24">
           
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <h3 className="font-black text-sm text-white">Question Palette</h3>
-              <p className="text-[11px] text-slate-400">Total: {totalQuestions} Questions</p>
+              <h3 className="font-black text-sm text-slate-900">Question Palette</h3>
+              <p className="text-[11px] text-slate-500">Total: {totalQuestions} Questions</p>
             </div>
-            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
               Attempted: {attemptedCount}/{totalQuestions}
             </span>
           </div>
@@ -647,9 +647,9 @@ export default function ProctoredQuizArenaPage() {
               const isFlagged = markedForReview[idx];
               const isCurrent = currentIndex === idx;
 
-              let btnStyle = 'bg-slate-800 text-slate-400 border-slate-700';
+              let btnStyle = 'bg-slate-100 text-slate-600 border-slate-200';
               if (isCurrent) {
-                btnStyle = 'bg-blue-600 text-white font-black ring-2 ring-blue-400 shadow-md';
+                btnStyle = 'bg-blue-600 text-white font-black ring-2 ring-blue-400 shadow-sm';
               } else if (isFlagged) {
                 btnStyle = 'bg-purple-600 text-white font-bold';
               } else if (isAnswered) {
@@ -669,7 +669,7 @@ export default function ProctoredQuizArenaPage() {
           </div>
 
           {/* Legend */}
-          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 pt-3 border-t border-slate-800">
+          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500 pt-3 border-t border-slate-100">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-600" />
               <span>Answered ({attemptedCount})</span>
@@ -679,7 +679,7 @@ export default function ProctoredQuizArenaPage() {
               <span>Marked Review</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-slate-800 border border-slate-700" />
+              <span className="w-3 h-3 rounded-full bg-slate-200 border border-slate-300" />
               <span>Unvisited ({totalQuestions - attemptedCount})</span>
             </div>
             <div className="flex items-center gap-2">
@@ -691,7 +691,7 @@ export default function ProctoredQuizArenaPage() {
           {/* Bottom Direct Submit in Palette */}
           <button
             onClick={() => setShowSubmitModal(true)}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xs rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
           >
             <CheckCircle className="w-4 h-4" />
             <span>Final Submit Assessment</span>
@@ -701,44 +701,44 @@ export default function ProctoredQuizArenaPage() {
 
       </main>
 
-      {/* 3. Submit Confirmation Modal */}
+      {/* 3. Submit Confirmation Modal (Light Theme) */}
       {showSubmitModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl animate-in zoom-in-95">
             
-            <div className="w-14 h-14 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto text-emerald-400">
+            <div className="w-14 h-14 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto text-emerald-600">
               <CheckCircle className="w-7 h-7" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="font-black text-lg text-white">क्या आप परीक्षा जमा करना चाहते हैं?</h3>
-              <p className="text-xs text-slate-400">
+              <h3 className="font-black text-lg text-slate-900">क्या आप परीक्षा जमा करना चाहते हैं?</h3>
+              <p className="text-xs text-slate-500">
                 Are you sure you want to submit your final examination paper?
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs">
+            <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
               <div className="text-left">
-                <span className="text-slate-400 block text-[10px]">Attempted / हल किए गए:</span>
-                <span className="font-black text-emerald-400 text-base">{attemptedCount} / {totalQuestions}</span>
+                <span className="text-slate-500 block text-[10px]">Attempted / हल किए गए:</span>
+                <span className="font-black text-emerald-600 text-base">{attemptedCount} / {totalQuestions}</span>
               </div>
               <div className="text-left">
-                <span className="text-slate-400 block text-[10px]">Unattempted / शेष:</span>
-                <span className="font-black text-amber-400 text-base">{totalQuestions - attemptedCount}</span>
+                <span className="text-slate-500 block text-[10px]">Unattempted / शेष:</span>
+                <span className="font-black text-amber-600 text-base">{totalQuestions - attemptedCount}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={() => setShowSubmitModal(false)}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
               >
                 Continue Test
               </button>
 
               <button
                 onClick={handleFinalSubmit}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl transition shadow-lg shadow-emerald-600/30 cursor-pointer"
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition shadow-sm cursor-pointer"
               >
                 Yes, Submit Paper
               </button>
