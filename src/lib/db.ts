@@ -12,7 +12,6 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { MOCK_QUESTIONS } from '@/data/mockQuestions';
 
 // ================= TYPES =================
 export type ApprovalStatus = 'PENDING' | 'APPROVED_PRACTICE' | 'APPROVED_OLYMPIAD';
@@ -72,7 +71,7 @@ export interface SupportTicket {
   createdAt?: any;
 }
 
-// ---------------- NEW TYPES FOR OLYMPIADS & CATEGORIES ----------------
+// ---------------- TYPES FOR OLYMPIADS & CATEGORIES ----------------
 export interface OlympiadConfig {
   id?: string;
   titleHi: string;
@@ -93,27 +92,7 @@ export interface CategoryConfig {
   createdAt?: any;
 }
 
-// ================= FALLBACK SEED CONVERTORS =================
-const getFallbackMockQuestions = (): QuestionData[] => {
-  return MOCK_QUESTIONS.map((q) => ({
-    id: q.id,
-    subject: q.subject,
-    topic: q.topic,
-    questionEn: q.text.en,
-    questionHi: q.text.hi,
-    optionsEn: q.options.map((o) => o.text.en),
-    optionsHi: q.options.map((o) => o.text.hi),
-    correctOption: q.correctAnswer,
-    diagramUrl: null,
-    approvalStatus: 'APPROVED_OLYMPIAD',
-    timesUsedInOlympiad: 1,
-    explanationEn: q.explanation?.en || '',
-    explanationHi: q.explanation?.hi || '',
-    difficulty: q.difficulty || 'Medium',
-    targetCategory: 'UPSC Civil Services',
-  }));
-};
-
+// ================= FALLBACK DATA =================
 const getFallbackCategories = (): CategoryConfig[] => [
   { id: 'cat-1', name: 'UPSC Civil Services (IAS / IPS)' },
   { id: 'cat-2', name: 'State PSC (UPPSC / BPSC / MPPCS)' },
@@ -156,13 +135,13 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) {
-      return getFallbackMockQuestions();
+      return []; // Return empty array instead of mock questions
     }
     
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuestionData));
   } catch (error) {
-    console.warn('Firestore questions fetch fallback to mock questions:', error);
-    return getFallbackMockQuestions();
+    console.warn('Firestore questions fetch error:', error);
+    return []; // Return empty array on error
   }
 }
 
@@ -297,7 +276,7 @@ export async function resolveSupportTicket(ticketId: string, replyText: string) 
   }
 }
 
-// ================= 5. OLYMPIAD MANAGER (NEW) =================
+// ================= 5. OLYMPIAD MANAGER =================
 
 export async function saveCustomOlympiad(olympiad: Omit<OlympiadConfig, 'id'>) {
   try {
@@ -326,7 +305,7 @@ export async function getCustomOlympiads(): Promise<OlympiadConfig[]> {
   }
 }
 
-// ================= 6. CATEGORY & STRUCTURE BUILDER (NEW) =================
+// ================= 6. CATEGORY & STRUCTURE BUILDER =================
 
 export async function saveCustomCategory(category: Omit<CategoryConfig, 'id'>) {
   try {
