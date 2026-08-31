@@ -33,7 +33,7 @@ export default function Navbar() {
 
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signInWithGoogle, logout } = useAuth();
+  const { user, logout } = useAuth();
   const isHomePage = pathname === '/';
 
   // Load custom logo from Admin storage on load & on storage updates
@@ -337,14 +337,13 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={signInWithGoogle}
+              <Link
+                href="/login"
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
               >
                 <UserIcon className="w-3.5 h-3.5 text-blue-600" />
                 <span>Candidate Sign In</span>
-              </button>
+              </Link>
             )}
           </div>
 
@@ -358,13 +357,12 @@ export default function Navbar() {
                 {user.displayName?.charAt(0) || 'A'}
               </Link>
             ) : (
-              <button
-                type="button"
-                onClick={signInWithGoogle}
+              <Link
+                href="/login"
                 className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-xl"
               >
                 Sign In
-              </button>
+              </Link>
             )}
             
             <button
@@ -446,6 +444,15 @@ export default function Navbar() {
           >
             <Wallet className="w-4 h-4 text-amber-600" />
             <span>Candidate Profile &amp; Wallet</span>
+          </Link>
+
+          <Link
+            href="/login"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm"
+          >
+            <UserIcon className="w-4 h-4 text-blue-600" />
+            <span>Candidate Sign In / Register</span>
           </Link>
 
           <div className="pt-2">
