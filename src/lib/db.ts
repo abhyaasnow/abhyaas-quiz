@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, collection, getDocs, doc, setDoc, deleteDoc, 
-  updateDoc, query, orderBy, Timestamp 
+  updateDoc, Timestamp 
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -13,10 +13,48 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== 1. TAXONOMY / HIERARCHY ====================
+// ==================== 1. SITE SETTINGS & CMS ====================
+// bannerGraphicUrl aur baki fields ko string | null | undefined teeno ke liye open kiya gaya hai
+export interface SiteSettings {
+  headerLogoUrl?: string | null | any;
+  footerLogoUrl?: string | null | any;
+  bannerTitleHi?: string | null | any;
+  bannerTitleEn?: string | null | any;
+  scholarshipPool?: string | null | any;
+  assessmentFee?: string | null | any;
+  bannerGraphicUrl?: string | null | any;
+  [key: string]: any;
+}
+
+export async function getSiteSettings(): Promise<SiteSettings> {
+  try {
+    const snap = await getDocs(collection(db, 'settings'));
+    if (!snap.empty) {
+      return snap.docs[0].data() as SiteSettings;
+    }
+  } catch (err) {
+    console.error("Error fetching settings:", err);
+  }
+  return {
+    bannerTitleHi: 'अखिल भारतीय छात्रवृत्ति परीक्षा 2026',
+    bannerTitleEn: 'All India Mega Olympiad 2026',
+    scholarshipPool: '₹2,50,000',
+    assessmentFee: '₹49',
+    bannerGraphicUrl: null,
+    headerLogoUrl: null,
+    footerLogoUrl: null
+  };
+}
+
+export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
+  const docRef = doc(db, 'settings', 'global');
+  await setDoc(docRef, settings, { merge: true });
+}
+
+// ==================== 2. TAXONOMY / HIERARCHY ====================
 export type TaxonomyLevel = 'DOMAIN' | 'EXAM' | 'SUBJECT' | 'TOPIC';
 
 export interface TaxonomyNode {
@@ -24,8 +62,9 @@ export interface TaxonomyNode {
   level: TaxonomyLevel;
   nameEn: string;
   nameHi?: string;
-  parentId?: string; // Links e.g. Topic -> Subject -> Exam -> Domain
+  parentId?: string;
   orderIndex?: number;
+  [key: string]: any;
 }
 
 export async function getTaxonomyNodes(): Promise<TaxonomyNode[]> {
@@ -47,7 +86,31 @@ export async function deleteTaxonomyNode(id: string): Promise<void> {
   await deleteDoc(doc(db, 'taxonomy', id));
 }
 
-// ==================== 2. QUESTIONS ====================
+// ==================== 3. CATEGORIES ====================
+export interface CategoryConfig {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
+export async function getCustomCategories(): Promise<CategoryConfig[]> {
+  try {
+    const snap = await getDocs(collection(db, 'categories'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as CategoryConfig));
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function saveCustomCategory(cat: CategoryConfig): Promise<void> {
+  await setDoc(doc(db, 'categories', cat.id), cat, { merge: true });
+}
+
+export async function deleteCustomCategory(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'categories', id));
+}
+
+// ==================== 4. QUESTIONS ENGINE ====================
 export type ApprovalStatus = 'APPROVED_PRACTICE' | 'APPROVED_OLYMPIAD' | 'PENDING' | 'REJECTED';
 
 export interface QuestionData {
@@ -64,6 +127,7 @@ export interface QuestionData {
   diagramUrl?: string | null;
   explanationEn?: string;
   explanationHi?: string;
+  [key: string]: any;
 }
 
 export async function getAllQuestions(): Promise<QuestionData[]> {
@@ -84,7 +148,12 @@ export async function deleteQuestion(id: string): Promise<void> {
   await deleteDoc(doc(db, 'questions', id));
 }
 
-// ==================== 3. OLYMPIADS & COMMERCE ====================
+export async function updateQuestionStatus(id: string, status: ApprovalStatus): Promise<void> {
+  const docRef = doc(db, 'questions', id);
+  await updateDoc(docRef, { approvalStatus: status });
+}
+
+// ==================== 5. OLYMPIADS ====================
 export interface OlympiadConfig {
   id: string;
   titleEn: string;
@@ -95,6 +164,7 @@ export interface OlympiadConfig {
   scholarshipPool: string;
   examDate: string;
   status: 'ACTIVE' | 'UPCOMING' | 'CLOSED';
+  [key: string]: any;
 }
 
 export async function getCustomOlympiads(): Promise<OlympiadConfig[]> {
@@ -110,29 +180,88 @@ export async function saveCustomOlympiad(o: OlympiadConfig): Promise<void> {
   await setDoc(doc(db, 'olympiads', o.id), o, { merge: true });
 }
 
-// ==================== 4. SETTINGS, PAYMENTS & SUPPORT ====================
-export interface PaymentRecord {
-  id: string;
-  studentName?: string;
-  email?: string;
-  amount?: string;
-  status: string;
-  token?: string;
+export async function deleteCustomOlympiad(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'olympiads', id));
 }
 
+// ==================== 6. PAYMENTS ENGINE (FIXES PROFILE & OLYMPIAD) ====================
+// Sabhi fields ko strict string / number dekar profile page ke 'undefined' error ko jad se khatam kiya gaya hai
+export interface PaymentRecord {
+  id: string;
+  studentName: string;
+  candidateName: string;
+  email: string;
+  phone: string;
+  amount: string | number;
+  status: string;
+  token: string;
+  rollNo: string;
+  olympiadTier: string;
+  paymentMethod: string;
+  name: string;
+  date: string;
+  examDate: string;
+  createdAt: any;
+  [key: string]: any;
+}
+
+export async function createPaymentRecord(record: any): Promise<{ success: boolean; rollNo: string; id: string; [key: string]: any }> {
+  const id = record?.id || `pay-${Date.now()}`;
+  const rollNo = record?.rollNo || `ABH-${Math.floor(100000 + Math.random() * 900000)}`;
+  const docRef = doc(db, 'payments', id);
+  const paymentData = {
+    ...record,
+    id,
+    rollNo,
+    status: record?.status || 'SUCCESS',
+    createdAt: Timestamp.now()
+  };
+  await setDoc(docRef, paymentData, { merge: true });
+  return { success: true, rollNo, id };
+}
+
+export async function getAllPayments(): Promise<PaymentRecord[]> {
+  try {
+    const snap = await getDocs(collection(db, 'payments'));
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        studentName: data.studentName || data.candidateName || '',
+        candidateName: data.candidateName || data.studentName || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        amount: data.amount || 0,
+        status: data.status || 'SUCCESS',
+        token: data.token || '',
+        rollNo: data.rollNo || '',
+        olympiadTier: data.olympiadTier || '',
+        paymentMethod: data.paymentMethod || '',
+        name: data.name || '',
+        date: data.date || '',
+        examDate: data.examDate || '',
+        createdAt: data.createdAt || null,
+        ...data
+      } as PaymentRecord;
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function approvePaymentToken(id: string): Promise<void> {
+  const docRef = doc(db, 'payments', id);
+  await updateDoc(docRef, { status: 'APPROVED' });
+}
+
+// ==================== 7. SUPPORT TICKETS ====================
 export interface SupportTicket {
   id: string;
   subject?: string;
   message?: string;
   status: string;
+  [key: string]: any;
 }
 
-export async function getSiteSettings(): Promise<any> {
-  return {};
-}
-
-export async function updateSiteSettings(settings: any): Promise<void> {}
-export async function getAllPayments(): Promise<PaymentRecord[]> { return []; }
-export async function approvePaymentToken(id: string): Promise<void> {}
 export async function getAllSupportTickets(): Promise<SupportTicket[]> { return []; }
 export async function resolveSupportTicket(id: string): Promise<void> {}
