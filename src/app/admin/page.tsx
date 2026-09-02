@@ -1,63 +1,37 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  BookOpen, Image as ImageIcon, CreditCard, MessageSquare, Upload,
-  ShieldCheck, Eye, Save, Layers, Award, Plus, Trash2, Sparkles,
-  Search, Lock, LogOut, KeyRound, Smartphone, Mail, X,
-  CheckCircle2, Filter, Download, FileSpreadsheet, UploadCloud, Crown,
-  Tag, Calendar, Settings, Activity
+  Layers, Plus, Trash2, Tag, BookOpen, Eye, LogOut, KeyRound,
+  CheckCircle2, FolderTree, ArrowRight, Activity, ChevronRight,
+  Sparkles, Loader2
 } from 'lucide-react';
 
 import { 
-  createQuestion, getAllQuestions, updateQuestionStatus, deleteQuestion,
-  getSiteSettings, updateSiteSettings, getAllPayments, approvePaymentToken,
-  getAllSupportTickets, resolveSupportTicket, getCustomOlympiads, saveCustomOlympiad,
-  getCustomCategories, saveCustomCategory,
-  QuestionData, ApprovalStatus, PaymentRecord, SupportTicket, OlympiadConfig, CategoryConfig
+  getTaxonomyNodes, saveTaxonomyNode, deleteTaxonomyNode, 
+  getAllQuestions, TaxonomyNode, TaxonomyLevel, QuestionData 
 } from '@/lib/db';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 
-export default function UltimateZeroCodeAdminPanel() {
-  const [currentUser, setCurrentUser] = useState<{ email: string; isMaster: boolean } | null>(null);
+export default function EnterpriseAdminPanel() {
+  const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'questions' | 'olympiads' | 'categories' | 'settings' | 'users' | 'support'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'taxonomy' | 'questions' | 'olympiad'>('taxonomy');
   const [loading, setLoading] = useState(false);
 
+  // Taxonomy State
+  const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
+  const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('DOMAIN');
+  const [nameEn, setNameEn] = useState('');
+  const [nameHi, setNameHi] = useState('');
+  const [selectedParentId, setSelectedParentId] = useState('');
+
+  // Questions State
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
-  const [olympiadsList, setOlympiadsList] = useState<OlympiadConfig[]>([]);
-  const [categoriesList, setCategoriesList] = useState<CategoryConfig[]>([]);
-  const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>([]);
-  const [ticketsList, setTicketsList] = useState<SupportTicket[]>([]);
-
-  const [siteConfig, setSiteConfig] = useState({
-    headerLogoUrl: '', footerLogoUrl: '', bannerTitleHi: '', bannerTitleEn: '', scholarshipPool: '', assessmentFee: '', bannerGraphicUrl: ''
-  });
-
-  const [newOlympiad, setNewOlympiad] = useState({
-    titleEn: '', titleHi: '', category: '', description: '', assessmentFee: '', scholarshipPool: '', examDate: ''
-  });
-
-  const [newCategoryName, setNewCategoryName] = useState('');
-
-  const [qMode, setQMode] = useState<'manual' | 'csv'>('manual');
-  const [showQForm, setShowQForm] = useState(false);
-  
-  // No hardcoded 'polity' - dynamic attachment based on categories
-  const [qForm, setQForm] = useState({
-    subject: '', topic: '', questionEn: '', questionHi: '', optEn: ['', '', '', ''], optHi: ['', '', '', ''],
-    correctOpt: 0, diagramUrl: '', explanationEn: '', explanationHi: '', status: 'APPROVED_OLYMPIAD' as ApprovalStatus
-  });
-  
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvTargetCategory, setCsvTargetCategory] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const csvInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const session = localStorage.getItem('abhyaas_admin_auth');
@@ -66,35 +40,17 @@ export default function UltimateZeroCodeAdminPanel() {
 
   useEffect(() => {
     if (!currentUser) return;
-    loadAllSystemData();
+    loadData();
   }, [currentUser]);
 
-  const loadAllSystemData = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const [q, ol, cat, pay, tck, settings] = await Promise.all([
-        getAllQuestions(), getCustomOlympiads(), getCustomCategories(),
-        getAllPayments(), getAllSupportTickets(), getSiteSettings()
-      ]);
-      if (q) setQuestionsList(q);
-      if (ol) setOlympiadsList(ol);
-      if (cat && cat.length > 0) {
-        setCategoriesList(cat);
-        // Automatically sync the first available category to all upload forms to prevent mismatch
-        setNewOlympiad(p => ({ ...p, category: p.category || cat[0].name }));
-        setQForm(p => ({ ...p, subject: p.subject || cat[0].name }));
-        setCsvTargetCategory(cat[0].name);
-      }
-      if (pay) setPaymentsList(pay);
-      if (tck) setTicketsList(tck);
-      if (settings) setSiteConfig({
-        headerLogoUrl: settings.headerLogoUrl || '', footerLogoUrl: settings.footerLogoUrl || '',
-        bannerTitleHi: settings.bannerTitleHi || '', bannerTitleEn: settings.bannerTitleEn || '',
-        scholarshipPool: settings.scholarshipPool || '', assessmentFee: settings.assessmentFee || '',
-        bannerGraphicUrl: settings.bannerGraphicUrl || ''
-      });
-    } catch (e) {
-      console.warn("Data sync skipped. Using local cache.");
+      const [tax, qs] = await Promise.all([getTaxonomyNodes(), getAllQuestions()]);
+      setTaxonomyList(tax);
+      setQuestionsList(qs);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -103,7 +59,7 @@ export default function UltimateZeroCodeAdminPanel() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (loginEmail.trim() === MASTER_ADMIN_EMAIL && loginPassword === 'Abhyaas@2026') {
-      const user = { email: MASTER_ADMIN_EMAIL, isMaster: true };
+      const user = { email: MASTER_ADMIN_EMAIL };
       setCurrentUser(user);
       localStorage.setItem('abhyaas_admin_auth', JSON.stringify(user));
     } else {
@@ -116,110 +72,31 @@ export default function UltimateZeroCodeAdminPanel() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  const saveSiteSettings = () => {
-    updateSiteSettings(siteConfig).catch(()=>{});
-    alert("Website Updated Successfully!");
-  };
-
-  const createCategory = (e: React.FormEvent) => {
+  // Create Taxonomy Node
+  const handleAddTaxonomy = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName.trim()) return;
-    const newCat = { id: `cat-${Date.now()}`, name: newCategoryName.trim() };
-    
-    // Auto-update UI and push to cloud
-    setCategoriesList(prev => [newCat, ...prev]);
-    saveCustomCategory(newCat).catch(()=>{});
-    
-    // THE MAGIC FIX: Automatically auto-select this new category across all forms so user never has to search for it
-    setNewCategoryName('');
-    setQForm(p => ({ ...p, subject: newCat.name }));
-    setCsvTargetCategory(newCat.name);
-    setNewOlympiad(p => ({ ...p, category: newCat.name }));
-    
-    alert(`Success! "${newCat.name}" is now auto-selected for uploads.`);
-  };
+    if (!nameEn.trim()) return alert("Name is required!");
 
-  const createOlympiad = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newOlympiad.titleEn || !newOlympiad.category) return alert("Title and Category are required!");
-    const createdExam: OlympiadConfig = {
-      id: `exam-${Date.now()}`, titleHi: newOlympiad.titleHi || newOlympiad.titleEn, titleEn: newOlympiad.titleEn,
-      category: newOlympiad.category, description: newOlympiad.description, assessmentFee: newOlympiad.assessmentFee,
-      scholarshipPool: newOlympiad.scholarshipPool, examDate: newOlympiad.examDate, status: 'ACTIVE'
-    };
-    setOlympiadsList([createdExam, ...olympiadsList]);
-    saveCustomOlympiad(createdExam).catch(()=>{});
-    setNewOlympiad({ titleEn: '', titleHi: '', category: categoriesList[0]?.name || '', description: '', assessmentFee: '', scholarshipPool: '', examDate: '' });
-    alert("New Olympiad Exam Launched Live!");
-  };
-
-  const submitManualQuestion = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!qForm.questionEn || !qForm.questionHi) return alert("Questions cannot be empty.");
-    if (!qForm.subject) return alert("Please create a category first!");
-    
-    const newQuestion: QuestionData = {
-      id: `q-${Date.now()}`,
-      subject: qForm.subject, // Perfect strict mapping
-      topic: qForm.topic || 'General Topic',
-      questionEn: qForm.questionEn, questionHi: qForm.questionHi,
-      optionsEn: qForm.optEn, optionsHi: qForm.optHi,
-      correctOption: qForm.correctOpt, approvalStatus: qForm.status,
-      timesUsedInOlympiad: 0, diagramUrl: qForm.diagramUrl || null,
-      explanationEn: qForm.explanationEn, explanationHi: qForm.explanationHi
+    const newNode: TaxonomyNode = {
+      id: `tax-${Date.now()}`,
+      level: activeLevel,
+      nameEn: nameEn.trim(),
+      nameHi: nameHi.trim() || nameEn.trim(),
+      parentId: selectedParentId || undefined
     };
 
-    setQuestionsList([newQuestion, ...questionsList]);
-    setShowQForm(false);
-    alert(`Question Published into category: "${qForm.subject}"`);
-    createQuestion(newQuestion).catch(()=>{});
-
-    setQForm({ ...qForm, questionEn: '', questionHi: '', optEn: ['', '', '', ''], optHi: ['', '', '', ''], explanationEn: '', explanationHi: '', topic: '' });
-  };
-
-  const processCSV = async () => {
-    if (!csvFile) return alert("Select a CSV file first!");
-    if (!csvTargetCategory) return alert("Please select a target category for this CSV!");
+    setTaxonomyList(prev => [newNode, ...prev]);
+    setNameEn('');
+    setNameHi('');
     
-    try {
-      const text = await csvFile.text();
-      const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-      if (lines.length <= 1) return alert("File is empty or invalid format.");
-
-      const importedQs: QuestionData[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-        if (row.length >= 10) {
-          const clean = (str: string) => str ? str.replace(/^"|"$/g, '').trim() : '';
-          if (clean(row[5]) || clean(row[3])) { 
-            importedQs.push({
-              id: `q-csv-${Date.now()}-${i}`,
-              subject: csvTargetCategory, // Force strict mapping from the dropdown
-              topic: clean(row[1]) || 'Mix',
-              questionEn: clean(row[5]) || clean(row[3]), questionHi: clean(row[6]) || clean(row[4]),
-              optionsEn: [clean(row[7]), clean(row[9]), clean(row[11]), clean(row[13])], optionsHi: [clean(row[8]), clean(row[10]), clean(row[12]), clean(row[14])],
-              correctOption: parseInt(clean(row[15])) || 0, approvalStatus: 'APPROVED_OLYMPIAD', timesUsedInOlympiad: 0,
-              explanationEn: clean(row[17]) || '', explanationHi: clean(row[18]) || ''
-            });
-          }
-        }
-      }
-      setQuestionsList([...importedQs, ...questionsList]);
-      setCsvFile(null);
-      setShowQForm(false);
-      alert(`Success! ${importedQs.length} Questions imported instantly into "${csvTargetCategory}".`);
-      importedQs.forEach(q => createQuestion(q).catch(()=>{}));
-    } catch (err) {
-      alert("Error reading CSV file.");
-    }
+    await saveTaxonomyNode(newNode);
+    alert(`Added: ${newNode.nameEn} to ${activeLevel}`);
   };
 
-  const getCsvTemplate = () => {
-    const csvContent = "IgnoredCategory,topic,difficulty,targetCategory,questionType,questionEn,questionHi,opt1En,opt1Hi,opt2En,opt2Hi,opt3En,opt3Hi,opt4En,opt4Hi,correctOption,diagramUrl,explanationEn,explanationHi\nignore,Maths Mock,Medium,UPSC CSE,APPROVED_OLYMPIAD,\"2+2=?\",\"2+2=?\",\"4\",\"4\",\"5\",\"5\",\"6\",\"6\",\"7\",\"7\",0,\"\",\"Simple Math\",\"सरल गणित\"";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', 'Abhyaas_Questions_Template.csv');
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  const handleDeleteTaxonomy = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this taxonomy entity?")) return;
+    setTaxonomyList(prev => prev.filter(t => t.id !== id));
+    await deleteTaxonomyNode(id);
   };
 
   if (!currentUser) {
@@ -227,247 +104,198 @@ export default function UltimateZeroCodeAdminPanel() {
       <div className="min-h-screen bg-[#0b1121] flex flex-col items-center justify-center p-4">
         <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/30">
-              <KeyRound className="w-8 h-8 text-white" />
+            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+              <KeyRound className="w-7 h-7 text-white" />
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight">Zero-Code Gateway</h2>
-            <p className="text-xs text-slate-400">Master Admin Control Panel</p>
+            <h2 className="text-2xl font-black text-white">Abhyaas Master Tower</h2>
+            <p className="text-xs text-slate-400">Enterprise Operations Gateway</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="admin@domain.com" required />
-            </div>
-            <div>
-              <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="••••••••" required />
-            </div>
-            <button type="submit" className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-sm rounded-xl shadow-lg transition">Enter Command Center</button>
+            <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm" placeholder="admin@domain.com" required />
+            <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm" placeholder="••••••••" required />
+            <button type="submit" className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-sm rounded-xl transition">Enter Command Center</button>
           </form>
         </div>
       </div>
     );
   }
 
-  const filteredQs = questionsList.filter(q => q.questionEn.toLowerCase().includes(searchQuery.toLowerCase()) || q.topic.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Filter levels for parent select
+  const domains = taxonomyList.filter(t => t.level === 'DOMAIN');
+  const exams = taxonomyList.filter(t => t.level === 'EXAM');
+  const subjects = taxonomyList.filter(t => t.level === 'SUBJECT');
+  const topics = taxonomyList.filter(t => t.level === 'TOPIC');
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+      {/* Header */}
       <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center font-black text-lg shadow-sm">A</div>
-            <h1 className="font-extrabold text-sm sm:text-base tracking-wide flex items-center gap-2">
-              ABHYAAS O.S. <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] rounded uppercase tracking-wider">Zero-Code Admin</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-black text-base">A</div>
+            <h1 className="font-black text-sm sm:text-base tracking-wide flex items-center gap-2">
+              ABHYAAS O.S. <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] rounded uppercase">Sprint 1 Live</span>
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg"><Eye className="w-4 h-4"/> View Live Site</Link>
-            <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 bg-slate-800 p-2 rounded-lg"><LogOut className="w-4 h-4"/></button>
+            <Link href="/practice" target="_blank" className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg">
+              <Eye className="w-4 h-4 text-emerald-400"/> Live Practice Page
+            </Link>
+            <button onClick={handleLogout} className="text-rose-400 bg-slate-800 p-2 rounded-lg"><LogOut className="w-4 h-4"/></button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start">
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8 items-start">
         
-        <div className="w-full lg:w-64 flex-shrink-0 bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-1 sticky top-24">
-          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}><Activity className="w-5 h-5"/> Overview</button>
-          <button onClick={() => setActiveTab('categories')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}><Tag className="w-5 h-5"/> Categories & Streams</button>
-          <button onClick={() => setActiveTab('questions')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}><BookOpen className="w-5 h-5"/> Question Bank</button>
-          <button onClick={() => setActiveTab('olympiads')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'olympiads' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}><Award className="w-5 h-5"/> Olympiad Manager</button>
-          <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}><Settings className="w-5 h-5"/> Website CMS Control</button>
-          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}><CreditCard className="w-5 h-5"/> Payments & Users</button>
+        {/* Sidebar */}
+        <div className="w-full lg:w-64 bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-2 sticky top-24 shrink-0">
+          <div className="px-3 py-1 text-[11px] font-black uppercase text-slate-400">Core Architecture</div>
+          
+          <button onClick={() => setActiveTab('taxonomy')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'taxonomy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <FolderTree className="w-5 h-5"/> Master Taxonomy
+          </button>
+          
+          <button onClick={() => setActiveTab('questions')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <BookOpen className="w-5 h-5"/> Question Vault ({questionsList.length})
+          </button>
+
+          <div className="pt-4 border-t border-slate-100 px-3">
+            <div className="text-[10px] font-bold text-slate-400 uppercase">Live Hierarchy Count</div>
+            <div className="mt-2 space-y-1 text-xs font-bold text-slate-600">
+              <div className="flex justify-between"><span>Domains/Classes:</span> <span className="text-blue-600">{domains.length}</span></div>
+              <div className="flex justify-between"><span>Exams:</span> <span className="text-blue-600">{exams.length}</span></div>
+              <div className="flex justify-between"><span>Subjects:</span> <span className="text-blue-600">{subjects.length}</span></div>
+              <div className="flex justify-between"><span>Topics/Chapters:</span> <span className="text-blue-600">{topics.length}</span></div>
+            </div>
+          </div>
         </div>
 
+        {/* Workspace */}
         <div className="flex-grow w-full space-y-6">
 
-          {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm text-center">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Questions</p>
-                <p className="text-4xl font-black text-slate-900 mt-2">{questionsList.length}</p>
-              </div>
-              <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm text-center">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Categories</p>
-                <p className="text-4xl font-black text-emerald-600 mt-2">{categoriesList.length}</p>
-              </div>
-            </div>
-          )}
+          {activeTab === 'taxonomy' && (
+            <div className="space-y-6">
+              
+              {/* Creator Box */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                      <FolderTree className="w-6 h-6 text-blue-600" /> Taxonomy & Hierarchy Studio
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">Add or remove exam levels in real-time. Reflects instantly on frontend.</p>
+                  </div>
 
-          {activeTab === 'categories' && (
-            <div className="grid md:grid-cols-2 gap-6">
-              <form onSubmit={createCategory} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4 h-fit">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <Tag className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-base font-black text-slate-900">Add Exam Category / Stream</h2>
+                  {/* Level Selector Tabs */}
+                  <div className="flex bg-slate-100 p-1.5 rounded-2xl text-xs font-black">
+                    {(['DOMAIN', 'EXAM', 'SUBJECT', 'TOPIC'] as TaxonomyLevel[]).map(lvl => (
+                      <button
+                        key={lvl}
+                        onClick={() => { setActiveLevel(lvl); setSelectedParentId(''); }}
+                        className={`px-3.5 py-2 rounded-xl transition ${activeLevel === lvl ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        {lvl === 'DOMAIN' ? '1. Domain / Class' : lvl === 'EXAM' ? '2. Exam' : lvl === 'SUBJECT' ? '3. Subject' : '4. Topic'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5">Category Name</label>
-                  <input type="text" placeholder="e.g. UPSC CSE, SSC, Class 10" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="w-full p-3 rounded-xl border bg-slate-50 focus:border-blue-500" required />
-                </div>
-                <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl shadow-md flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4"/> Save Category (Auto-Selects)
-                </button>
-              </form>
 
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                <h2 className="text-base font-black text-slate-900">Active Categories ({categoriesList.length})</h2>
-                <div className="space-y-2">
-                  {categoriesList.length === 0 && <p className="text-xs text-slate-400">No categories created yet.</p>}
-                  {categoriesList.map(cat => (
-                    <div key={cat.id} className="flex justify-between items-center bg-slate-50 border border-slate-200 p-4 rounded-2xl">
-                      <span className="font-bold text-sm text-slate-800">{cat.name}</span>
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-1 rounded-md font-black uppercase">Live</span>
+                <form onSubmit={handleAddTaxonomy} className="space-y-4">
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Name (English)*</label>
+                      <input 
+                        type="text" 
+                        placeholder={activeLevel === 'DOMAIN' ? "e.g. School Entrance (Class 6-8)" : activeLevel === 'EXAM' ? "e.g. JNV NVS Class VI" : activeLevel === 'SUBJECT' ? "e.g. Mathematics" : "e.g. Number System"} 
+                        value={nameEn} 
+                        onChange={e => setNameEn(e.target.value)} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:border-blue-500" 
+                        required 
+                      />
                     </div>
-                  ))}
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">नाम (Hindi)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. नवोदय विद्यालय कक्षा 6" 
+                        value={nameHi} 
+                        onChange={e => setNameHi(e.target.value)} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:border-blue-500" 
+                      />
+                    </div>
+
+                    {/* Parent Selector */}
+                    {activeLevel !== 'DOMAIN' && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Parent {activeLevel === 'EXAM' ? 'Domain' : activeLevel === 'SUBJECT' ? 'Exam' : 'Subject'}
+                        </label>
+                        <select 
+                          value={selectedParentId} 
+                          onChange={e => setSelectedParentId(e.target.value)} 
+                          className="w-full p-3 bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl text-sm"
+                        >
+                          <option value="">-- None (Stand-alone) --</option>
+                          {activeLevel === 'EXAM' && domains.map(d => <option key={d.id} value={d.id}>{d.nameEn}</option>)}
+                          {activeLevel === 'SUBJECT' && exams.map(e => <option key={e.id} value={e.id}>{e.nameEn}</option>)}
+                          {activeLevel === 'TOPIC' && subjects.map(s => <option key={s.id} value={s.id}>{s.nameEn}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <button type="submit" className="px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl shadow-md flex items-center gap-2">
+                    <Plus className="w-4 h-4"/> Save to Live Architecture
+                  </button>
+                </form>
+              </div>
+
+              {/* Real-time Cards of Current Level */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                  Active {activeLevel} Nodes ({taxonomyList.filter(t => t.level === activeLevel).length})
+                </h3>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {taxonomyList.filter(t => t.level === activeLevel).map(node => {
+                    const parent = taxonomyList.find(t => t.id === node.parentId);
+                    return (
+                      <div key={node.id} className="bg-white border border-slate-200 hover:border-blue-300 p-4 rounded-2xl flex items-center justify-between shadow-sm transition">
+                        <div>
+                          <p className="font-extrabold text-sm text-slate-900">{node.nameEn}</p>
+                          <p className="text-xs text-slate-500 font-medium">{node.nameHi}</p>
+                          {parent && (
+                            <span className="inline-block mt-2 text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                              ↳ {parent.nameEn}
+                            </span>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteTaxonomy(node.id)}
+                          className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-xl"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
             </div>
           )}
 
           {activeTab === 'questions' && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-                <div className="relative w-full md:w-1/2">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"/>
-                  <input type="text" placeholder="Search questions or topics..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none" />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => { setQMode('manual'); setShowQForm(true); }} className="px-5 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-sm flex items-center gap-2">
-                    <Plus className="w-4 h-4"/> Manual Entry
-                  </button>
-                  <button onClick={() => { setQMode('csv'); setShowQForm(true); }} className="px-5 py-3 bg-slate-800 text-white text-sm font-bold rounded-xl shadow-sm flex items-center gap-2">
-                    <FileSpreadsheet className="w-4 h-4"/> Bulk CSV Upload
-                  </button>
-                </div>
-              </div>
-
-              {showQForm && (
-                <div className="bg-white border-2 border-blue-600 rounded-3xl p-6 shadow-xl relative animate-in fade-in zoom-in-95">
-                  <button onClick={()=>setShowQForm(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full"><X className="w-5 h-5"/></button>
-                  <h3 className="text-lg font-black text-slate-900 mb-6 border-b pb-3">{qMode === 'manual' ? 'Single Manual Studio' : 'Bulk CSV Importer'}</h3>
-                  
-                  {qMode === 'manual' ? (
-                    <form onSubmit={submitManualQuestion} className="space-y-5 text-sm">
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block font-bold text-slate-700 mb-1">Target Category (Auto-Synced)</label>
-                          {categoriesList.length === 0 ? (
-                            <div className="w-full p-2.5 rounded-xl border bg-rose-50 text-rose-700 font-bold text-xs">Create a Category First!</div>
-                          ) : (
-                            <select value={qForm.subject} onChange={e=>setQForm({...qForm, subject: e.target.value})} className="w-full p-2.5 rounded-xl border border-blue-300 bg-blue-50 text-blue-900 font-bold focus:ring-2 focus:ring-blue-500">
-                              {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </select>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-700 mb-1">Topic Name / Chapter</label>
-                          <input type="text" placeholder="e.g. Number System" value={qForm.topic} onChange={e=>setQForm({...qForm, topic: e.target.value})} className="w-full p-2.5 rounded-xl border bg-slate-50" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-700 mb-1">Destination Vault</label>
-                          <select value={qForm.status} onChange={e=>setQForm({...qForm, status: e.target.value as ApprovalStatus})} className="w-full p-2.5 rounded-xl border bg-emerald-50 text-emerald-900 font-bold">
-                            <option value="APPROVED_PRACTICE">📘 Free Practice</option>
-                            <option value="APPROVED_OLYMPIAD">🛡️ Live Olympiad</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <textarea rows={3} placeholder="Question Statement (English)*" value={qForm.questionEn} onChange={e=>setQForm({...qForm, questionEn: e.target.value})} className="w-full p-3 rounded-xl border bg-slate-50" required />
-                        <textarea rows={3} placeholder="प्रश्न विवरण (Hindi)*" value={qForm.questionHi} onChange={e=>setQForm({...qForm, questionHi: e.target.value})} className="w-full p-3 rounded-xl border bg-slate-50" required />
-                      </div>
-
-                      <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                        <label className="block font-black text-slate-900 uppercase text-xs mb-3">Options & Correct Key</label>
-                        {[0,1,2,3].map(i => (
-                          <div key={i} className="flex flex-col sm:flex-row gap-3 items-center">
-                            <input type="radio" name="opt" checked={qForm.correctOpt===i} onChange={()=>setQForm({...qForm, correctOpt: i})} className="w-5 h-5 text-blue-600 cursor-pointer" />
-                            <span className="font-bold w-6">O{i+1}</span>
-                            <input type="text" placeholder="English Option" value={qForm.optEn[i]} onChange={e=>{const o=[...qForm.optEn]; o[i]=e.target.value; setQForm({...qForm, optEn: o})}} className="w-full p-2 rounded-xl border" required/>
-                            <input type="text" placeholder="Hindi Option" value={qForm.optHi[i]} onChange={e=>{const o=[...qForm.optHi]; o[i]=e.target.value; setQForm({...qForm, optHi: o})}} className="w-full p-2 rounded-xl border" required/>
-                          </div>
-                        ))}
-                      </div>
-                      <button type="submit" className="w-full py-4 bg-blue-600 text-white font-black rounded-xl shadow-md">Instantly Publish to {qForm.subject || 'Vault'}</button>
-                    </form>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block font-bold text-slate-700 mb-1">Select Target Category for this CSV Batch:</label>
-                        <select value={csvTargetCategory} onChange={e=>setCsvTargetCategory(e.target.value)} className="w-full p-3 rounded-xl border border-blue-300 bg-blue-50 text-blue-900 font-bold focus:ring-2 focus:ring-blue-500">
-                          {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                        </select>
-                      </div>
-                      <div onClick={()=>csvInputRef.current?.click()} className="border-2 border-dashed border-slate-300 rounded-3xl p-10 text-center bg-slate-50 cursor-pointer hover:border-blue-500 transition">
-                         <UploadCloud className="w-8 h-8 text-blue-500 mx-auto mb-3" />
-                         <p className="font-bold text-slate-900">{csvFile ? csvFile.name : 'Click to Browse .CSV File'}</p>
-                         <input type="file" accept=".csv" ref={csvInputRef} onChange={e => setCsvFile(e.target.files?.[0] || null)} className="hidden" />
-                      </div>
-                      {csvFile && (
-                        <button onClick={processCSV} className="w-full py-4 bg-emerald-600 text-white font-black rounded-xl flex justify-center items-center gap-2">
-                          <CheckCircle2 className="w-5 h-5"/> Force Import CSV to "{csvTargetCategory}"
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {filteredQs.map((q, idx) => (
-                  <div key={q.id || idx} className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col sm:flex-row justify-between gap-4 shadow-sm hover:border-blue-300 transition">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-black bg-slate-900 text-white px-2 py-0.5 rounded uppercase">{q.subject}</span>
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${q.approvalStatus === 'APPROVED_OLYMPIAD' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
-                          {q.topic}
-                        </span>
-                      </div>
-                      <p className="font-bold text-sm text-slate-900">{q.questionEn}</p>
-                      <p className="text-xs text-slate-500 mt-1">{q.questionHi}</p>
-                    </div>
-                    <button onClick={() => {
-                       setQuestionsList(questionsList.filter(item => item.id !== q.id));
-                       deleteQuestion(q.id || '').catch(()=>{});
-                    }} className="text-rose-500 hover:bg-rose-50 p-2 rounded-xl self-start sm:self-center shrink-0">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+            <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center">
+              <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3"/>
+              <h3 className="text-lg font-black text-slate-800">Question Vault Ready</h3>
+              <p className="text-sm text-slate-500 mt-1">Sprint 1 me Taxonomy verify hone ke turant baad Sprint 2 me Question Anti-Duplicate Studio live hoga.</p>
             </div>
           )}
 
-          {activeTab === 'olympiads' && (
-            <div className="space-y-6">
-              <form onSubmit={createOlympiad} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-                <div className="grid md:grid-cols-2 gap-5 text-sm">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">Olympiad Title (English) *</label>
-                    <input type="text" value={newOlympiad.titleEn} onChange={e => setNewOlympiad({...newOlympiad, titleEn: e.target.value})} className="w-full p-3 rounded-xl border bg-slate-50" required />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">Target Category *</label>
-                    <select value={newOlympiad.category} onChange={e => setNewOlympiad({...newOlympiad, category: e.target.value})} className="w-full p-3 rounded-xl border bg-blue-50 border-blue-200 font-bold" required>
-                      {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-4 bg-emerald-600 text-white font-black text-sm rounded-xl shadow-md">Launch Olympiad Live</button>
-              </form>
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-               <h3 className="font-black text-lg mb-4">Settings Placeholder</h3>
-               <p className="text-slate-500 text-sm">Use this section to edit website parameters.</p>
-            </div>
-          )}
-
-          {activeTab === 'users' && (
-             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm"><h3 className="font-black text-lg">Registrations ({paymentsList.length})</h3></div>
-          )}
-          
         </div>
       </div>
     </div>
