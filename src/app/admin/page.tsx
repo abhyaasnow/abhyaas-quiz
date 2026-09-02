@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import Link from 'next/link';
 import {
-  Layers, Plus, Trash2, Tag, BookOpen, Eye, LogOut, KeyRound,
-  CheckCircle2, FolderTree, ArrowRight, Activity, ChevronRight,
-  Sparkles, Award, CreditCard, Settings, ShieldAlert, FileSpreadsheet,
-  UploadCloud, Search, AlertTriangle, Truck, DollarSign, FileText,
-  Clock, Shield, RefreshCw, X, HelpCircle
+  Plus, Trash2, BookOpen, Eye, LogOut, KeyRound,
+  ArrowRight, Activity, ChevronRight, Check, X,
+  Search, RefreshCw, AlertTriangle, Layers
 } from 'lucide-react';
 
 import { 
@@ -20,7 +18,45 @@ import {
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 
-export default function AbhyaasEnterpriseAdminTower() {
+// ==================== 1. SELF-HEALING ERROR BOUNDARY ====================
+class AdminErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Admin Error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center font-sans">
+          <div className="max-w-lg bg-slate-800 border border-slate-700 p-8 rounded-3xl space-y-4 shadow-2xl">
+            <h2 className="text-xl font-black text-rose-400">Admin Console Diagnostic Alert</h2>
+            <p className="text-xs text-slate-300 font-mono bg-slate-950 p-3.5 rounded-xl text-left overflow-auto max-h-40 border border-slate-800">
+              {String(this.state.error?.message || this.state.error)}
+            </p>
+            <div className="flex gap-3 justify-center pt-2">
+              <button onClick={() => { localStorage.removeItem('abhyaas_admin_auth'); window.location.reload(); }} className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 rounded-xl text-xs font-bold transition">
+                Reset Session & Reload
+              </button>
+              <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold transition">
+                Try Reloading
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ==================== 2. MAIN ADMIN CONTROLLER ====================
+function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -28,20 +64,19 @@ export default function AbhyaasEnterpriseAdminTower() {
   const [activeTab, setActiveTab] = useState<'overview' | 'taxonomy' | 'questions' | 'olympiad' | 'fulfillment' | 'cms'>('overview');
   const [loading, setLoading] = useState(false);
 
-  // Master Data States (Always Initialized Safely)
+  // Master Data
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [olympiadsList, setOlympiadsList] = useState<OlympiadConfig[]>([]);
   const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>([]);
-  const [siteSettings, setSiteSettingsState] = useState<SiteSettings>({});
 
-  // Taxonomy Module State
+  // 1. Taxonomy State
   const [taxLevel, setTaxLevel] = useState<TaxonomyLevel>('DOMAIN');
   const [taxNameEn, setTaxNameEn] = useState('');
   const [taxNameHi, setTaxNameHi] = useState('');
   const [taxParentId, setTaxParentId] = useState('');
 
-  // Question Studio State
+  // 2. Question Studio State
   const [qSearch, setQSearch] = useState('');
   const [qModalOpen, setQModalOpen] = useState(false);
   const [qMode, setQMode] = useState<'manual' | 'csv'>('manual');
@@ -55,7 +90,7 @@ export default function AbhyaasEnterpriseAdminTower() {
   const [csvTargetCategory, setCsvTargetCategory] = useState('');
   const csvFileRef = useRef<HTMLInputElement | null>(null);
 
-  // Olympiad Lifecycle State
+  // 3. Olympiad Lifecycle State
   const [oForm, setOForm] = useState({
     titleEn: '', titleHi: '', category: '', description: '',
     assessmentFee: '49', scholarshipPool: '2,50,000', examDate: '',
@@ -65,10 +100,10 @@ export default function AbhyaasEnterpriseAdminTower() {
     cadence: 'Monthly'
   });
 
-  // Fulfillment State
+  // 4. Fulfillment State
   const [dbtFilter, setDbtFilter] = useState<'ALL' | 'PENDING' | 'DISPATCHED'>('ALL');
 
-  // CMS & Policies State
+  // 5. CMS State
   const [policies, setPolicies] = useState({
     headerLogoUrl: '',
     bannerTitleEn: 'All India Mega Olympiad 2026',
@@ -112,7 +147,6 @@ export default function AbhyaasEnterpriseAdminTower() {
       setPaymentsList(safePay);
 
       if (set.status === 'fulfilled' && set.value) {
-        setSiteSettingsState(set.value);
         setPolicies(p => ({ ...p, ...set.value }));
       }
 
@@ -124,7 +158,7 @@ export default function AbhyaasEnterpriseAdminTower() {
         setOForm(f => ({ ...f, category: safeName }));
       }
     } catch (e) {
-      console.error("Master data load error caught safely:", e);
+      console.error("Master load error:", e);
     } finally {
       setLoading(false);
     }
@@ -146,7 +180,7 @@ export default function AbhyaasEnterpriseAdminTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // ================= 1. TAXONOMY HANDLERS =================
+  // Taxonomy Handlers
   const handleAddTaxonomy = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taxNameEn.trim()) return alert("English Name is required.");
@@ -169,7 +203,7 @@ export default function AbhyaasEnterpriseAdminTower() {
     await deleteTaxonomyNode(id);
   };
 
-  // ================= 2. BULLETPROOF ANTI-DUPLICATE =================
+  // Anti-Duplicate Checker
   const cleanStr = (s: any) => (typeof s === 'string' ? s.toLowerCase().replace(/[^a-z0-9]/gi, '') : '');
 
   const checkDuplicates = (questionText: string, currentSubject: string) => {
@@ -264,14 +298,14 @@ export default function AbhyaasEnterpriseAdminTower() {
       }
       setQuestionsList(prev => [...imported, ...prev]);
       setQModalOpen(false);
-      alert(`Successfully ingested ${imported.length} questions into "${csvTargetCategory}".`);
+      alert(`Successfully ingested ${imported.length} questions.`);
       imported.forEach(q => createQuestion(q).catch(()=>{}));
     } catch (err) {
       alert("Error reading CSV.");
     }
   };
 
-  // ================= 3. OLYMPIAD LIFECYCLE =================
+  // Olympiad Handlers
   const handleCreateOlympiad = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!oForm.titleEn || !oForm.category) return alert("Title and Category required!");
@@ -297,11 +331,11 @@ export default function AbhyaasEnterpriseAdminTower() {
 
     setOlympiadsList(prev => [newOly, ...prev]);
     await saveCustomOlympiad(newOly);
-    alert("Live Olympiad Scheduled & Launched!");
+    alert("Live Olympiad Scheduled!");
   };
 
   const handleAutoPushToPractice = async (categoryName: string) => {
-    if (!confirm(`Push all Olympiad questions in "${categoryName}" to Free Practice & PYQ Bank?`)) return;
+    if (!confirm(`Push Olympiad questions in "${categoryName}" to Free Practice Bank?`)) return;
     const updated = questionsList.map(q => {
       if ((q?.subject === categoryName) && q?.approvalStatus === 'APPROVED_OLYMPIAD') {
         createQuestion({ ...q, approvalStatus: 'APPROVED_PRACTICE', timesUsedInOlympiad: 1 });
@@ -310,14 +344,15 @@ export default function AbhyaasEnterpriseAdminTower() {
       return q;
     });
     setQuestionsList(updated);
-    alert(`Success! Questions in "${categoryName}" are now live in Free Practice Bank.`);
+    alert(`Success! Questions in "${categoryName}" are now live in Free Practice.`);
   };
 
   const handleSaveCMS = async () => {
     await updateSiteSettings(policies);
-    alert("Website Policies, Banners & Branding Updated Globally!");
+    alert("Website Policies Updated Globally!");
   };
 
+  // Unauthenticated Gateway
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#0b1121] flex flex-col items-center justify-center p-4">
@@ -339,7 +374,6 @@ export default function AbhyaasEnterpriseAdminTower() {
     );
   }
 
-  // Safe Filtered Queries
   const domains = taxonomyList.filter(t => t && t.level === 'DOMAIN');
   const exams = taxonomyList.filter(t => t && t.level === 'EXAM');
   const subjects = taxonomyList.filter(t => t && t.level === 'SUBJECT');
@@ -348,24 +382,21 @@ export default function AbhyaasEnterpriseAdminTower() {
   const filteredQs = questionsList.filter(q => {
     const qText = (q?.questionEn || (q as any)?.question || '').toLowerCase();
     const qSubj = (q?.subject || '').toLowerCase();
-    const qTop = (q?.topic || '').toLowerCase();
     const search = (qSearch || '').toLowerCase();
-    return qText.includes(search) || qSubj.includes(search) || qTop.includes(search);
+    return qText.includes(search) || qSubj.includes(search);
   });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* Top Bar */}
+      {/* Top Header */}
       <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-base shadow-sm">A</div>
-            <div>
-              <h1 className="font-black text-sm sm:text-base tracking-wide flex items-center gap-2">
-                ABHYAAS O.S. <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] rounded uppercase font-black">Enterprise Controller</span>
-              </h1>
-            </div>
+            <h1 className="font-black text-sm sm:text-base tracking-wide flex items-center gap-2">
+              ABHYAAS O.S. <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] rounded uppercase font-black">Enterprise Controller</span>
+            </h1>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/practice" target="_blank" className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
@@ -376,10 +407,10 @@ export default function AbhyaasEnterpriseAdminTower() {
         </div>
       </header>
 
-      {/* Main Command Workspace */}
+      {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8 items-start">
         
-        {/* Sidebar */}
+        {/* Navigation Sidebar */}
         <div className="w-full lg:w-64 bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-1.5 sticky top-24 shrink-0">
           <div className="px-3 py-1 text-[10px] font-black uppercase text-slate-400 tracking-wider">Enterprise Modules</div>
 
@@ -388,7 +419,7 @@ export default function AbhyaasEnterpriseAdminTower() {
           </button>
 
           <button onClick={() => setActiveTab('taxonomy')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'taxonomy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <FolderTree className="w-4 h-4"/> 2. Master Taxonomy
+            <Layers className="w-4 h-4"/> 2. Master Taxonomy
           </button>
 
           <button onClick={() => setActiveTab('questions')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
@@ -396,31 +427,22 @@ export default function AbhyaasEnterpriseAdminTower() {
           </button>
 
           <button onClick={() => setActiveTab('olympiad')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'olympiad' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <Award className="w-4 h-4"/> 4. Olympiad Engine
+            <span className="text-base">🏆</span> 4. Olympiad Engine
           </button>
 
           <button onClick={() => setActiveTab('fulfillment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'fulfillment' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <Truck className="w-4 h-4"/> 5. DBT & Logistics
+            <span className="text-base">📦</span> 5. DBT & Logistics
           </button>
 
           <button onClick={() => setActiveTab('cms')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'cms' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <Settings className="w-4 h-4"/> 6. Storefront & Policies
+            <span className="text-base">⚙️</span> 6. Storefront & Policies
           </button>
-
-          <div className="pt-4 border-t border-slate-100 px-3">
-            <div className="text-[10px] font-black text-slate-400 uppercase">Live Metrics</div>
-            <div className="mt-2 space-y-1 text-xs font-bold text-slate-600">
-              <div className="flex justify-between"><span>Taxonomy Nodes:</span> <span className="text-blue-600">{taxonomyList.length}</span></div>
-              <div className="flex justify-between"><span>Active Olympiads:</span> <span className="text-emerald-600">{olympiadsList.length}</span></div>
-              <div className="flex justify-between"><span>Total Registrations:</span> <span className="text-amber-600">{paymentsList.length}</span></div>
-            </div>
-          </div>
         </div>
 
-        {/* Dynamic Studio Panels */}
+        {/* Dynamic Studio Workspace */}
         <div className="flex-grow w-full space-y-6">
 
-          {/* ================= MODULE 1: OVERVIEW ================= */}
+          {/* MODULE 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -432,23 +454,23 @@ export default function AbhyaasEnterpriseAdminTower() {
                 <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
                   <p className="text-xs font-bold text-slate-400 uppercase">Hierarchy Nodes</p>
                   <p className="text-3xl font-black text-blue-600 mt-2">{taxonomyList.length}</p>
-                  <span className="text-[10px] text-slate-500 font-bold">{domains.length} Domains • {exams.length} Exams</span>
+                  <span className="text-[10px] text-slate-500 font-bold">{domains.length} Domains</span>
                 </div>
                 <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
                   <p className="text-xs font-bold text-slate-400 uppercase">Active Contests</p>
                   <p className="text-3xl font-black text-emerald-600 mt-2">{olympiadsList.length}</p>
-                  <span className="text-[10px] text-emerald-600 font-bold">Scheduled & Live</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">Live</span>
                 </div>
                 <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
-                  <p className="text-xs font-bold text-slate-400 uppercase">Candidates / Orders</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase">Candidate Orders</p>
                   <p className="text-3xl font-black text-amber-600 mt-2">{paymentsList.length}</p>
-                  <span className="text-[10px] text-amber-600 font-bold">Verified Ledger</span>
+                  <span className="text-[10px] text-amber-600 font-bold">Verified</span>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm space-y-4">
+              <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm space-y-3">
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-blue-600" /> Enterprise Health Status
+                  <span>⚡</span> Enterprise Health Status
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   Your platform is operating in <strong>Zero-Code Enterprise Mode</strong>. Any changes made in Taxonomy, Question Bank, or Olympiad engine instantly reflect on the student storefront with zero deployment latency.
@@ -457,14 +479,14 @@ export default function AbhyaasEnterpriseAdminTower() {
             </div>
           )}
 
-          {/* ================= MODULE 2: TAXONOMY ================= */}
+          {/* MODULE 2: TAXONOMY */}
           {activeTab === 'taxonomy' && (
             <div className="space-y-6">
               <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                   <div>
                     <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                      <FolderTree className="w-6 h-6 text-blue-600" /> Master Taxonomy Studio
+                      <Layers className="w-6 h-6 text-blue-600" /> Master Taxonomy Studio
                     </h2>
                     <p className="text-xs text-slate-500 mt-1">Configure your 4-level data tree: Domain ➔ Exam ➔ Subject ➔ Topic.</p>
                   </div>
@@ -528,7 +550,7 @@ export default function AbhyaasEnterpriseAdminTower() {
                 </form>
               </div>
 
-              {/* Taxonomy Nodes List */}
+              {/* Taxonomy List */}
               <div className="space-y-3">
                 <h3 className="text-sm font-black text-slate-900 uppercase">Active {taxLevel} Nodes ({taxonomyList.filter(t => t && t.level === taxLevel).length})</h3>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -548,10 +570,9 @@ export default function AbhyaasEnterpriseAdminTower() {
             </div>
           )}
 
-          {/* ================= MODULE 3: QUESTION BANK & DEDUPLICATION ================= */}
+          {/* MODULE 3: QUESTIONS */}
           {activeTab === 'questions' && (
             <div className="space-y-6">
-              
               <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                 <div className="relative w-full sm:w-80">
                   <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -562,19 +583,18 @@ export default function AbhyaasEnterpriseAdminTower() {
                     <Plus className="w-4 h-4"/> Manual Studio
                   </button>
                   <button onClick={() => { setQMode('csv'); setQModalOpen(true); }} className="px-4 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm">
-                    <FileSpreadsheet className="w-4 h-4"/> Bulk CSV Upload
+                    Bulk CSV Upload
                   </button>
                 </div>
               </div>
 
               {qModalOpen && (
-                <div className="bg-white border-2 border-blue-600 rounded-3xl p-6 shadow-xl space-y-6 relative animate-in fade-in">
+                <div className="bg-white border-2 border-blue-600 rounded-3xl p-6 shadow-xl space-y-6 relative">
                   <button onClick={()=>setQModalOpen(false)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full"><X className="w-4 h-4"/></button>
-                  <h3 className="text-base font-black text-slate-900 border-b pb-3">{qMode === 'manual' ? 'Smart Question Ingestion Studio' : 'Bulk CSV Flat-File Importer'}</h3>
+                  <h3 className="text-base font-black text-slate-900 border-b pb-3">{qMode === 'manual' ? 'Smart Question Studio' : 'Bulk CSV Importer'}</h3>
 
                   {qMode === 'manual' ? (
                     <form onSubmit={handleSaveQuestion} className="space-y-4">
-                      
                       {duplicateWarning && (
                         <div className={`p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 ${duplicateWarning.includes('HARD') ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                           <AlertTriangle className="w-5 h-5 shrink-0" />
@@ -613,7 +633,6 @@ export default function AbhyaasEnterpriseAdminTower() {
                         </div>
                       </div>
 
-                      {/* Options */}
                       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                         <label className="block text-[11px] font-black uppercase text-slate-400">Options & Correct Key</label>
                         {[0,1,2,3].map(i => (
@@ -639,8 +658,7 @@ export default function AbhyaasEnterpriseAdminTower() {
                         </select>
                       </div>
                       <div onClick={()=>csvFileRef.current?.click()} className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-slate-50 cursor-pointer hover:border-blue-500">
-                        <UploadCloud className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-800">Click to Select CSV Flat-File</p>
+                        <p className="text-xs font-bold text-slate-800">Click to Select CSV File</p>
                         <input type="file" accept=".csv" ref={csvFileRef} onChange={handleCsvFile} className="hidden" />
                       </div>
                     </div>
@@ -648,7 +666,7 @@ export default function AbhyaasEnterpriseAdminTower() {
                 </div>
               )}
 
-              {/* Safe Questions List */}
+              {/* List */}
               <div className="space-y-2">
                 {filteredQs.map((q, idx) => (
                   <div key={q?.id || idx} className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center justify-between shadow-sm">
@@ -661,7 +679,6 @@ export default function AbhyaasEnterpriseAdminTower() {
                         </span>
                       </div>
                       <p className="text-xs font-extrabold text-slate-900">{q?.questionEn || (q as any)?.question || 'Untitled Question'}</p>
-                      {q?.questionHi && <p className="text-[11px] text-slate-500">{q.questionHi}</p>}
                     </div>
                     <button onClick={()=>{setQuestionsList(prev => prev.filter(item=>item.id!==q.id)); deleteQuestion(q.id);}} className="text-rose-400 hover:text-rose-600 p-2">
                       <Trash2 className="w-4 h-4" />
@@ -672,18 +689,15 @@ export default function AbhyaasEnterpriseAdminTower() {
             </div>
           )}
 
-          {/* ================= MODULE 4: OLYMPIAD ENGINE ================= */}
+          {/* MODULE 4: OLYMPIAD */}
           {activeTab === 'olympiad' && (
             <div className="space-y-6">
-              
               <form onSubmit={handleCreateOlympiad} className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                      <Award className="w-5 h-5 text-emerald-600" /> Olympiad Commercials & Slot Scheduling
-                    </h2>
-                    <p className="text-xs text-slate-500">Configure contest rules, proctoring locks, registration fees, and scholarship pools.</p>
-                  </div>
+                <div className="border-b pb-4">
+                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>🏆</span> Olympiad Commercials & Slot Scheduling
+                  </h2>
+                  <p className="text-xs text-slate-500">Configure contest rules, proctoring locks, registration fees, and scholarship pools.</p>
                 </div>
 
                 <div className="grid sm:grid-cols-3 gap-4 text-xs">
@@ -743,7 +757,6 @@ export default function AbhyaasEnterpriseAdminTower() {
                 </button>
               </form>
 
-              {/* Safe Olympiads List */}
               <div className="space-y-3">
                 <h3 className="text-sm font-black text-slate-900 uppercase">Live Scheduled Olympiads</h3>
                 {olympiadsList.map((o, i) => (
@@ -753,7 +766,7 @@ export default function AbhyaasEnterpriseAdminTower() {
                         <span className="text-[9px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded">{o?.category || 'General'}</span>
                         <span className="text-xs font-black text-slate-900">{o?.titleEn || (o as any)?.title || 'Olympiad'}</span>
                       </div>
-                      <p className="text-xs text-slate-500">Fee: ₹{o?.assessmentFee || 0} • Pool: ₹{o?.scholarshipPool || 0} • Date: {o?.examDate || 'Upcoming'}</p>
+                      <p className="text-xs text-slate-500">Fee: ₹{o?.assessmentFee || 0} • Pool: ₹{o?.scholarshipPool || 0}</p>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={()=>handleAutoPushToPractice(o.category)} className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl border border-amber-200 flex items-center gap-1">
@@ -766,54 +779,48 @@ export default function AbhyaasEnterpriseAdminTower() {
                   </div>
                 ))}
               </div>
-
             </div>
           )}
 
-          {/* ================= MODULE 5: FULFILLMENT & DBT ================= */}
+          {/* MODULE 5: FULFILLMENT */}
           {activeTab === 'fulfillment' && (
-            <div className="space-y-6">
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                <div className="flex justify-between items-center border-b pb-4">
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">Scholarship DBT & Physical Reward Dispatch</h3>
-                    <p className="text-xs text-slate-500">Track candidate bank account transfers and physical certificate courier tracking.</p>
-                  </div>
-                  <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-                    <button onClick={()=>setDbtFilter('ALL')} className={`px-3 py-1 rounded-lg ${dbtFilter==='ALL'?'bg-white shadow-sm':''}`}>All ({paymentsList.length})</button>
-                    <button onClick={()=>setDbtFilter('PENDING')} className={`px-3 py-1 rounded-lg ${dbtFilter==='PENDING'?'bg-white shadow-sm':''}`}>Pending Grants</button>
-                  </div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b pb-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Scholarship DBT & Reward Dispatch</h3>
+                  <p className="text-xs text-slate-500">Track candidate bank transfers and certificate dispatches.</p>
                 </div>
-
-                {paymentsList.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-slate-400">No candidate transaction records found yet.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {paymentsList.map((p, idx) => (
-                      <div key={p?.id || idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center text-xs">
-                        <div>
-                          <p className="font-bold text-slate-900">{p?.candidateName || p?.studentName || 'Student'} <span className="text-[10px] text-slate-400 font-mono">({p?.rollNo || p?.id || 'N/A'})</span></p>
-                          <p className="text-[11px] text-slate-500">{p?.email || 'No Email'} • {p?.phone || 'No Phone'}</p>
-                        </div>
-                        <div className="flex gap-3 items-center">
-                          <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-md font-black text-[10px]">PAID ₹{p?.amount || 49}</span>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-bold text-[10px]">DBT Verified</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                  <button onClick={()=>setDbtFilter('ALL')} className={`px-3 py-1 rounded-lg ${dbtFilter==='ALL'?'bg-white shadow-sm':''}`}>All ({paymentsList.length})</button>
+                  <button onClick={()=>setDbtFilter('PENDING')} className={`px-3 py-1 rounded-lg ${dbtFilter==='PENDING'?'bg-white shadow-sm':''}`}>Pending Grants</button>
+                </div>
               </div>
+
+              {paymentsList.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">No candidate transaction records found yet.</div>
+              ) : (
+                <div className="space-y-2">
+                  {paymentsList.map((p, idx) => (
+                    <div key={p?.id || idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center text-xs">
+                      <div>
+                        <p className="font-bold text-slate-900">{p?.candidateName || p?.studentName || 'Student'} <span className="text-[10px] text-slate-400 font-mono">({p?.rollNo || p?.id || 'N/A'})</span></p>
+                        <p className="text-[11px] text-slate-500">{p?.email || 'No Email'}</p>
+                      </div>
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-md font-black text-[10px]">PAID ₹{p?.amount || 49}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ================= MODULE 6: CMS & POLICIES ================= */}
+          {/* MODULE 6: CMS */}
           {activeTab === 'cms' && (
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
               <div className="flex justify-between items-center border-b pb-4">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Website CMS, Branding & Legal Policies</h3>
-                  <p className="text-xs text-slate-500">Edit logos, hero headlines, terms, refund rules, and anti-cheat policies without coding.</p>
+                  <h3 className="text-base font-black text-slate-900">Website CMS, Branding & Policies</h3>
+                  <p className="text-xs text-slate-500">Edit hero headlines, terms, refund rules, and anti-cheat policies without coding.</p>
                 </div>
                 <button onClick={handleSaveCMS} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm">
                   Publish to Live Site
@@ -847,5 +854,13 @@ export default function AbhyaasEnterpriseAdminTower() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AbhyaasEnterpriseAdminTower() {
+  return (
+    <AdminErrorBoundary>
+      <AdminDashboard />
+    </AdminErrorBoundary>
   );
 }
