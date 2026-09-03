@@ -4,7 +4,7 @@ import {
   updateDoc, Timestamp 
 } from 'firebase/firestore';
 
-// Build-Safe Fallback to prevent "auth/invalid-api-key" during local prerender
+// Prerender-safe Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyDummyKeyForBuildProcess12345',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'abhyaas-quiz.firebaseapp.com',
@@ -17,7 +17,51 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== 1. SITE SETTINGS & CMS ====================
+// ==================== 1. CATEGORY & HIERARCHY (STEP A) ====================
+export type TaxonomyLevel = 'CLASS' | 'EXAM' | 'SUBJECT' | 'TOPIC' | 'DOMAIN';
+
+export interface TaxonomyNode {
+  id: string;
+  level: TaxonomyLevel;
+  nameEn: string;
+  nameHi?: string;
+  parentId?: string;
+  orderIndex?: number;
+  [key: string]: any;
+}
+
+export async function getTaxonomyNodes(): Promise<TaxonomyNode[]> {
+  try {
+    const snap = await getDocs(collection(db, 'taxonomy'));
+    return snap.docs.map(d => {
+      const data = d.data();
+      let safeLevel: TaxonomyLevel = data.level || 'CLASS';
+      if (safeLevel === 'DOMAIN') safeLevel = 'CLASS';
+      return {
+        id: d.id,
+        level: safeLevel,
+        nameEn: data.nameEn || data.name || 'Untitled Node',
+        nameHi: data.nameHi || '',
+        parentId: data.parentId || undefined,
+        ...data
+      } as TaxonomyNode;
+    });
+  } catch (err) {
+    console.error("Error fetching taxonomy:", err);
+    return [];
+  }
+}
+
+export async function saveTaxonomyNode(node: TaxonomyNode): Promise<void> {
+  const docRef = doc(db, 'taxonomy', node.id);
+  await setDoc(docRef, { ...node, updatedAt: Timestamp.now() }, { merge: true });
+}
+
+export async function deleteTaxonomyNode(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'taxonomy', id));
+}
+
+// ==================== 2. SITE SETTINGS & CMS (FIX FOR BANNER) ====================
 export interface SiteSettings {
   headerLogoUrl?: string | null | any;
   footerLogoUrl?: string | null | any;
@@ -54,183 +98,7 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
   await setDoc(docRef, settings, { merge: true });
 }
 
-// ==================== 2. TAXONOMY / HIERARCHY ====================
-export type TaxonomyLevel = 'DOMAIN' | 'EXAM' | 'SUBJECT' | 'TOPIC';
-
-export interface TaxonomyNode {
-  id: string;
-  level: TaxonomyLevel;
-  nameEn: string;
-  nameHi?: string;
-  parentId?: string;
-  orderIndex?: number;
-  [key: string]: any;
-}
-
-export async function getTaxonomyNodes(): Promise<TaxonomyNode[]> {
-  try {
-    const snap = await getDocs(collection(db, 'taxonomy'));
-    return snap.docs.map(d => {
-      const data = d.data();
-      return {
-        id: d.id,
-        level: data.level || 'DOMAIN',
-        nameEn: data.nameEn || data.name || 'Untitled Node',
-        nameHi: data.nameHi || '',
-        parentId: data.parentId || undefined,
-        ...data
-      } as TaxonomyNode;
-    });
-  } catch (err) {
-    console.error("Error fetching taxonomy:", err);
-    return [];
-  }
-}
-
-export async function saveTaxonomyNode(node: TaxonomyNode): Promise<void> {
-  const docRef = doc(db, 'taxonomy', node.id);
-  await setDoc(docRef, { ...node, updatedAt: Timestamp.now() }, { merge: true });
-}
-
-export async function deleteTaxonomyNode(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'taxonomy', id));
-}
-
-// ==================== 3. CATEGORIES ====================
-export interface CategoryConfig {
-  id: string;
-  name: string;
-  [key: string]: any;
-}
-
-export async function getCustomCategories(): Promise<CategoryConfig[]> {
-  try {
-    const snap = await getDocs(collection(db, 'categories'));
-    return snap.docs.map(d => ({ id: d.id, name: d.data().name || 'General', ...d.data() } as CategoryConfig));
-  } catch (err) {
-    return [];
-  }
-}
-
-export async function saveCustomCategory(cat: CategoryConfig): Promise<void> {
-  await setDoc(doc(db, 'categories', cat.id), cat, { merge: true });
-}
-
-export async function deleteCustomCategory(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'categories', id));
-}
-
-// ==================== 4. QUESTIONS ENGINE ====================
-export type ApprovalStatus = 'APPROVED_PRACTICE' | 'APPROVED_OLYMPIAD' | 'PENDING' | 'REJECTED';
-
-export interface QuestionData {
-  id: string;
-  subject: string;
-  topic: string;
-  questionEn: string;
-  questionHi: string;
-  optionsEn: string[];
-  optionsHi: string[];
-  correctOption: number;
-  approvalStatus: ApprovalStatus;
-  timesUsedInOlympiad?: number;
-  diagramUrl?: string | null;
-  explanationEn?: string;
-  explanationHi?: string;
-  [key: string]: any;
-}
-
-export async function getAllQuestions(): Promise<QuestionData[]> {
-  try {
-    const snap = await getDocs(collection(db, 'questions'));
-    return snap.docs.map(d => {
-      const data = d.data();
-      const textEn = data.questionEn || data.question || 'Untitled Question';
-      const textHi = data.questionHi || '';
-      const optsEn = Array.isArray(data.optionsEn) ? data.optionsEn : (Array.isArray(data.options) ? data.options : ['', '', '', '']);
-      const optsHi = Array.isArray(data.optionsHi) ? data.optionsHi : ['', '', '', ''];
-      
-      return {
-        id: d.id,
-        subject: data.subject || 'General',
-        topic: data.topic || 'General',
-        questionEn: textEn,
-        questionHi: textHi,
-        optionsEn: optsEn,
-        optionsHi: optsHi,
-        correctOption: typeof data.correctOption === 'number' ? data.correctOption : 0,
-        approvalStatus: data.approvalStatus || 'APPROVED_PRACTICE',
-        timesUsedInOlympiad: data.timesUsedInOlympiad || 0,
-        explanationEn: data.explanationEn || '',
-        explanationHi: data.explanationHi || '',
-        ...data
-      } as QuestionData;
-    });
-  } catch (err) {
-    console.error("Error fetching questions:", err);
-    return [];
-  }
-}
-
-export async function createQuestion(q: QuestionData): Promise<void> {
-  await setDoc(doc(db, 'questions', q.id), { ...q, createdAt: Timestamp.now() }, { merge: true });
-}
-
-export async function deleteQuestion(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'questions', id));
-}
-
-export async function updateQuestionStatus(id: string, status: ApprovalStatus): Promise<void> {
-  const docRef = doc(db, 'questions', id);
-  await updateDoc(docRef, { approvalStatus: status });
-}
-
-// ==================== 5. OLYMPIADS ====================
-export interface OlympiadConfig {
-  id: string;
-  titleEn: string;
-  titleHi: string;
-  category: string;
-  description: string;
-  assessmentFee: string;
-  scholarshipPool: string;
-  examDate: string;
-  status: 'ACTIVE' | 'UPCOMING' | 'CLOSED';
-  [key: string]: any;
-}
-
-export async function getCustomOlympiads(): Promise<OlympiadConfig[]> {
-  try {
-    const snap = await getDocs(collection(db, 'olympiads'));
-    return snap.docs.map(d => {
-      const data = d.data();
-      return {
-        id: d.id,
-        titleEn: data.titleEn || data.title || 'Olympiad',
-        titleHi: data.titleHi || '',
-        category: data.category || 'General',
-        description: data.description || '',
-        assessmentFee: data.assessmentFee || '49',
-        scholarshipPool: data.scholarshipPool || '2,50,000',
-        examDate: data.examDate || 'Upcoming',
-        status: data.status || 'ACTIVE',
-        ...data
-      } as OlympiadConfig;
-    });
-  } catch (err) {
-    return [];
-  }
-}
-
-export async function saveCustomOlympiad(o: OlympiadConfig): Promise<void> {
-  await setDoc(doc(db, 'olympiads', o.id), o, { merge: true });
-}
-
-export async function deleteCustomOlympiad(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'olympiads', id));
-}
-
-// ==================== 6. PAYMENTS ENGINE ====================
+// ==================== 3. PAYMENTS & PROFILES (FIX FOR PROFILE) ====================
 export interface PaymentRecord {
   id: string;
   studentName: string;
@@ -299,7 +167,119 @@ export async function approvePaymentToken(id: string): Promise<void> {
   await updateDoc(docRef, { status: 'APPROVED' });
 }
 
-// ==================== 7. SUPPORT TICKETS ====================
+// ==================== 4. LEGACY CATEGORIES & COMPATIBILITY ====================
+export interface CategoryConfig {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
+export async function getCustomCategories(): Promise<CategoryConfig[]> {
+  try {
+    const snap = await getDocs(collection(db, 'categories'));
+    return snap.docs.map(d => ({ id: d.id, name: d.data().name || 'General', ...d.data() } as CategoryConfig));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCustomCategory(cat: CategoryConfig): Promise<void> {
+  await setDoc(doc(db, 'categories', cat.id), cat, { merge: true });
+}
+
+export async function deleteCustomCategory(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'categories', id));
+}
+
+// ==================== 5. QUESTIONS & OLYMPIADS COMPATIBILITY ====================
+export type ApprovalStatus = 'APPROVED_PRACTICE' | 'APPROVED_OLYMPIAD' | 'PENDING' | 'REJECTED';
+
+export interface QuestionData {
+  id: string;
+  subject: string;
+  topic: string;
+  questionEn: string;
+  questionHi: string;
+  optionsEn: string[];
+  optionsHi: string[];
+  correctOption: number;
+  approvalStatus: ApprovalStatus;
+  timesUsedInOlympiad?: number;
+  diagramUrl?: string | null;
+  explanationEn?: string;
+  explanationHi?: string;
+  [key: string]: any;
+}
+
+export async function getAllQuestions(): Promise<QuestionData[]> {
+  try {
+    const snap = await getDocs(collection(db, 'questions'));
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        subject: data.subject || 'General',
+        topic: data.topic || 'General',
+        questionEn: data.questionEn || data.question || 'Untitled Question',
+        questionHi: data.questionHi || '',
+        optionsEn: Array.isArray(data.optionsEn) ? data.optionsEn : (Array.isArray(data.options) ? data.options : ['', '', '', '']),
+        optionsHi: Array.isArray(data.optionsHi) ? data.optionsHi : ['', '', '', ''],
+        correctOption: typeof data.correctOption === 'number' ? data.correctOption : 0,
+        approvalStatus: data.approvalStatus || 'APPROVED_PRACTICE',
+        timesUsedInOlympiad: data.timesUsedInOlympiad || 0,
+        explanationEn: data.explanationEn || '',
+        explanationHi: data.explanationHi || '',
+        ...data
+      } as QuestionData;
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function createQuestion(q: QuestionData): Promise<void> {
+  await setDoc(doc(db, 'questions', q.id), { ...q, createdAt: Timestamp.now() }, { merge: true });
+}
+
+export async function deleteQuestion(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'questions', id));
+}
+
+export async function updateQuestionStatus(id: string, status: ApprovalStatus): Promise<void> {
+  const docRef = doc(db, 'questions', id);
+  await updateDoc(docRef, { approvalStatus: status });
+}
+
+export interface OlympiadConfig {
+  id: string;
+  titleEn: string;
+  titleHi: string;
+  category: string;
+  description: string;
+  assessmentFee: string;
+  scholarshipPool: string;
+  examDate: string;
+  status: 'ACTIVE' | 'UPCOMING' | 'CLOSED';
+  [key: string]: any;
+}
+
+export async function getCustomOlympiads(): Promise<OlympiadConfig[]> {
+  try {
+    const snap = await getDocs(collection(db, 'olympiads'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as OlympiadConfig));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCustomOlympiad(o: OlympiadConfig): Promise<void> {
+  await setDoc(doc(db, 'olympiads', o.id), o, { merge: true });
+}
+
+export async function deleteCustomOlympiad(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'olympiads', id));
+}
+
 export interface SupportTicket {
   id: string;
   subject?: string;
