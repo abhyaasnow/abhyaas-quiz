@@ -9,7 +9,7 @@ import {
   FileSpreadsheet, Upload, Download, RefreshCw,
   Filter, Search, Award, HelpCircle, ArrowDownCircle,
   AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Archive, Atom
+  RotateCcw, ShieldAlert, Copy, Atom
 } from 'lucide-react';
 
 import { 
@@ -52,7 +52,6 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   DOMAIN: []
 };
 
-// Robust CSV Parser
 function parseCSVProperly(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
@@ -97,6 +96,7 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
+  // Primary Navigation
   const [adminTab, setAdminTab] = useState<'questions' | 'recycle_bin' | 'hierarchy'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
@@ -117,6 +117,7 @@ export default function AbhyaasMasterTower() {
 
   const [bulkMode, setBulkMode] = useState<'paste' | 'csv'>('paste');
   const [pasteData, setPasteData] = useState('');
+  const [copiedSample, setCopiedSample] = useState(false);
 
   // Filters
   const [searchFilter, setSearchFilter] = useState('');
@@ -393,6 +394,56 @@ export default function AbhyaasMasterTower() {
     }
   };
 
+  // Download Sample CSV (UTF-8 with BOM)
+  const downloadSampleCsv = () => {
+    const headers = [
+      "Segment", "Class", "Exam", "Subject", "Topic", "PYQYear",
+      "QuestionEn", "QuestionHi",
+      "Opt1_En", "Opt2_En", "Opt3_En", "Opt4_En",
+      "Opt1_Hi", "Opt2_Hi", "Opt3_Hi", "Opt4_Hi",
+      "CorrectOpt", "ExplanationEn", "ExplanationHi", "DiagramUrl"
+    ].join(",");
+    const sampleRow = [
+      "PRACTICE",
+      '"Civil Services / Competitive"',
+      '"UPSC Civil Services (Prelims)"',
+      '"General Studies / Geography"',
+      '"Global Mineral Resources & EV Transition"',
+      "2024",
+      '"Which group of South American nations is collectively referred to as the \'Lithium Triangle\'?"',
+      '"दक्षिण अमेरिकी देशों के किस समूह को सामूहिक रूप से \'लिथियम ट्रायंगल\' कहा जाता है?"',
+      '"Brazil, Peru, Chile"',
+      '"Argentina, Bolivia, Chile"',
+      '"Colombia, Venezuela, Ecuador"',
+      '"Argentina, Brazil, Peru"',
+      '"ब्राजील, पेरू, चिली"',
+      '"अर्जेंटीना, बोलीविया, चिली"',
+      '"कोलंबिया, वेनेजुएला, इक्वाडोर"',
+      '"अर्जेंटीना, ब्राजील, पेरू"',
+      "2",
+      '"The Lithium Triangle consists of Argentina, Bolivia, and Chile, containing roughly 55-60% of identified reserves."',
+      '"लिथियम ट्रायंगल अर्जेंटीना, बोलीविया और चिली से मिलकर बना है, जहां लगभग 55-60% भंडार मौजूद हैं।"',
+      '""'
+    ].join(",");
+
+    const blob = new Blob(['\uFEFF' + headers + '\n' + sampleRow], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Abhyaas_Bulk_Question_Template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 1-Click Copy Sample Row for Testing Direct Paste
+  const copySampleRowToClipboard = () => {
+    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Geography\tGlobal Mineral Resources & EV Transition\t2024\tWhich group of South American nations is called Lithium Triangle?\tदक्षिण अमेरिकी देशों के किस समूह को लिथियम ट्रायंगल कहा जाता है?\tBrazil, Peru, Chile\tArgentina, Bolivia, Chile\tColombia, Venezuela, Ecuador\tArgentina, Brazil, Peru\tब्राजील, पेरू, चिली\tअर्जेंटीना, बोलीविया, चिली\tकोलंबिया, वेनेजुएला, इक्वाडोर\tअर्जेंटीना, ब्राजील, पेरू\t2\tThe Lithium Triangle consists of Argentina, Bolivia, and Chile.\tलिथियम ट्रायंगल अर्जेंटीना, बोलीविया और चिली से मिलकर बना है।\t";
+    navigator.clipboard.writeText(sample);
+    setCopiedSample(true);
+    setTimeout(() => setCopiedSample(false), 3000);
+  };
+
   // Direct Excel Paste (Unicode Safe)
   const handleDirectExcelPaste = async () => {
     if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
@@ -433,13 +484,13 @@ export default function AbhyaasMasterTower() {
       }
     }
 
-    if (parsed.length === 0) return alert("Could not parse rows. Ensure columns match the sample template.");
+    if (parsed.length === 0) return alert("Could not parse rows. Ensure columns match the template.");
     try {
       const count = await bulkUploadQuestions(parsed);
       setQuestionsList(prev => [...parsed, ...prev]);
       setPasteData('');
       setIsBulkModalOpen(false);
-      alert(`🎉 Successfully imported ${count} questions directly from Excel without any encoding errors!`);
+      alert(`🎉 Imported ${count} questions directly from Excel without encoding errors!`);
     } catch (err: any) {
       alert("Error importing from Excel: " + err.message);
     }
@@ -557,10 +608,8 @@ export default function AbhyaasMasterTower() {
   const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
   const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
 
-  // Active Questions (Not Deleted)
+  // Active Questions
   const activeQuestions = questionsList.filter(q => !q.isArchived);
-  
-  // Archived Questions (In Recycle Bin)
   const archivedQuestions = questionsList.filter(q => q.isArchived);
 
   // Multi-Tier Filter for Active Stream
@@ -971,7 +1020,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO WITH EXTENDED FORMULA BAR */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1134,14 +1183,13 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Enhanced Science, Physics, Chemistry & Math Formula Toolbar */}
+              {/* Science & Math Formula Toolbar */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
                   Scientific & Mathematical Toolbar (Click symbol to insert into Question):
                 </span>
                 
-                {/* Chemistry & Subscripts */}
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
                   <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Chem:</span>
                   {['H₂O', 'CO₂', 'LiFePO₄', 'SO₄²⁻', 'NO₃⁻', 'O₂', 'N₂', 'Fe²⁺', '→', '⇌', 'Δ', '°C'].map(sym => (
@@ -1156,7 +1204,6 @@ export default function AbhyaasMasterTower() {
                   ))}
                 </div>
 
-                {/* Math & Physics */}
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono pt-1 border-t border-blue-200/50">
                   <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Math:</span>
                   {['x²', 'x³', 'x₁', 'x₂', '√', 'π', 'Ω', 'θ', 'λ', 'α', 'β', '∑', '∫', '±', '≠', '≤', '≥', '∞'].map(sym => (
@@ -1294,30 +1341,60 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: BULK UPLOAD + DIRECT EXCEL PASTE */}
+      {/* MODAL 2: BULK UPLOAD + EXCEL PASTE (WITH RESTORED DOWNLOAD & COPY BUTTONS) */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
+            
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                Bulk Question Importer
-              </h3>
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                  Bulk Question Importer
+                </h3>
+                <p className="text-xs text-slate-500">Upload multiple questions via Excel paste or CSV file.</p>
+              </div>
               <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Template Download & Copy Bar */}
+            <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <p className="text-xs font-black text-blue-950">Official Template File & Sample Data</p>
+                <p className="text-[11px] text-blue-700">Pre-formatted with all 20 required columns.</p>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={downloadSampleCsv}
+                  className="flex-1 sm:flex-none px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download Template (.CSV)
+                </button>
+                <button
+                  type="button"
+                  onClick={copySampleRowToClipboard}
+                  className="flex-1 sm:flex-none px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition"
+                >
+                  {copiedSample ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedSample ? 'Copied!' : 'Copy Sample Row'}
+                </button>
+              </div>
+            </div>
+
+            {/* Ingestion Mode Tabs */}
             <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
               <button
                 onClick={() => setBulkMode('paste')}
-                className={`flex-1 py-2 rounded-lg transition ${bulkMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                className={`flex-1 py-2.5 rounded-lg transition ${bulkMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
               >
                 1. Direct Paste from Excel (Recommended)
               </button>
               <button
                 onClick={() => setBulkMode('csv')}
-                className={`flex-1 py-2 rounded-lg transition ${bulkMode === 'csv' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                className={`flex-1 py-2.5 rounded-lg transition ${bulkMode === 'csv' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
               >
                 2. Upload UTF-8 CSV File
               </button>
@@ -1326,7 +1403,7 @@ export default function AbhyaasMasterTower() {
             {bulkMode === 'paste' ? (
               <div className="space-y-3 text-xs">
                 <p className="text-slate-600 leading-relaxed">
-                  Select rows in Microsoft Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>. Windows clipboard preserves Hindi characters without encoding corruption.
+                  Click <strong>Copy Sample Row</strong> above or select rows in Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>:
                 </p>
                 <textarea
                   rows={6}
@@ -1346,7 +1423,7 @@ export default function AbhyaasMasterTower() {
             ) : (
               <div className="space-y-4 text-xs">
                 <p className="text-slate-600 leading-relaxed">
-                  Upload CSV files saved with UTF-8 encoding.
+                  Upload CSV files. Click <strong>Download Template (.CSV)</strong> above if you need the base format.
                 </p>
                 <div
                   onClick={() => csvInputRef.current?.click()}
