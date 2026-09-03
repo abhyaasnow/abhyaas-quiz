@@ -16,6 +16,61 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
+// ==================== GOOGLE DRIVE & ATTACHMENT PARSER ====================
+export type AttachmentType = 'IMAGE' | 'PDF' | '3D' | 'GDRIVE' | 'NONE';
+
+export interface ParsedAttachment {
+  type: AttachmentType;
+  rawUrl: string;
+  directUrl: string;
+  previewUrl?: string;
+  isDrive: boolean;
+}
+
+export function parseAttachment(url: string | null | undefined): ParsedAttachment {
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return { type: 'NONE', rawUrl: '', directUrl: '', isDrive: false };
+  }
+
+  const clean = url.trim();
+
+  // 1. Google Drive Link Detector & Converter
+  // Matches: drive.google.com/file/d/FILE_ID or id=FILE_ID
+  const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/(?:document|presentation|spreadsheets)\/d\/)([a-zA-Z0-9_-]{25,})/;
+  const match = clean.match(driveRegex);
+
+  if (match && match[1]) {
+    const fileId = match[1];
+    return {
+      type: 'GDRIVE',
+      rawUrl: clean,
+      directUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+      previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+      isDrive: true
+    };
+  }
+
+  // 2. Base64 Data URLs (SVG, PNG, JPEG, PDF)
+  if (clean.startsWith('data:image/')) {
+    return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
+  }
+  if (clean.startsWith('data:application/pdf')) {
+    return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
+  }
+
+  // 3. File Extensions Check
+  const lower = clean.toLowerCase().split('?')[0];
+  if (lower.endsWith('.pdf')) {
+    return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
+  }
+  if (lower.endsWith('.mol') || lower.endsWith('.pdb') || lower.endsWith('.gltf') || lower.endsWith('.obj')) {
+    return { type: '3D', rawUrl: clean, directUrl: clean, isDrive: false };
+  }
+
+  // Default to standard image
+  return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
+}
+
 // ==================== UNIVERSAL SCIENTIFIC & LATEX ENGINE ====================
 const SUB_MAP: Record<string, string> = {
   '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
@@ -63,30 +118,24 @@ export function formatScientific(text: string): string {
 
   let res = text;
 
-  // 1. Convert LaTeX Greek & Math Symbols (\sigma -> σ, \pi -> π, etc.)
   Object.keys(GREEK_LATEX_MAP).forEach(k => {
     const escaped = k.replace(/\\/g, '\\\\');
     res = res.replace(new RegExp(escaped, 'g'), GREEK_LATEX_MAP[k]);
   });
 
-  // 2. Unwrap LaTeX \text{...} -> ...
   res = res.replace(/\\text\{([^}]+)\}/g, '$1');
 
-  // 3. Convert LaTeX / Caret superscripts: e.g. x^2 -> x², x^{2} -> x², sp^2 -> sp²
   res = res.replace(/\^\{?([0-9+-]+)\}?/g, (_, digits) => {
     return digits.split('').map((d: string) => SUP_MAP[d] || d).join('');
   });
 
-  // 4. Convert LaTeX / Underscore subscripts: e.g. C_{16} -> C₁₆, x_1 -> x₁
   res = res.replace(/_\{?([0-9+-]+)\}?/g, (_, digits) => {
     return digits.split('').map((d: string) => SUB_MAP[d] || d).join('');
   });
 
-  // 5. Clean up stray math dollar signs: $...$ -> ...
   res = res.replace(/\$([^\$]+)\$/g, '$1');
   res = res.replace(/\$/g, '');
 
-  // 6. Chemical formulas auto-subscript (LiCoO2 -> LiCoO₂, C16H10N2O2 -> C₁₆H₁₀N₂O₂, O2 -> O₂)
   const formulaRegex = new RegExp(`\\b(?:\\d+)?(?:(?:${ELEMENTS})\\d*)+(?:[+-])?\\b`, 'g');
   const elemRegex = new RegExp(`(${ELEMENTS})(\\d+)`, 'g');
 
@@ -98,7 +147,6 @@ export function formatScientific(text: string): string {
     });
   });
 
-  // 7. Arrow conversions
   res = res.replace(/->/g, '→').replace(/<->/g, '⇌').replace(/<=/g, '≤').replace(/>=/g, '≥');
 
   return res;
@@ -169,6 +217,7 @@ export interface QuestionData {
   explanationEn?: string;
   explanationHi?: string;
   diagramUrl?: string | null;
+  attachmentType?: AttachmentType;
   isArchived: boolean;
   status: 'ACTIVE' | 'ARCHIVED';
   subject: string;

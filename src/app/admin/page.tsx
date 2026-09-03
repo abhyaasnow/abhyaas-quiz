@@ -7,15 +7,15 @@ import {
   Layers, ChevronDown, Check, X,
   FolderTree, BookOpen, FileSpreadsheet, Upload, Download, RefreshCw,
   Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Copy, Atom, UploadCloud
+  RotateCcw, ShieldAlert, Copy, Atom, UploadCloud, FileText, ExternalLink
 } from 'lucide-react';
 
 import { 
   getTaxonomyNodes, saveTaxonomyNode, deleteTaxonomyNode, 
   getAllQuestions, createQuestion, updateQuestion,
   archiveQuestion, restoreQuestion, permanentlyDeleteQuestion, wipeAllRecycleBin,
-  bulkUploadQuestions, autoPushOlympiadQuestions, formatScientific,
-  TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
+  bulkUploadQuestions, autoPushOlympiadQuestions, formatScientific, parseAttachment,
+  TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment, ParsedAttachment
 } from '@/lib/db';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
@@ -155,7 +155,7 @@ export default function AbhyaasMasterTower() {
   const [pushPyqYear, setPushPyqYear] = useState('2026');
 
   const csvInputRef = useRef<HTMLInputElement | null>(null);
-  const diagramFileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileAttachmentRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -264,13 +264,13 @@ export default function AbhyaasMasterTower() {
     setDuplicateWarning(null);
   };
 
-  // Local Image Upload to Base64 (Zero Reliance on Wikipedia)
-  const handleDiagramFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Local Multi-Format Attachment Handler (PDF, PNG, JPEG, SVG, 3D)
+  const handleLocalFileAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      return alert("Image file size should be less than 2MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      return alert("File size should be less than 5MB. For larger documents/3D files, please paste your Abhyaas Google Drive link.");
     }
 
     const reader = new FileReader();
@@ -338,6 +338,8 @@ export default function AbhyaasMasterTower() {
       setTaxonomyList(prev => [node, ...prev]);
     }
 
+    const parsedAtt = parseAttachment(qDiagramUrl);
+
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
@@ -359,6 +361,7 @@ export default function AbhyaasMasterTower() {
       explanationEn: formatScientific(qExplanationEn.trim()),
       explanationHi: formatScientific(qExplanationHi.trim()),
       diagramUrl: qDiagramUrl.trim(),
+      attachmentType: parsedAtt.type,
       isArchived: false,
       status: 'ACTIVE',
       timesUsedInOlympiad: 0
@@ -481,6 +484,9 @@ export default function AbhyaasMasterTower() {
         const seg = (row[0] || '').toUpperCase();
         const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
         const newId = `q-paste-${Date.now()}-${i}`;
+        const rawDiagram = row[19] || '';
+        const parsedAtt = parseAttachment(rawDiagram);
+
         parsed.push({
           id: newId,
           docId: newId,
@@ -501,7 +507,8 @@ export default function AbhyaasMasterTower() {
           correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
           explanationEn: formatScientific(row[17] || ''),
           explanationHi: formatScientific(row[18] || ''),
-          diagramUrl: row[19] || '',
+          diagramUrl: rawDiagram,
+          attachmentType: parsedAtt.type,
           isArchived: false,
           status: 'ACTIVE',
           timesUsedInOlympiad: 0
@@ -538,6 +545,8 @@ export default function AbhyaasMasterTower() {
           const seg = (row[0] || '').toUpperCase();
           const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
           const newId = `q-csv-${Date.now()}-${i}`;
+          const rawDiagram = row[19] || '';
+          const parsedAtt = parseAttachment(rawDiagram);
 
           parsed.push({
             id: newId,
@@ -559,7 +568,8 @@ export default function AbhyaasMasterTower() {
             correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
             explanationEn: formatScientific(row[17] || ''),
             explanationHi: formatScientific(row[18] || ''),
-            diagramUrl: row[19] || '',
+            diagramUrl: rawDiagram,
+            attachmentType: parsedAtt.type,
             isArchived: false,
             status: 'ACTIVE',
             timesUsedInOlympiad: 0
@@ -641,6 +651,8 @@ export default function AbhyaasMasterTower() {
     return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
   });
 
+  const modalAttachmentPreview = parseAttachment(qDiagramUrl);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
       
@@ -710,7 +722,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Preserved questions with automatic chemical subscripts, formulas, and diagrams.</p>
+                  <p className="text-xs text-slate-500">Supports GDrive, PDF Documents, SVG Vectors, 4K Images, and Chemical Formulas.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -735,7 +747,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Multi-Tier Filter Bar */}
+              {/* Filter Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
@@ -809,110 +821,137 @@ export default function AbhyaasMasterTower() {
                   <p className="text-xs text-slate-400">Add questions using Single Question Studio or Bulk Excel Paste.</p>
                 </div>
               ) : (
-                filteredActiveQuestions.map((q, idx) => (
-                  <div
-                    key={q.id || idx}
-                    className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                          q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                          q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
-                          'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                        }`}>
-                          {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
-                           q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
-                           '📘 Free Practice Drill'}
-                        </span>
+                filteredActiveQuestions.map((q, idx) => {
+                  const att = parseAttachment(q.diagramUrl);
+                  return (
+                    <div
+                      key={q.id || idx}
+                      className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3"
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                            q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                            q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
+                            'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          }`}>
+                            {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
+                             q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
+                             '📘 Free Practice Drill'}
+                          </span>
 
-                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
-                          {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
-                        </span>
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
+                            {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
+                          </span>
 
-                        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                          Topic: {q.topicName || q.topic}
-                        </span>
+                          <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
+                            Topic: {q.topicName || q.topic}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 self-end sm:self-center">
+                          <button
+                            onClick={() => openEditQuestionModal(q)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Edit Question"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                            title="Move to Recycle Bin"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1 self-end sm:self-center">
-                        <button
-                          onClick={() => openEditQuestionModal(q)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          title="Edit Question"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
-                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                          title="Move to Recycle Bin"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Scientific Statements */}
-                    <div>
-                      <p className="font-bold text-sm text-slate-900 leading-relaxed">
-                        {formatScientific(q.questionEn)}
-                      </p>
-                      {q.questionHi && (
-                        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                          {formatScientific(q.questionHi)}
+                      {/* Scientific Statement */}
+                      <div>
+                        <p className="font-bold text-sm text-slate-900 leading-relaxed">
+                          {formatScientific(q.questionEn)}
                         </p>
+                        {q.questionHi && (
+                          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                            {formatScientific(q.questionHi)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Multi-Format Attachment Rendering */}
+                      {att.type !== 'NONE' && (
+                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
+                          {/* 1. If Image or GDrive Image */}
+                          {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
+                            <img 
+                              src={att.directUrl} 
+                              alt="Attached Diagram / Vector" 
+                              referrerPolicy="no-referrer"
+                              className="max-h-72 w-auto min-w-[280px] max-w-full object-contain rounded-xl bg-white p-2 border" 
+                            />
+                          )}
+
+                          {/* 2. If PDF Document (Local Base64 or GDrive PDF) */}
+                          {(att.type === 'PDF' || (att.type === 'GDRIVE' && att.rawUrl.includes('.pdf'))) && (
+                            <div className="flex items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 min-w-[280px]">
+                              <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 font-black">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-bold text-xs text-slate-900">Attached Reference Document (.PDF)</p>
+                                <p className="text-[10px] text-slate-400">Click below to read / preview passage</p>
+                              </div>
+                              <a 
+                                href={att.previewUrl || att.directUrl} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex items-center gap-1 transition"
+                              >
+                                View PDF <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Options */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+                        {q.optionsEn?.map((opt, i) => (
+                          <div
+                            key={i}
+                            className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                              q.correctOption === i
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
+                              q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+                            }`}>
+                              {i + 1}
+                            </span>
+                            <span className="truncate">{formatScientific(opt)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Explanation */}
+                      {(q.explanationEn || q.explanationHi) && (
+                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
+                          <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
+                        </div>
                       )}
                     </div>
-
-                    {/* Robust Diagram Rendering (With Min Width to prevent collapse) */}
-                    {q.diagramUrl && (
-                      <div className="p-3 bg-white border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
-                        <img 
-                          src={q.diagramUrl} 
-                          alt="Diagram / Molecular Structure" 
-                          referrerPolicy="no-referrer"
-                          className="max-h-72 w-auto min-w-[280px] max-w-full object-contain rounded-xl" 
-                        />
-                      </div>
-                    )}
-
-                    {/* Options with Subscripts */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-                      {q.optionsEn?.map((opt, i) => (
-                        <div
-                          key={i}
-                          className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                            q.correctOption === i
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
-                              : 'bg-slate-50 border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-                            q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                          }`}>
-                            {i + 1}
-                          </span>
-                          <span className="truncate">{formatScientific(opt)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Explanation */}
-                    {(q.explanationEn || q.explanationHi) && (
-                      <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
-                        <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
           </div>
         )}
 
-        {/* TAB 2: CATEGORY & HIERARCHY TREE */}
+        {/* TAB 2: MASTER CATEGORY & HIERARCHY TREE */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1088,7 +1127,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO (WITH DIRECT DEVICE FILE UPLOAD) */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1098,7 +1137,7 @@ export default function AbhyaasMasterTower() {
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Configure hierarchy cascade, bilingual statements, formulas, and diagrams.</p>
+                <p className="text-xs text-slate-500">Configure hierarchy, bilingual statements, formulas, GDrive & multi-format attachments.</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -1117,7 +1156,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Vault Destination */}
+              {/* Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
                   Target Destination / Vault*
@@ -1160,7 +1199,7 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* 4-Tier Cascading Hierarchy */}
+              {/* 4-Tier Hierarchy */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
@@ -1255,7 +1294,7 @@ export default function AbhyaasMasterTower() {
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
-                  Scientific Toolbar (Click to insert):
+                  Scientific Toolbar (Click to insert into Question statement):
                 </span>
                 
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
@@ -1317,45 +1356,70 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Dual-Mode Diagram Input: Direct Device Upload + Web URL */}
+              {/* Universal Attachment & Media Hub (GDrive, PDF, SVG, Images) */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map Image (Optional)
-                  </label>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Universal Attachment & Media Hub
+                    </label>
+                    <p className="text-[10px] text-slate-400">Supports Abhyaas Google Drive links, PDF Documents, SVG, PNG, and 3D files.</p>
+                  </div>
+                  
                   <input
                     type="file"
-                    accept="image/*"
-                    ref={diagramFileInputRef}
-                    onChange={handleDiagramFileSelect}
+                    accept="image/*,.pdf,.svg,.mol,.pdb"
+                    ref={fileAttachmentRef}
+                    onChange={handleLocalFileAttachment}
                     className="hidden"
                   />
                   <button
                     type="button"
-                    onClick={() => diagramFileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg flex items-center gap-1.5 transition shadow-xs"
+                    onClick={() => fileAttachmentRef.current?.click()}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs"
                   >
-                    <UploadCloud className="w-3.5 h-3.5" /> Upload from Computer / Device
+                    <UploadCloud className="w-3.5 h-3.5" /> Attach from Device (PDF / PNG / SVG)
                   </button>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Or paste direct image URL / Base64 here..."
-                  value={qDiagramUrl}
-                  onChange={e => setQDiagramUrl(e.target.value)}
-                  className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
-                />
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    placeholder="Paste Abhyaas Google Drive link OR direct image/PDF URL..."
+                    value={qDiagramUrl}
+                    onChange={e => setQDiagramUrl(e.target.value)}
+                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-mono"
+                  />
+                  <p className="text-[10px] text-blue-600 font-medium">
+                    💡 Tip: Simply paste your Google Drive Share Link here. It will automatically convert to direct 4K stream or embedded PDF view.
+                  </p>
+                </div>
 
-                {qDiagramUrl && (
-                  <div className="mt-2 p-3 bg-white rounded-xl w-fit border shadow-xs">
-                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Live Diagram Preview:</p>
-                    <img 
-                      src={qDiagramUrl} 
-                      alt="Preview" 
-                      referrerPolicy="no-referrer"
-                      className="max-h-48 w-auto min-w-[280px] max-w-full rounded-lg object-contain bg-white" 
-                    />
+                {/* Live Attachment Preview Card */}
+                {modalAttachmentPreview.type !== 'NONE' && (
+                  <div className="mt-2 p-3 bg-white rounded-xl w-fit border shadow-xs space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                      Attachment Detected: <strong className="text-blue-600">{modalAttachmentPreview.type} {modalAttachmentPreview.isDrive ? '(Google Drive Stream)' : ''}</strong>
+                    </span>
+                    
+                    {modalAttachmentPreview.type === 'IMAGE' || (modalAttachmentPreview.type === 'GDRIVE' && !modalAttachmentPreview.rawUrl.includes('.pdf')) ? (
+                      <img 
+                        src={modalAttachmentPreview.directUrl} 
+                        alt="Preview" 
+                        referrerPolicy="no-referrer"
+                        className="max-h-48 w-auto min-w-[280px] max-w-full rounded-lg object-contain bg-white border p-1" 
+                      />
+                    ) : (
+                      <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border">
+                        <FileText className="w-6 h-6 text-rose-500" />
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">PDF Document Stream Ready</p>
+                          <a href={modalAttachmentPreview.previewUrl || modalAttachmentPreview.directUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline">
+                            Test Open Document
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
