@@ -118,7 +118,7 @@ export default function AbhyaasMasterTower() {
   const [pasteData, setPasteData] = useState('');
   const [copiedSample, setCopiedSample] = useState(false);
 
-  // Filtering Controls
+  // Filters
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
@@ -144,6 +144,7 @@ export default function AbhyaasMasterTower() {
   const [qStatementHi, setQStatementHi] = useState('');
   const [qOptionsEn, setQOptionsEn] = useState(['', '', '', '']);
   const [qOptionsHi, setQOptionsHi] = useState(['', '', '', '']);
+  const [qOptionsDiagrams, setQOptionsDiagrams] = useState<string[]>(['', '', '', '']);
   const [qCorrectOpt, setQCorrectOpt] = useState(0);
   const [qExplanationEn, setQExplanationEn] = useState('');
   const [qExplanationHi, setQExplanationHi] = useState('');
@@ -156,6 +157,12 @@ export default function AbhyaasMasterTower() {
 
   const csvInputRef = useRef<HTMLInputElement | null>(null);
   const fileAttachmentRef = useRef<HTMLInputElement | null>(null);
+  const optionFileRefs = [
+    useRef<HTMLInputElement | null>(null),
+    useRef<HTMLInputElement | null>(null),
+    useRef<HTMLInputElement | null>(null),
+    useRef<HTMLInputElement | null>(null)
+  ];
 
   useEffect(() => {
     setMounted(true);
@@ -264,13 +271,13 @@ export default function AbhyaasMasterTower() {
     setDuplicateWarning(null);
   };
 
-  // Local Multi-Format Attachment Handler (PDF, PNG, JPEG, SVG, 3D)
+  // Device file upload for Question diagram
   const handleLocalFileAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      return alert("File size should be less than 5MB. For larger documents/3D files, please paste your Abhyaas Google Drive link.");
+      return alert("File size should be less than 5MB.");
     }
 
     const reader = new FileReader();
@@ -281,11 +288,27 @@ export default function AbhyaasMasterTower() {
     reader.readAsDataURL(file);
   };
 
+  // Device file upload for individual Option diagram
+  const handleOptionDiagramUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const b64 = (evt.target?.result as string) || '';
+      const updated = [...qOptionsDiagrams];
+      updated[idx] = b64;
+      setQOptionsDiagrams(updated);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const openCreateQuestionModal = () => {
     setEditingQuestionId(null);
     setDuplicateWarning(null);
     setQStatementEn(''); setQStatementHi('');
     setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
+    setQOptionsDiagrams(['', '', '', '']);
     setQCorrectOpt(0); setQExplanationEn(''); setQExplanationHi('');
     setQDiagramUrl(''); setQSegment('PRACTICE');
     setIsQuestionModalOpen(true);
@@ -304,6 +327,7 @@ export default function AbhyaasMasterTower() {
     setQStatementHi(q.questionHi || '');
     setQOptionsEn([...(q.optionsEn || ['', '', '', ''])]);
     setQOptionsHi([...(q.optionsHi || ['', '', '', ''])]);
+    setQOptionsDiagrams(Array.isArray(q.optionsDiagrams) ? [...q.optionsDiagrams] : ['', '', '', '']);
     setQCorrectOpt(q.correctOption || 0);
     setQExplanationEn(q.explanationEn || '');
     setQExplanationHi(q.explanationHi || '');
@@ -357,6 +381,7 @@ export default function AbhyaasMasterTower() {
       questionHi: formatScientific(qStatementHi.trim() || qStatementEn.trim()),
       optionsEn: qOptionsEn.map(o => formatScientific(o)),
       optionsHi: qOptionsHi.map(o => formatScientific(o)),
+      optionsDiagrams: qOptionsDiagrams,
       correctOption: qCorrectOpt,
       explanationEn: formatScientific(qExplanationEn.trim()),
       explanationHi: formatScientific(qExplanationHi.trim()),
@@ -433,30 +458,8 @@ export default function AbhyaasMasterTower() {
       "Opt1_Hi", "Opt2_Hi", "Opt3_Hi", "Opt4_Hi",
       "CorrectOpt", "ExplanationEn", "ExplanationHi", "DiagramUrl"
     ].join(",");
-    const sampleRow = [
-      "PRACTICE",
-      '"Civil Services / Competitive"',
-      '"UPSC Civil Services (Prelims)"',
-      '"General Studies / Science"',
-      '"Chemical Bonding & Polycyclic Compounds"',
-      "2024",
-      '"Consider the molecular structure of Indigo (formula C16H10N2O2): Determine total sigma bonds, pi bonds, sp2 carbons, and lone pairs:"',
-      '"नीचे प्रदर्शित इंडिगो (सूत्र C16H10N2O2) की संरचना में कुल सिग्मा बंध, पाई बंध, sp2 कार्बन, और लोन पेयर ज्ञात करें:"',
-      '"33 sigma bonds, 9 pi bonds, 16 sp2 carbons, and 6 lone pairs"',
-      '"31 sigma bonds, 8 pi bonds, 14 sp2 carbons, and 4 lone pairs"',
-      '"35 sigma bonds, 9 pi bonds, 16 sp2 carbons, and 8 lone pairs"',
-      '"33 sigma bonds, 7 pi bonds, 12 sp2 carbons, and 6 lone pairs"',
-      '"33 sigma बंध, 9 pi बंध, 16 sp2 कार्बन, और 6 लोन पेयर"',
-      '"31 sigma बंध, 8 pi बंध, 14 sp2 कार्बन, और 4 लोन पेयर"',
-      '"35 sigma बंध, 9 pi बंध, 16 sp2 कार्बन, और 8 लोन पेयर"',
-      '"33 sigma बंध, 7 pi बंध, 12 sp2 कार्बन, और 6 लोन पेयर"',
-      "1",
-      '"Sigma bonds = 33, Pi bonds = 9, sp2 carbons = 16, Lone pairs = 6."',
-      '"सिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।"',
-      '""'
-    ].join(",");
 
-    const blob = new Blob(['\uFEFF' + headers + '\n' + sampleRow], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + headers + '\n'], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -467,7 +470,7 @@ export default function AbhyaasMasterTower() {
   };
 
   const copySampleRowToClipboard = () => {
-    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Science\tChemical Bonding & Polycyclic Compounds\t2024\tConsider the molecular structure of Indigo (formula C16H10N2O2): Determine total sigma bonds, pi bonds, sp2 carbons, and lone pairs:\tइंडिगो (सूत्र C16H10N2O2) की संरचना में कुल सिग्मा बंध, पाई बंध, sp2 कार्बन और लोन पेयर ज्ञात करें:\t33 sigma, 9 pi, 16 sp2, 6 lone pairs\t31 sigma, 8 pi, 14 sp2, 4 lone pairs\t35 sigma, 9 pi, 16 sp2, 8 lone pairs\t33 sigma, 7 pi, 12 sp2, 6 lone pairs\t33 सिग्मा, 9 पाई, 16 sp2, 6 लोन पेयर\t31 सिग्मा, 8 पाई, 14 sp2, 4 लोन पेयर\t35 सिग्मा, 9 पाई, 16 sp2, 8 लोन पेयर\t33 सिग्मा, 7 पाई, 12 sp2, 6 लोन पेयर\t1\tSigma bonds = 33, Pi bonds = 9, sp2 carbons = 16, Lone pairs = 6.\tसिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।\t";
+    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tChemistry Optional Paper II\tOrganic Reaction Mechanisms\t2026\tIdentify the major organic structure formed in the following transformation:\tनिम्नलिखित रूपांतरण में बनने वाली मुख्य कार्बनिक संरचना की पहचान कीजिए:\tStructure A\tStructure B\tStructure C\tStructure D\tसंरचना A\tसंरचना B\tसंरचना C\tसंरचना D\t1\tReaction proceeds via concerted anti-periplanar elimination.\tअभिक्रिया कॉन्सर्टेड एंटी-पेरीप्लेनर विलोपन द्वारा संपन्न होती है।\t";
     navigator.clipboard.writeText(sample);
     setCopiedSample(true);
     setTimeout(() => setCopiedSample(false), 3000);
@@ -494,16 +497,17 @@ export default function AbhyaasMasterTower() {
           className: row[1] || 'Civil Services / Competitive',
           examName: row[2] || 'UPSC Civil Services (Prelims)',
           subjectName: row[3] || 'General Studies / Science',
-          topicName: row[4] || 'Chemical Bonding & Polycyclic Compounds',
+          topicName: row[4] || 'General',
           category: row[2] || 'UPSC Civil Services (Prelims)',
           subject: row[3] || 'General Studies / Science',
           class: row[1] || 'Civil Services / Competitive',
-          topic: row[4] || 'Chemical Bonding & Polycyclic Compounds',
+          topic: row[4] || 'General',
           pyqYear: row[5] || '2024',
           questionEn: formatScientific(row[6] || ''),
           questionHi: formatScientific(row[7] || row[6] || ''),
           optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
           optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
+          optionsDiagrams: ['', '', '', ''],
           correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
           explanationEn: formatScientific(row[17] || ''),
           explanationHi: formatScientific(row[18] || ''),
@@ -522,71 +526,10 @@ export default function AbhyaasMasterTower() {
       setQuestionsList(prev => [...parsed, ...prev]);
       setPasteData('');
       setIsBulkModalOpen(false);
-      alert(`🎉 Imported ${count} questions directly from Excel without encoding errors!`);
+      alert(`🎉 Imported ${count} questions directly from Excel!`);
     } catch (err: any) {
       alert("Error importing from Excel: " + err.message);
     }
-  };
-
-  const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const text = (evt.target?.result as string) || '';
-      const rows = parseCSVProperly(text);
-      if (rows.length <= 1) return alert("Empty CSV file.");
-
-      const parsed: QuestionData[] = [];
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (row.length >= 7) {
-          const seg = (row[0] || '').toUpperCase();
-          const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
-          const newId = `q-csv-${Date.now()}-${i}`;
-          const rawDiagram = row[19] || '';
-          const parsedAtt = parseAttachment(rawDiagram);
-
-          parsed.push({
-            id: newId,
-            docId: newId,
-            segment: validSegment,
-            className: row[1] || 'Civil Services / Competitive',
-            examName: row[2] || 'UPSC Civil Services (Prelims)',
-            subjectName: row[3] || 'General Studies / Science',
-            topicName: row[4] || 'Chemical Bonding & Polycyclic Compounds',
-            category: row[2] || 'UPSC Civil Services (Prelims)',
-            subject: row[3] || 'General Studies / Science',
-            class: row[1] || 'Civil Services / Competitive',
-            topic: row[4] || 'Chemical Bonding & Polycyclic Compounds',
-            pyqYear: row[5] || '2024',
-            questionEn: formatScientific(row[6] || ''),
-            questionHi: formatScientific(row[7] || row[6] || ''),
-            optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
-            optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
-            correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-            explanationEn: formatScientific(row[17] || ''),
-            explanationHi: formatScientific(row[18] || ''),
-            diagramUrl: rawDiagram,
-            attachmentType: parsedAtt.type,
-            isArchived: false,
-            status: 'ACTIVE',
-            timesUsedInOlympiad: 0
-          });
-        }
-      }
-
-      try {
-        const uploadedCount = await bulkUploadQuestions(parsed);
-        setQuestionsList(prev => [...parsed, ...prev]);
-        setIsBulkModalOpen(false);
-        alert(`🎉 Successfully uploaded ${uploadedCount} questions in bulk!`);
-      } catch (err: any) {
-        alert("Error saving CSV questions: " + err.message);
-      }
-    };
-    reader.readAsText(file, 'UTF-8');
   };
 
   const handleExecuteAutoPush = async () => {
@@ -722,7 +665,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Supports GDrive, PDF Documents, SVG Vectors, 4K Images, and Chemical Formulas.</p>
+                  <p className="text-xs text-slate-500">Supports Diagrams, Maps, Chemical Rings & Multi-Format Options (A, B, C, D).</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -867,7 +810,7 @@ export default function AbhyaasMasterTower() {
                         </div>
                       </div>
 
-                      {/* Scientific Statement */}
+                      {/* Question Statement */}
                       <div>
                         <p className="font-bold text-sm text-slate-900 leading-relaxed">
                           {formatScientific(q.questionEn)}
@@ -879,10 +822,9 @@ export default function AbhyaasMasterTower() {
                         )}
                       </div>
 
-                      {/* Multi-Format Attachment Rendering */}
+                      {/* Multi-Format Question Attachment Rendering */}
                       {att.type !== 'NONE' && (
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
-                          {/* 1. If Image or GDrive Image */}
                           {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
                             <img 
                               src={att.directUrl} 
@@ -892,7 +834,6 @@ export default function AbhyaasMasterTower() {
                             />
                           )}
 
-                          {/* 2. If PDF Document (Local Base64 or GDrive PDF) */}
                           {(att.type === 'PDF' || (att.type === 'GDRIVE' && att.rawUrl.includes('.pdf'))) && (
                             <div className="flex items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 min-w-[280px]">
                               <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 font-black">
@@ -915,25 +856,44 @@ export default function AbhyaasMasterTower() {
                         </div>
                       )}
 
-                      {/* Options */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-                        {q.optionsEn?.map((opt, i) => (
-                          <div
-                            key={i}
-                            className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                              q.correctOption === i
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
-                                : 'bg-slate-50 border-slate-200 text-slate-600'
-                            }`}
-                          >
-                            <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-                              q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                            }`}>
-                              {i + 1}
-                            </span>
-                            <span className="truncate">{formatScientific(opt)}</span>
-                          </div>
-                        ))}
+                      {/* Options (Supports Text + Diagram in each Option) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
+                        {q.optionsEn?.map((opt, i) => {
+                          const optDiag = q.optionsDiagrams?.[i] || '';
+                          const optAtt = parseAttachment(optDiag || (parseAttachment(opt).type === 'IMAGE' ? opt : ''));
+
+                          return (
+                            <div
+                              key={i}
+                              className={`p-3 rounded-2xl border flex flex-col gap-2 transition ${
+                                q.correctOption === i
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
+                                  q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+                                }`}>
+                                  {String.fromCharCode(65 + i)}
+                                </span>
+                                <span className="truncate">{formatScientific(opt)}</span>
+                              </div>
+
+                              {/* Option Image / SVG Preview if present */}
+                              {optAtt.type === 'IMAGE' && (
+                                <div className="mt-1 bg-white p-1 rounded-xl border border-slate-200 flex items-center justify-center">
+                                  <img 
+                                    src={optAtt.directUrl} 
+                                    alt={`Option ${i + 1} Diagram`}
+                                    referrerPolicy="no-referrer"
+                                    className="max-h-28 w-auto object-contain rounded-lg"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Explanation */}
@@ -1127,7 +1087,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO (WITH OPTIONS DIAGRAM INPUTS) */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1137,7 +1097,7 @@ export default function AbhyaasMasterTower() {
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Configure hierarchy, bilingual statements, formulas, GDrive & multi-format attachments.</p>
+                <p className="text-xs text-slate-500">Supports question statements, formulas, GDrive media, and diagrammatic options (A, B, C, D).</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -1192,7 +1152,7 @@ export default function AbhyaasMasterTower() {
                       type="text"
                       value={qPyqYear}
                       onChange={e => setQPyqYear(e.target.value)}
-                      placeholder="e.g. 2024"
+                      placeholder="e.g. 2026"
                       className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold w-32 outline-none"
                     />
                   </div>
@@ -1356,12 +1316,12 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Universal Attachment & Media Hub (GDrive, PDF, SVG, Images) */}
+              {/* Universal Question Media Hub (GDrive, PDF, SVG, Images) */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                   <div>
                     <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Universal Attachment & Media Hub
+                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Media
                     </label>
                     <p className="text-[10px] text-slate-400">Supports Abhyaas Google Drive links, PDF Documents, SVG, PNG, and 3D files.</p>
                   </div>
@@ -1378,45 +1338,36 @@ export default function AbhyaasMasterTower() {
                     onClick={() => fileAttachmentRef.current?.click()}
                     className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs"
                   >
-                    <UploadCloud className="w-3.5 h-3.5" /> Attach from Device (PDF / PNG / SVG)
+                    <UploadCloud className="w-3.5 h-3.5" /> Attach File from Device
                   </button>
                 </div>
 
-                <div className="space-y-1.5">
-                  <input
-                    type="text"
-                    placeholder="Paste Abhyaas Google Drive link OR direct image/PDF URL..."
-                    value={qDiagramUrl}
-                    onChange={e => setQDiagramUrl(e.target.value)}
-                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-mono"
-                  />
-                  <p className="text-[10px] text-blue-600 font-medium">
-                    💡 Tip: Simply paste your Google Drive Share Link here. It will automatically convert to direct 4K stream or embedded PDF view.
-                  </p>
-                </div>
+                <input
+                  type="text"
+                  placeholder="Paste Abhyaas Google Drive link OR direct image/PDF URL..."
+                  value={qDiagramUrl}
+                  onChange={e => setQDiagramUrl(e.target.value)}
+                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-mono"
+                />
 
-                {/* Live Attachment Preview Card */}
+                {/* Live Question Preview */}
                 {modalAttachmentPreview.type !== 'NONE' && (
                   <div className="mt-2 p-3 bg-white rounded-xl w-fit border shadow-xs space-y-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                      Attachment Detected: <strong className="text-blue-600">{modalAttachmentPreview.type} {modalAttachmentPreview.isDrive ? '(Google Drive Stream)' : ''}</strong>
+                      Preview: <strong className="text-blue-600">{modalAttachmentPreview.type}</strong>
                     </span>
-                    
                     {modalAttachmentPreview.type === 'IMAGE' || (modalAttachmentPreview.type === 'GDRIVE' && !modalAttachmentPreview.rawUrl.includes('.pdf')) ? (
                       <img 
                         src={modalAttachmentPreview.directUrl} 
                         alt="Preview" 
                         referrerPolicy="no-referrer"
-                        className="max-h-48 w-auto min-w-[280px] max-w-full rounded-lg object-contain bg-white border p-1" 
+                        className="max-h-40 w-auto min-w-[240px] max-w-full rounded-lg object-contain bg-white border p-1" 
                       />
                     ) : (
                       <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border">
                         <FileText className="w-6 h-6 text-rose-500" />
                         <div>
-                          <p className="text-xs font-bold text-slate-800">PDF Document Stream Ready</p>
-                          <a href={modalAttachmentPreview.previewUrl || modalAttachmentPreview.directUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline">
-                            Test Open Document
-                          </a>
+                          <p className="text-xs font-bold text-slate-800">PDF Document Ready</p>
                         </div>
                       </div>
                     )}
@@ -1424,38 +1375,95 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* Options */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">
-                  Options & Correct Key*
-                </label>
-                {[0, 1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correctKey"
-                      checked={qCorrectOpt === i}
-                      onChange={() => setQCorrectOpt(i)}
-                      className="w-4 h-4 text-blue-600 cursor-pointer"
-                    />
-                    <span className="text-xs font-black w-6 text-slate-600">Opt {i + 1}</span>
-                    <input
-                      type="text"
-                      placeholder={`Option ${i + 1} English`}
-                      value={qOptionsEn[i]}
-                      onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }}
-                      className="flex-1 h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder={`विकल्प ${i + 1} हिंदी`}
-                      value={qOptionsHi[i]}
-                      onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }}
-                      className="flex-1 h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                    />
-                  </div>
-                ))}
+              {/* Options Section (With Dedicated Diagram Input for Each Option) */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
+                <div>
+                  <label className="block text-xs font-black uppercase text-slate-700">
+                    Options (A, B, C, D) & Answer Key*
+                  </label>
+                  <p className="text-[10px] text-slate-400">Each option can have Text, an Image / SVG Diagram, or a Google Drive link.</p>
+                </div>
+
+                {[0, 1, 2, 3].map(i => {
+                  const optAtt = parseAttachment(qOptionsDiagrams[i] || (parseAttachment(qOptionsEn[i]).type === 'IMAGE' ? qOptionsEn[i] : ''));
+                  return (
+                    <div key={i} className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="correctKey"
+                          checked={qCorrectOpt === i}
+                          onChange={() => setQCorrectOpt(i)}
+                          className="w-4 h-4 text-blue-600 cursor-pointer"
+                        />
+                        <span className="text-xs font-black text-slate-700 w-16">
+                          Opt {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct)' : ''}
+                        </span>
+
+                        <input
+                          type="text"
+                          placeholder={`Option ${String.fromCharCode(65 + i)} English Text`}
+                          value={qOptionsEn[i]}
+                          onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }}
+                          className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                          required
+                        />
+
+                        <input
+                          type="text"
+                          placeholder={`विकल्प ${String.fromCharCode(65 + i)} हिंदी`}
+                          value={qOptionsHi[i]}
+                          onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }}
+                          className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                        />
+                      </div>
+
+                      {/* Option Image / SVG Attachment */}
+                      <div className="pl-6 flex flex-wrap items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*,.svg"
+                          ref={optionFileRefs[i]}
+                          onChange={(e) => handleOptionDiagramUpload(i, e)}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => optionFileRefs[i].current?.click()}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition"
+                        >
+                          <UploadCloud className="w-3 h-3" /> Upload Opt {String.fromCharCode(65 + i)} Image
+                        </button>
+
+                        <input
+                          type="text"
+                          placeholder="Or paste Option image URL / GDrive / Base64..."
+                          value={qOptionsDiagrams[i]}
+                          onChange={e => {
+                            const d = [...qOptionsDiagrams];
+                            d[i] = e.target.value;
+                            setQOptionsDiagrams(d);
+                          }}
+                          className="flex-1 h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none font-mono"
+                        />
+
+                        {optAtt.type === 'IMAGE' && (
+                          <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                            <img src={optAtt.directUrl} alt="Opt preview" referrerPolicy="no-referrer" className="h-6 w-auto object-contain rounded" />
+                            <span className="text-[9px] font-bold text-blue-700">Preview</span>
+                            <button
+                              type="button"
+                              onClick={() => { const d = [...qOptionsDiagrams]; d[i] = ''; setQOptionsDiagrams(d); }}
+                              className="text-rose-500 hover:text-rose-700 text-xs font-black ml-1"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Explanations */}
