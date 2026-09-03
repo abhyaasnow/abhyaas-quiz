@@ -16,6 +16,49 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
+// ==================== UNIVERSAL SCIENTIFIC FORMATTER ====================
+const SUB_MAP: Record<string, string> = {
+  '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+  '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+  '+': '₊', '-': '₋'
+};
+
+const SUP_MAP: Record<string, string> = {
+  '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+  '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+  '+': '⁺', '-': '⁻'
+};
+
+const ELEMENTS = "He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|H|B|C|N|O|F|P|S|K|V|Y|I|W|U";
+
+export function formatScientific(text: string): string {
+  if (!text || typeof text !== 'string') return text || '';
+
+  // 1. Convert caret superscripts: e.g. x^2 -> x², x^{2} -> x²
+  let res = text.replace(/\^\{?([0-9+-]+)\}?/g, (_, digits) => {
+    return digits.split('').map((d: string) => SUP_MAP[d] || d).join('');
+  });
+
+  // 2. Convert underscore subscripts: e.g. x_1 -> x₁, x_{2} -> x₂
+  res = res.replace(/_\{?([0-9+-]+)\}?/g, (_, digits) => {
+    return digits.split('').map((d: string) => SUB_MAP[d] || d).join('');
+  });
+
+  // 3. Chemical formulas auto-subscript (LiCoO2 -> LiCoO₂, Li2O -> Li₂O, O2 -> O₂, CO2 -> CO₂, etc.)
+  const formulaRegex = new RegExp(`\\b(?:\\d+)?(?:(?:${ELEMENTS})\\d*)+(?:[+-])?\\b`, 'g');
+  const elemRegex = new RegExp(`(${ELEMENTS})(\\d+)`, 'g');
+
+  res = res.replace(formulaRegex, (token) => {
+    if (!/\d/.test(token)) return token;
+    return token.replace(elemRegex, (_, elem, digits) => {
+      const subDigits = digits.split('').map((d: string) => SUB_MAP[d] || d).join('');
+      return elem + subDigits;
+    });
+  });
+
+  return res;
+}
+
 // ==================== 1. TAXONOMY / HIERARCHY ====================
 export type TaxonomyLevel = 'CLASS' | 'EXAM' | 'SUBJECT' | 'TOPIC' | 'DOMAIN';
 
@@ -83,7 +126,6 @@ export interface QuestionData {
   diagramUrl?: string | null;
   isArchived: boolean;
   status: 'ACTIVE' | 'ARCHIVED';
-  // Guaranteed string aliases for front-end rendering
   subject: string;
   category: string;
   class: string;
@@ -147,6 +189,12 @@ export async function createQuestion(q: QuestionData): Promise<void> {
   const docRef = doc(db, 'questions', q.id);
   const payload = {
     ...q,
+    questionEn: formatScientific(q.questionEn),
+    questionHi: formatScientific(q.questionHi),
+    optionsEn: q.optionsEn.map(o => formatScientific(o)),
+    optionsHi: q.optionsHi.map(o => formatScientific(o)),
+    explanationEn: formatScientific(q.explanationEn || ''),
+    explanationHi: formatScientific(q.explanationHi || ''),
     category: q.examName,
     subject: q.subjectName,
     class: q.className,
@@ -161,14 +209,19 @@ export async function createQuestion(q: QuestionData): Promise<void> {
 
 export async function updateQuestion(id: string, q: Partial<QuestionData>): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  const payload = {
+  const payload: any = {
     ...q,
-    category: q.examName || q.category,
-    subject: q.subjectName || q.subject,
-    class: q.className || q.class,
-    topic: q.topicName || q.topic,
     updatedAt: Timestamp.now()
   };
+  if (q.questionEn) payload.questionEn = formatScientific(q.questionEn);
+  if (q.questionHi) payload.questionHi = formatScientific(q.questionHi);
+  if (q.optionsEn) payload.optionsEn = q.optionsEn.map(o => formatScientific(o));
+  if (q.optionsHi) payload.optionsHi = q.optionsHi.map(o => formatScientific(o));
+  if (q.explanationEn) payload.explanationEn = formatScientific(q.explanationEn);
+  if (q.explanationHi) payload.explanationHi = formatScientific(q.explanationHi);
+  if (q.examName) payload.category = q.examName;
+  if (q.subjectName) payload.subject = q.subjectName;
+
   await setDoc(docRef, payload, { merge: true });
 }
 
@@ -224,6 +277,12 @@ export async function bulkUploadQuestions(questions: QuestionData[]): Promise<nu
     const ref = doc(db, 'questions', q.id);
     batch.set(ref, {
       ...q,
+      questionEn: formatScientific(q.questionEn),
+      questionHi: formatScientific(q.questionHi),
+      optionsEn: q.optionsEn.map(o => formatScientific(o)),
+      optionsHi: q.optionsHi.map(o => formatScientific(o)),
+      explanationEn: formatScientific(q.explanationEn || ''),
+      explanationHi: formatScientific(q.explanationHi || ''),
       category: q.examName,
       subject: q.subjectName,
       class: q.className,

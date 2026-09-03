@@ -16,7 +16,7 @@ import {
   getTaxonomyNodes, saveTaxonomyNode, deleteTaxonomyNode, 
   getAllQuestions, createQuestion, updateQuestion,
   archiveQuestion, restoreQuestion, permanentlyDeleteQuestion, wipeAllRecycleBin,
-  bulkUploadQuestions, autoPushOlympiadQuestions,
+  bulkUploadQuestions, autoPushOlympiadQuestions, formatScientific,
   TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
 } from '@/lib/db';
 
@@ -319,13 +319,13 @@ export default function AbhyaasMasterTower() {
       topic: finalTopic || 'General',
       segment: qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
-      questionEn: qStatementEn.trim(),
-      questionHi: qStatementHi.trim() || qStatementEn.trim(),
-      optionsEn: qOptionsEn,
-      optionsHi: qOptionsHi,
+      questionEn: formatScientific(qStatementEn.trim()),
+      questionHi: formatScientific(qStatementHi.trim() || qStatementEn.trim()),
+      optionsEn: qOptionsEn.map(o => formatScientific(o)),
+      optionsHi: qOptionsHi.map(o => formatScientific(o)),
       correctOption: qCorrectOpt,
-      explanationEn: qExplanationEn.trim(),
-      explanationHi: qExplanationHi.trim(),
+      explanationEn: formatScientific(qExplanationEn.trim()),
+      explanationHi: formatScientific(qExplanationHi.trim()),
       diagramUrl: qDiagramUrl.trim(),
       isArchived: false,
       status: 'ACTIVE',
@@ -436,7 +436,7 @@ export default function AbhyaasMasterTower() {
     document.body.removeChild(link);
   };
 
-  // 1-Click Copy Sample Row for Testing Direct Paste
+  // Copy Sample Row
   const copySampleRowToClipboard = () => {
     const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Geography\tGlobal Mineral Resources & EV Transition\t2024\tWhich group of South American nations is called Lithium Triangle?\tदक्षिण अमेरिकी देशों के किस समूह को लिथियम ट्रायंगल कहा जाता है?\tBrazil, Peru, Chile\tArgentina, Bolivia, Chile\tColombia, Venezuela, Ecuador\tArgentina, Brazil, Peru\tब्राजील, पेरू, चिली\tअर्जेंटीना, बोलीविया, चिली\tकोलंबिया, वेनेजुएला, इक्वाडोर\tअर्जेंटीना, ब्राजील, पेरू\t2\tThe Lithium Triangle consists of Argentina, Bolivia, and Chile.\tलिथियम ट्रायंगल अर्जेंटीना, बोलीविया और चिली से मिलकर बना है।\t";
     navigator.clipboard.writeText(sample);
@@ -469,13 +469,13 @@ export default function AbhyaasMasterTower() {
           class: row[1] || 'Civil Services / Competitive',
           topic: row[4] || 'Global Mineral Resources & EV Transition',
           pyqYear: row[5] || '2024',
-          questionEn: row[6] || '',
-          questionHi: row[7] || row[6] || '',
-          optionsEn: [row[8] || '', row[9] || '', row[10] || '', row[11] || ''],
-          optionsHi: [row[12] || row[8] || '', row[13] || row[9] || '', row[14] || row[10] || '', row[15] || row[11] || ''],
+          questionEn: formatScientific(row[6] || ''),
+          questionHi: formatScientific(row[7] || row[6] || ''),
+          optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
+          optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
           correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-          explanationEn: row[17] || '',
-          explanationHi: row[18] || '',
+          explanationEn: formatScientific(row[17] || ''),
+          explanationHi: formatScientific(row[18] || ''),
           diagramUrl: row[19] || '',
           isArchived: false,
           status: 'ACTIVE',
@@ -528,13 +528,13 @@ export default function AbhyaasMasterTower() {
             class: row[1] || 'Civil Services / Competitive',
             topic: row[4] || 'Global Mineral Resources & EV Transition',
             pyqYear: row[5] || '2024',
-            questionEn: row[6] || '',
-            questionHi: row[7] || row[6] || '',
-            optionsEn: [row[8] || '', row[9] || '', row[10] || '', row[11] || ''],
-            optionsHi: [row[12] || row[8] || '', row[13] || row[9] || '', row[14] || row[10] || '', row[15] || row[11] || ''],
+            questionEn: formatScientific(row[6] || ''),
+            questionHi: formatScientific(row[7] || row[6] || ''),
+            optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
+            optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
             correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-            explanationEn: row[17] || '',
-            explanationHi: row[18] || '',
+            explanationEn: formatScientific(row[17] || ''),
+            explanationHi: formatScientific(row[18] || ''),
             diagramUrl: row[19] || '',
             isArchived: false,
             status: 'ACTIVE',
@@ -691,7 +691,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Indexed questions with strict multi-tier hierarchy alignment.</p>
+                  <p className="text-xs text-slate-500">Indexed questions with strict multi-tier hierarchy alignment and auto-subscripts.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -825,9 +825,16 @@ export default function AbhyaasMasterTower() {
                       </div>
                     </div>
 
+                    {/* Scientific Rendered Question Statement */}
                     <div>
-                      <p className="font-bold text-sm text-slate-900">{q.questionEn}</p>
-                      {q.questionHi && <p className="text-xs text-slate-600 mt-1">{q.questionHi}</p>}
+                      <p className="font-bold text-sm text-slate-900">
+                        {formatScientific(q.questionEn)}
+                      </p>
+                      {q.questionHi && (
+                        <p className="text-xs text-slate-600 mt-1">
+                          {formatScientific(q.questionHi)}
+                        </p>
+                      )}
                     </div>
 
                     {q.diagramUrl && (
@@ -836,6 +843,7 @@ export default function AbhyaasMasterTower() {
                       </div>
                     )}
 
+                    {/* Scientific Rendered Options */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
                       {q.optionsEn?.map((opt, i) => (
                         <div
@@ -851,14 +859,15 @@ export default function AbhyaasMasterTower() {
                           }`}>
                             {i + 1}
                           </span>
-                          <span className="truncate">{opt}</span>
+                          <span className="truncate">{formatScientific(opt)}</span>
                         </div>
                       ))}
                     </div>
 
+                    {/* Scientific Rendered Explanation */}
                     {(q.explanationEn || q.explanationHi) && (
                       <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
-                        <strong className="font-black">💡 Solution:</strong> {q.explanationEn || q.explanationHi}
+                        <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
                       </div>
                     )}
                   </div>
@@ -920,8 +929,8 @@ export default function AbhyaasMasterTower() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-slate-800 line-through opacity-80">{q.questionEn}</p>
-                    {q.questionHi && <p className="text-xs text-slate-500">{q.questionHi}</p>}
+                    <p className="text-sm font-bold text-slate-800 line-through opacity-80">{formatScientific(q.questionEn)}</p>
+                    {q.questionHi && <p className="text-xs text-slate-500">{formatScientific(q.questionHi)}</p>}
                   </div>
                 ))
               )}
@@ -1183,11 +1192,11 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Science & Math Formula Toolbar */}
+              {/* Scientific Toolbar */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
-                  Scientific & Mathematical Toolbar (Click symbol to insert into Question):
+                  Scientific Toolbar (Click to insert):
                 </span>
                 
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
@@ -1252,7 +1261,7 @@ export default function AbhyaasMasterTower() {
               {/* Diagram URL */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map / Chemistry Image URL (Optional)
+                  <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map Image URL (Optional)
                 </label>
                 <input
                   type="url"
@@ -1341,7 +1350,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: BULK UPLOAD + EXCEL PASTE (WITH RESTORED DOWNLOAD & COPY BUTTONS) */}
+      {/* MODAL 2: BULK UPLOAD + DIRECT EXCEL PASTE */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
