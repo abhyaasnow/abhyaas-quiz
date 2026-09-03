@@ -16,7 +16,7 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== 1. TAXONOMY / HIERARCHY (SECTION A) ====================
+// ==================== 1. TAXONOMY / HIERARCHY ====================
 export type TaxonomyLevel = 'CLASS' | 'EXAM' | 'SUBJECT' | 'TOPIC' | 'DOMAIN';
 
 export interface TaxonomyNode {
@@ -37,12 +37,12 @@ export async function getTaxonomyNodes(): Promise<TaxonomyNode[]> {
       let safeLevel: TaxonomyLevel = data.level || 'CLASS';
       if (safeLevel === 'DOMAIN') safeLevel = 'CLASS';
       return {
+        ...data,
         id: d.id,
         level: safeLevel,
         nameEn: data.nameEn || data.name || 'Untitled Node',
         nameHi: data.nameHi || '',
-        parentId: data.parentId || undefined,
-        ...data
+        parentId: data.parentId || undefined
       } as TaxonomyNode;
     });
   } catch (err) {
@@ -60,11 +60,13 @@ export async function deleteTaxonomyNode(id: string): Promise<void> {
   await deleteDoc(doc(db, 'taxonomy', id));
 }
 
-// ==================== 2. QUESTION BANK & RECYCLE BIN ENGINE (SECTION B) ====================
+// ==================== 2. QUESTION BANK & RECYCLE BIN ENGINE ====================
 export type QuestionSegment = 'PRACTICE' | 'PYQ' | 'OLYMPIAD';
 
 export interface QuestionData {
   id: string;
+  docId: string;
+  altId?: string;
   className: string;
   examName: string;
   subjectName: string;
@@ -79,10 +81,8 @@ export interface QuestionData {
   explanationEn?: string;
   explanationHi?: string;
   diagramUrl?: string | null;
-  // Two-Stage Deletion & Recycle Bin Controls
-  isArchived?: boolean;
-  status?: 'ACTIVE' | 'ARCHIVED';
-  // Guaranteed string aliases for frontend compatibility
+  isArchived: boolean;
+  status: 'ACTIVE' | 'ARCHIVED';
   subject: string;
   category: string;
   class: string;
@@ -99,15 +99,20 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
     const snap = await getDocs(collection(db, 'questions'));
     return snap.docs.map(d => {
       const data = d.data();
+      
+      // Strict check: if marked archived, flag it
+      const isArchived = Boolean(data.isArchived === true || data.status === 'ARCHIVED');
       const safeClass = String(data.className || data.class || 'Civil Services / Competitive');
       const safeExam = String(data.examName || data.category || data.exam || 'UPSC Civil Services (Prelims)');
       const safeSubject = String(data.subjectName || data.subject || 'General Studies / Geography');
       const safeTopic = String(data.topicName || data.topic || 'General');
       const safeSegment: QuestionSegment = (data.segment as QuestionSegment) || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE');
-      const isArchived = Boolean(data.isArchived || data.status === 'ARCHIVED');
 
       return {
-        id: d.id,
+        ...data, // Data goes first
+        id: d.id, // d.id ALWAYS WINS as the true Firestore document ID
+        docId: d.id,
+        altId: data.id || undefined,
         className: safeClass,
         examName: safeExam,
         subjectName: safeSubject,
@@ -129,8 +134,7 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
         explanationHi: data.explanationHi || '',
         diagramUrl: data.diagramUrl || null,
         timesUsedInOlympiad: data.timesUsedInOlympiad || 0,
-        createdAt: data.createdAt || null,
-        ...data
+        createdAt: data.createdAt || null
       } as QuestionData;
     });
   } catch (err) {
@@ -165,32 +169,58 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
     topic: q.topicName || q.topic,
     updatedAt: Timestamp.now()
   };
-  await updateDoc(docRef, payload);
+  await setDoc(docRef, payload, { merge: true });
 }
 
-// Stage 1 Delete: Moves question to Recycle Bin / Archived
+// Stage 1: Move to Recycle Bin (Uses setDoc with merge so it NEVER crashes)
 export async function archiveQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  await updateDoc(docRef, {
+  await setDoc(docRef, {
     isArchived: true,
     status: 'ARCHIVED',
     archivedAt: Timestamp.now()
-  });
+  }, { merge: true });
 }
 
-// Restore: Brings question back from Recycle Bin to Active Bank
+// Restore from Recycle Bin
 export async function restoreQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  await updateDoc(docRef, {
+  await setDoc(docRef, {
     isArchived: false,
     status: 'ACTIVE',
-    updatedAt: Timestamp.now()
-  });
+    restoredAt: Timestamp.now()
+  }, { merge: true });
 }
 
-// Stage 2 Delete: Permanently wipes question from database forever
-export async function permanentlyDeleteQuestion(id: string): Promise<void> {
+// Stage 2: Permanent Wipe from Database
+export async function permanentlyDeleteQuestion(id: string, altId?: string): Promise<void> {
+  // Wipe by primary Firestore document ID
   await deleteDoc(doc(db, 'questions', id));
+  // If there's an internal legacy ID, wipe that too
+  if (altId && altId !== id) {
+    try {
+      await deleteDoc(doc(db, 'questions', altId));
+    } catch {}
+  }
+}
+
+// Bulk Wipe all Archived Questions
+export async function wipeAllRecycleBin(): Promise<number> {
+  const questions = await getAllQuestions();
+  const archived = questions.filter(q => q.isArchived);
+  const batch = writeBatch(db);
+
+  archived.forEach(q => {
+    batch.delete(doc(db, 'questions', q.id));
+    if (q.altId && q.altId !== q.id) {
+      batch.delete(doc(db, 'questions', q.altId));
+    }
+  });
+
+  if (archived.length > 0) {
+    await batch.commit();
+  }
+  return archived.length;
 }
 
 export async function bulkUploadQuestions(questions: QuestionData[]): Promise<number> {

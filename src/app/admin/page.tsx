@@ -15,7 +15,7 @@ import {
 import { 
   getTaxonomyNodes, saveTaxonomyNode, deleteTaxonomyNode, 
   getAllQuestions, createQuestion, updateQuestion,
-  archiveQuestion, restoreQuestion, permanentlyDeleteQuestion,
+  archiveQuestion, restoreQuestion, permanentlyDeleteQuestion, wipeAllRecycleBin,
   bulkUploadQuestions, autoPushOlympiadQuestions,
   TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
 } from '@/lib/db';
@@ -307,6 +307,7 @@ export default function AbhyaasMasterTower() {
 
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
+      docId: editingQuestionId || `q-${Date.now()}`,
       className: finalClass,
       examName: finalExam,
       subjectName: finalSubject,
@@ -330,38 +331,66 @@ export default function AbhyaasMasterTower() {
       timesUsedInOlympiad: 0
     };
 
-    if (editingQuestionId) {
-      setQuestionsList(prev => prev.map(item => item.id === editingQuestionId ? payload : item));
-      await updateQuestion(editingQuestionId, payload);
-      alert("Question updated successfully!");
-    } else {
-      setQuestionsList(prev => [payload, ...prev]);
-      await createQuestion(payload);
-      alert(`Saved question to [${qSegment}]!`);
+    try {
+      if (editingQuestionId) {
+        setQuestionsList(prev => prev.map(item => item.id === editingQuestionId ? payload : item));
+        await updateQuestion(editingQuestionId, payload);
+        alert("Question updated successfully!");
+      } else {
+        setQuestionsList(prev => [payload, ...prev]);
+        await createQuestion(payload);
+        alert(`Saved question to [${qSegment}]!`);
+      }
+      setIsQuestionModalOpen(false);
+    } catch (err: any) {
+      alert("Error saving question: " + err.message);
     }
-    setIsQuestionModalOpen(false);
   };
 
-  // Stage 1: Move Question to Recycle Bin
+  // STAGE 1: Move Question to Recycle Bin with real error handling
   const handleMoveToRecycleBin = async (id: string, text: string) => {
     if (!confirm(`Move question "${text.slice(0, 40)}..." to Recycle Bin?`)) return;
-    setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
-    await archiveQuestion(id);
+    try {
+      await archiveQuestion(id);
+      setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
+    } catch (err: any) {
+      alert("Error archiving question: " + err.message);
+    }
   };
 
-  // Restore Question from Recycle Bin
+  // RESTORE: Bring Question back to Active Bank
   const handleRestoreFromRecycleBin = async (id: string) => {
-    setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: false, status: 'ACTIVE' } : q));
-    await restoreQuestion(id);
-    alert("Question restored back to Active Question Bank!");
+    try {
+      await restoreQuestion(id);
+      setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: false, status: 'ACTIVE' } : q));
+      alert("Question restored back to Active Question Bank!");
+    } catch (err: any) {
+      alert("Error restoring question: " + err.message);
+    }
   };
 
-  // Stage 2: Permanent Delete from Firestore
-  const handlePermanentDelete = async (id: string) => {
-    if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This question will be completely erased from the database forever!")) return;
-    setQuestionsList(prev => prev.filter(q => q.id !== id));
-    await permanentlyDeleteQuestion(id);
-    alert("Question permanently erased from database.");
+  // STAGE 2: Permanent Delete from Firestore
+  const handlePermanentDelete = async (q: QuestionData) => {
+    if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This will be permanently erased from Firestore!")) return;
+    try {
+      await permanentlyDeleteQuestion(q.id, q.altId);
+      setQuestionsList(prev => prev.filter(item => item.id !== q.id));
+      alert("Question permanently erased from database!");
+    } catch (err: any) {
+      alert("Error deleting from database: " + err.message);
+    }
+  };
+
+  // WIPE ENTIRE RECYCLE BIN
+  const handleWipeAllRecycleBin = async () => {
+    if (!confirm("🚨 DANGER: Wipe ALL questions currently in the Recycle Bin permanently?")) return;
+    try {
+      const count = await wipeAllRecycleBin();
+      setQuestionsList(prev => prev.filter(q => !q.isArchived));
+      alert(`Permanently erased ${count} questions from database!`);
+    } catch (err: any) {
+      alert("Error wiping recycle bin: " + err.message);
+    }
   };
 
   // Direct Paste from Excel
@@ -375,8 +404,10 @@ export default function AbhyaasMasterTower() {
       if (row.length >= 7) {
         const seg = (row[0] || '').toUpperCase();
         const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
+        const newId = `q-paste-${Date.now()}-${i}`;
         parsed.push({
-          id: `q-paste-${Date.now()}-${i}`,
+          id: newId,
+          docId: newId,
           segment: validSegment,
           className: row[1] || 'Civil Services / Competitive',
           examName: row[2] || 'UPSC Civil Services (Prelims)',
@@ -403,11 +434,15 @@ export default function AbhyaasMasterTower() {
     }
 
     if (parsed.length === 0) return alert("Could not parse rows. Ensure columns match the sample template.");
-    const count = await bulkUploadQuestions(parsed);
-    setQuestionsList(prev => [...parsed, ...prev]);
-    setPasteData('');
-    setIsBulkModalOpen(false);
-    alert(`🎉 Successfully imported ${count} questions directly from Excel without encoding errors!`);
+    try {
+      const count = await bulkUploadQuestions(parsed);
+      setQuestionsList(prev => [...parsed, ...prev]);
+      setPasteData('');
+      setIsBulkModalOpen(false);
+      alert(`🎉 Imported ${count} questions directly from Excel without encoding errors!`);
+    } catch (err: any) {
+      alert("Error importing from Excel: " + err.message);
+    }
   };
 
   // CSV File Reader
@@ -427,9 +462,11 @@ export default function AbhyaasMasterTower() {
         if (row.length >= 7) {
           const seg = (row[0] || '').toUpperCase();
           const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
+          const newId = `q-csv-${Date.now()}-${i}`;
 
           parsed.push({
-            id: `q-csv-${Date.now()}-${i}`,
+            id: newId,
+            docId: newId,
             segment: validSegment,
             className: row[1] || 'Civil Services / Competitive',
             examName: row[2] || 'UPSC Civil Services (Prelims)',
@@ -455,10 +492,14 @@ export default function AbhyaasMasterTower() {
         }
       }
 
-      const uploadedCount = await bulkUploadQuestions(parsed);
-      setQuestionsList(prev => [...parsed, ...prev]);
-      setIsBulkModalOpen(false);
-      alert(`🎉 Successfully uploaded ${uploadedCount} questions in bulk!`);
+      try {
+        const uploadedCount = await bulkUploadQuestions(parsed);
+        setQuestionsList(prev => [...parsed, ...prev]);
+        setIsBulkModalOpen(false);
+        alert(`🎉 Successfully uploaded ${uploadedCount} questions in bulk!`);
+      } catch (err: any) {
+        alert("Error saving CSV questions: " + err.message);
+      }
     };
     reader.readAsText(file, 'UTF-8');
   };
@@ -467,10 +508,14 @@ export default function AbhyaasMasterTower() {
   const handleExecuteAutoPush = async () => {
     if (!pushTargetExam) return alert("Select an Exam or Subject.");
     if (!confirm(`Push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
-    const count = await autoPushOlympiadQuestions(pushTargetExam, pushTargetSegment, pushPyqYear);
-    alert(`Transferred ${count} questions to ${pushTargetSegment}!`);
-    loadAllData();
-    setIsAutoPushModalOpen(false);
+    try {
+      const count = await autoPushOlympiadQuestions(pushTargetExam, pushTargetSegment, pushPyqYear);
+      alert(`Transferred ${count} questions to ${pushTargetSegment}!`);
+      loadAllData();
+      setIsAutoPushModalOpen(false);
+    } catch (err: any) {
+      alert("Error in auto-push pipeline: " + err.message);
+    }
   };
 
   if (!mounted) {
@@ -599,7 +644,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Every active question is indexed across Class, Exam, Subject, and Topic.</p>
+                  <p className="text-xs text-slate-500">Indexed questions with strict multi-tier hierarchy alignment.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -627,7 +672,6 @@ export default function AbhyaasMasterTower() {
               {/* Multi-Tier Filter Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Segment Buttons */}
                   <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
                     {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
                       <button
@@ -645,7 +689,6 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </div>
 
-                  {/* Filter by Exam */}
                   <select
                     value={filterExam}
                     onChange={e => setFilterExam(e.target.value)}
@@ -657,7 +700,6 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </select>
 
-                  {/* Filter by Subject */}
                   <select
                     value={filterSubject}
                     onChange={e => setFilterSubject(e.target.value)}
@@ -669,7 +711,6 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </select>
 
-                  {/* Search bar */}
                   <div className="relative flex-grow min-w-[200px]">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -702,7 +743,7 @@ export default function AbhyaasMasterTower() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                           q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                          q.segment === 'PYQ' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
+                          q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
                           'bg-emerald-100 text-emerald-900 border border-emerald-300'
                         }`}>
                           {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
@@ -794,9 +835,18 @@ export default function AbhyaasMasterTower() {
                   Recycle Bin / Archived Questions ({archivedQuestions.length})
                 </h2>
                 <p className="text-xs text-rose-700 mt-1">
-                  Questions deleted from the active bank are moved here first. You can restore them or permanently wipe them.
+                  Questions deleted from the active bank are moved here first. You can restore them or permanently wipe them from Firestore.
                 </p>
               </div>
+
+              {archivedQuestions.length > 0 && (
+                <button
+                  onClick={handleWipeAllRecycleBin}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 shrink-0"
+                >
+                  <ShieldAlert className="w-4 h-4" /> Empty Entire Recycle Bin
+                </button>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -807,9 +857,9 @@ export default function AbhyaasMasterTower() {
               ) : (
                 archivedQuestions.map(q => (
                   <div key={q.id} className="bg-white border border-rose-200 p-5 rounded-2xl shadow-sm space-y-3">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <span className="text-xs font-bold text-slate-500">
-                        {q.className} ➔ {q.examName} ➔ {q.subjectName}
+                        {q.className} ➔ {q.examName} ➔ {q.subjectName} (ID: <code className="font-mono text-[10px]">{q.id}</code>)
                       </span>
                       <div className="flex gap-2">
                         <button
@@ -819,10 +869,10 @@ export default function AbhyaasMasterTower() {
                           <RotateCcw className="w-3.5 h-3.5" /> Restore to Bank
                         </button>
                         <button
-                          onClick={() => handlePermanentDelete(q.id)}
+                          onClick={() => handlePermanentDelete(q)}
                           className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Permanent Delete
+                          <Trash2 className="w-3.5 h-3.5" /> Delete Forever
                         </button>
                       </div>
                     </div>
@@ -957,15 +1007,15 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Vault Selector */}
+              {/* Vault Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Vault / Destination*
+                  Target Vault / Segment*
                 </label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
                     { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year repository' },
+                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
                     { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
                   ].map(s => (
                     <button
@@ -1265,7 +1315,7 @@ export default function AbhyaasMasterTower() {
             {bulkMode === 'paste' ? (
               <div className="space-y-3 text-xs">
                 <p className="text-slate-600 leading-relaxed">
-                  Select rows in Microsoft Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>. Windows clipboard preserves Hindi characters without any encoding corruption.
+                  Select rows in Microsoft Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>. Windows clipboard preserves Hindi characters without encoding corruption.
                 </p>
                 <textarea
                   rows={6}
