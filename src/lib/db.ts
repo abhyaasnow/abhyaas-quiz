@@ -16,7 +16,7 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== 1. CATEGORY & HIERARCHY (STEP A) ====================
+// ==================== 1. TAXONOMY / HIERARCHY ====================
 export type TaxonomyLevel = 'CLASS' | 'EXAM' | 'SUBJECT' | 'TOPIC' | 'DOMAIN';
 
 export interface TaxonomyNode {
@@ -60,7 +60,7 @@ export async function deleteTaxonomyNode(id: string): Promise<void> {
   await deleteDoc(doc(db, 'taxonomy', id));
 }
 
-// ==================== 2. QUESTION BANK & CRUD ENGINE (STEP B) ====================
+// ==================== 2. ENTERPRISE QUESTION VAULT ====================
 export type QuestionSegment = 'PRACTICE' | 'PYQ' | 'OLYMPIAD';
 
 export interface QuestionData {
@@ -78,6 +78,12 @@ export interface QuestionData {
   correctOption: number; // 0, 1, 2, 3
   explanationEn?: string;
   explanationHi?: string;
+  diagramUrl?: string; // Map, Chart, Formula, Diagram image URL
+  // Guaranteed Frontend Aliases (prevents '—' on practice/quiz pages)
+  subject?: string;
+  category?: string;
+  class?: string;
+  topic?: string;
   approvalStatus?: string;
   timesUsedInOlympiad?: number;
   createdAt?: any;
@@ -90,13 +96,24 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
     const snap = await getDocs(collection(db, 'questions'));
     return snap.docs.map(d => {
       const data = d.data();
+      const safeClass = data.className || data.class || 'Civil Services / Competitive';
+      const safeExam = data.examName || data.category || data.exam || 'UPSC Civil Services (Prelims)';
+      const safeSubject = data.subjectName || data.subject || 'General Studies / Geography';
+      const safeTopic = data.topicName || data.topic || 'General';
+      const safeSegment: QuestionSegment = data.segment || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE');
+
       return {
         id: d.id,
-        className: data.className || data.class || 'All Classes',
-        examName: data.examName || data.exam || data.category || 'General',
-        subjectName: data.subjectName || data.subject || 'General',
-        topicName: data.topicName || data.topic || 'General',
-        segment: (data.segment as QuestionSegment) || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE'),
+        className: safeClass,
+        examName: safeExam,
+        subjectName: safeSubject,
+        topicName: safeTopic,
+        // Aliases so older frontend pages never break
+        class: safeClass,
+        category: safeExam,
+        subject: safeSubject,
+        topic: safeTopic,
+        segment: safeSegment,
         pyqYear: data.pyqYear || '',
         questionEn: data.questionEn || data.question || 'Untitled Question',
         questionHi: data.questionHi || '',
@@ -105,6 +122,7 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
         correctOption: typeof data.correctOption === 'number' ? data.correctOption : 0,
         explanationEn: data.explanationEn || '',
         explanationHi: data.explanationHi || '',
+        diagramUrl: data.diagramUrl || '',
         timesUsedInOlympiad: data.timesUsedInOlympiad || 0,
         createdAt: data.createdAt || null,
         ...data
@@ -118,29 +136,81 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
 
 export async function createQuestion(q: QuestionData): Promise<void> {
   const docRef = doc(db, 'questions', q.id);
-  await setDoc(docRef, { ...q, createdAt: Timestamp.now(), updatedAt: Timestamp.now() }, { merge: true });
+  const payload = {
+    ...q,
+    category: q.examName,
+    subject: q.subjectName,
+    class: q.className,
+    topic: q.topicName,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
+  };
+  await setDoc(docRef, payload, { merge: true });
 }
 
 export async function updateQuestion(id: string, q: Partial<QuestionData>): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  await updateDoc(docRef, { ...q, updatedAt: Timestamp.now() });
+  const payload = {
+    ...q,
+    category: q.examName || q.category,
+    subject: q.subjectName || q.subject,
+    class: q.className || q.class,
+    topic: q.topicName || q.topic,
+    updatedAt: Timestamp.now()
+  };
+  await updateDoc(docRef, payload);
 }
 
 export async function deleteQuestion(id: string): Promise<void> {
   await deleteDoc(doc(db, 'questions', id));
 }
 
-// Bulk Upload Ingestion via Batch
+// Bulk Upload Engine (Guarantees Perfect Taxonomy Mapping)
 export async function bulkUploadQuestions(questions: QuestionData[]): Promise<number> {
   const batch = writeBatch(db);
   let count = 0;
   questions.forEach(q => {
     const ref = doc(db, 'questions', q.id);
-    batch.set(ref, { ...q, createdAt: Timestamp.now() }, { merge: true });
+    batch.set(ref, {
+      ...q,
+      category: q.examName,
+      subject: q.subjectName,
+      class: q.className,
+      topic: q.topicName,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    }, { merge: true });
     count++;
   });
   await batch.commit();
   return count;
+}
+
+// Re-Align / Re-Classify Tool: Moves unassigned/misplaced questions to the right Exam & Subject
+export async function reclassifyQuestions(
+  targetClass: string,
+  targetExam: string,
+  targetSubject: string,
+  targetTopic: string,
+  questionIds: string[]
+): Promise<number> {
+  const batch = writeBatch(db);
+  questionIds.forEach(id => {
+    const ref = doc(db, 'questions', id);
+    batch.update(ref, {
+      className: targetClass,
+      class: targetClass,
+      examName: targetExam,
+      category: targetExam,
+      subjectName: targetSubject,
+      subject: targetSubject,
+      topicName: targetTopic,
+      topic: targetTopic,
+      updatedAt: Timestamp.now()
+    });
+  });
+  await batch.commit();
+  return questionIds.length;
 }
 
 // Auto-Push Pipeline: Transfer Olympiad Questions to Practice / PYQ
@@ -173,7 +243,7 @@ export async function autoPushOlympiadQuestions(
   return updatedCount;
 }
 
-// ==================== 3. SITE SETTINGS & CMS (BANNER FIX) ====================
+// ==================== 3. SITE SETTINGS & CMS ====================
 export interface SiteSettings {
   headerLogoUrl?: string | null | any;
   footerLogoUrl?: string | null | any;
@@ -249,7 +319,7 @@ export async function getAllPayments(): Promise<PaymentRecord[]> {
   }
 }
 
-// Compatibility Placeholders for Olympiad & Category
+// Backward Compatibility Placeholders
 export interface CategoryConfig { id: string; name: string; [key: string]: any; }
 export async function getCustomCategories(): Promise<CategoryConfig[]> { return []; }
 export async function saveCustomCategory(cat: any): Promise<void> {}

@@ -8,52 +8,86 @@ import {
   FolderTree, BookOpen, Sparkles, AlertCircle,
   FileSpreadsheet, Upload, Download, RefreshCw,
   Filter, Search, Award, HelpCircle, ArrowDownCircle,
-  AlertTriangle, CheckCircle2
+  AlertTriangle, Image as ImageIcon, ClipboardCheck, ArrowLeftRight
 } from 'lucide-react';
 
 import { 
   getTaxonomyNodes, saveTaxonomyNode, deleteTaxonomyNode, 
   getAllQuestions, createQuestion, updateQuestion, deleteQuestion,
-  bulkUploadQuestions, autoPushOlympiadQuestions,
+  bulkUploadQuestions, autoPushOlympiadQuestions, reclassifyQuestions,
   TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
 } from '@/lib/db';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 
-// Standard Presets for Hierarchy
 const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   CLASS: [
+    { en: 'Civil Services / Competitive', hi: 'प्रतियोगी परीक्षा / सिविल सेवा' },
     { en: 'Class 6th (Middle School)', hi: 'कक्षा 6' },
     { en: 'Class 9th (Secondary Entrance)', hi: 'कक्षा 9' },
-    { en: 'Class 1st - 5th (Primary)', hi: 'प्राथमिक स्तर (कक्षा 1-5)' },
     { en: 'Class 10th (Board / Foundation)', hi: 'कक्षा 10 बोर्ड' },
-    { en: 'Class 11th - 12th (Senior Secondary)', hi: 'कक्षा 11-12' },
-    { en: 'Civil Services / Competitive', hi: 'प्रतियोगी परीक्षा / सिविल सेवा' }
+    { en: 'Class 11th - 12th (Senior Secondary)', hi: 'कक्षा 11-12' }
   ],
   EXAM: [
+    { en: 'UPSC Civil Services (Prelims)', hi: 'संघ लोक सेवा आयोग सिविल सेवा' },
     { en: 'JNVST (Navodaya Entrance Exam)', hi: 'जवाहर नवोदय विद्यालय प्रवेश परीक्षा' },
     { en: 'AISSEE (All India Sainik School Exam)', hi: 'अखिल भारतीय सैनिक स्कूल परीक्षा' },
-    { en: 'All India Mega Olympiad 2026', hi: 'अखिल भारतीय छात्रवृत्ति ओलंपियाड 2026' },
-    { en: 'National Science Olympiad (NSO)', hi: 'राष्ट्रीय विज्ञान ओलंपियाड' },
-    { en: 'UPSC Civil Services (Prelims)', hi: 'संघ लोक सेवा आयोग सिविल सेवा' }
+    { en: 'All India Mega Olympiad 2026', hi: 'अखिल भारतीय छात्रवृत्ति ओलंपियाड 2026' }
   ],
   SUBJECT: [
+    { en: 'General Studies / Geography', hi: 'सामान्य अध्ययन / भूगोल' },
+    { en: 'General Studies / Science', hi: 'सामान्य अध्ययन / विज्ञान' },
+    { en: 'General Studies / Economy', hi: 'सामान्य अध्ययन / अर्थव्यवस्था' },
     { en: 'Mathematics', hi: 'गणित' },
-    { en: 'Science (EVS & Physics/Chem/Bio)', hi: 'विज्ञान एवं पर्यावरण' },
-    { en: 'Mental Ability & Reasoning', hi: 'मानसिक योग्यता एवं तर्कशक्ति' },
-    { en: 'Language Test (Hindi)', hi: 'भाषा परीक्षा (हिंदी)' },
-    { en: 'Language Test (English)', hi: 'भाषा परीक्षा (अंग्रेजी)' },
-    { en: 'General Studies / Indian Polity', hi: 'सामान्य अध्ययन / भारतीय राजव्यवस्था' }
+    { en: 'Science (Physics/Chem/Bio)', hi: 'विज्ञान' },
+    { en: 'Mental Ability & Reasoning', hi: 'मानसिक योग्यता एवं तर्कशक्ति' }
   ],
   TOPIC: [
+    { en: 'Global Mineral Resources & EV Transition', hi: 'वैश्विक खनिज संसाधन एवं ईवी संक्रमण' },
     { en: 'Number System & Place Value', hi: 'संख्या पद्धति एवं स्थानीय मान' },
-    { en: 'Fractions & Decimals', hi: 'भिन्न एवं दशमलव' },
-    { en: 'LCM and HCF', hi: 'लघुत्तम समापवर्त्य एवं महत्तम समापवर्तक' },
-    { en: 'Pattern Completion & Analogy', hi: 'चित्र मिलान एवं सादृश्यता' },
     { en: 'Preamble & Fundamental Rights', hi: 'प्रस्तावना एवं मौलिक अधिकार' }
   ],
   DOMAIN: []
 };
+
+// RFC-4180 Multi-line & Quoted CSV Parser
+function parseCSVProperly(text: string): string[][] {
+  const clean = text.replace(/^\uFEFF/, '');
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const nextChar = clean[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentCell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      currentRow.push(currentCell.trim());
+      currentCell = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      currentRow.push(currentCell.trim());
+      if (currentRow.some(c => c.length > 0)) rows.push(currentRow);
+      currentRow = [];
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+  if (currentCell.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    if (currentRow.some(c => c.length > 0)) rows.push(currentRow);
+  }
+  return rows;
+}
 
 export default function AbhyaasMasterTower() {
   const [mounted, setMounted] = useState(false);
@@ -61,33 +95,35 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Tab Navigation: Step A vs Step B
-  const [adminTab, setAdminTab] = useState<'hierarchy' | 'questions'>('questions');
-
-  // Master Data States
+  const [adminTab, setAdminTab] = useState<'questions' | 'hierarchy'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ==================== STEP A: TAXONOMY FORM STATE ====================
+  // Taxonomy Form State
   const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('CLASS');
   const [presetChoice, setPresetChoice] = useState<string>('');
   const [manualNameEn, setManualNameEn] = useState('');
   const [manualNameHi, setManualNameHi] = useState('');
   const [selectedParentId, setSelectedParentId] = useState('');
 
-  // ==================== STEP B: QUESTION STUDIO STATE ====================
+  // Question Studio State
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isRealignModalOpen, setIsRealignModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
-  
-  // Filter Bar State
+
+  const [bulkMode, setBulkMode] = useState<'paste' | 'csv'>('paste');
+  const [pasteData, setPasteData] = useState('');
+
+  // Filtering Controls
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
-  const [selectedClassFilter, setSelectedClassFilter] = useState('ALL');
+  const [filterClass, setFilterClass] = useState('ALL');
+  const [filterExam, setFilterExam] = useState('ALL');
+  const [filterSubject, setFilterSubject] = useState('ALL');
 
-  // Anti-Duplicate Warning
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
   // Cascading Question Form
@@ -110,6 +146,13 @@ export default function AbhyaasMasterTower() {
   const [qCorrectOpt, setQCorrectOpt] = useState(0);
   const [qExplanationEn, setQExplanationEn] = useState('');
   const [qExplanationHi, setQExplanationHi] = useState('');
+  const [qDiagramUrl, setQDiagramUrl] = useState('');
+
+  // Re-align Tool State
+  const [realignTargetClass, setRealignTargetClass] = useState('');
+  const [realignTargetExam, setRealignTargetExam] = useState('');
+  const [realignTargetSubject, setRealignTargetSubject] = useState('');
+  const [realignTargetTopic, setRealignTargetTopic] = useState('');
 
   // Auto-Push Pipeline State
   const [pushTargetExam, setPushTargetExam] = useState('');
@@ -140,11 +183,8 @@ export default function AbhyaasMasterTower() {
       setTaxonomyList(taxNodes || []);
       setQuestionsList(questions || []);
 
-      // Set initial cascade defaults
       const classes = (taxNodes || []).filter(t => t.level === 'CLASS');
-      if (classes.length > 0 && !qClass) {
-        setQClass(classes[0].nameEn);
-      }
+      if (classes.length > 0 && !qClass) setQClass(classes[0].nameEn);
     } catch (err) {
       console.error(err);
     } finally {
@@ -168,17 +208,15 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // ==================== STEP A: TAXONOMY ACTIONS ====================
+  // Hierarchy Handlers
   const handlePresetChange = (val: string) => {
     setPresetChoice(val);
     if (val === 'OTHER') {
-      setManualNameEn('');
-      setManualNameHi('');
+      setManualNameEn(''); setManualNameHi('');
     } else if (val) {
       const found = PRESETS[activeLevel]?.find(p => p.en === val);
       if (found) {
-        setManualNameEn(found.en);
-        setManualNameHi(found.hi);
+        setManualNameEn(found.en); setManualNameHi(found.hi);
       }
     }
   };
@@ -198,9 +236,7 @@ export default function AbhyaasMasterTower() {
     };
 
     setTaxonomyList(prev => [newNode, ...prev]);
-    setManualNameEn('');
-    setManualNameHi('');
-    setPresetChoice('');
+    setManualNameEn(''); setManualNameHi(''); setPresetChoice('');
     await saveTaxonomyNode(newNode);
     alert(`Saved "${finalEn}" to ${activeLevel}!`);
   };
@@ -211,60 +247,46 @@ export default function AbhyaasMasterTower() {
     await deleteTaxonomyNode(id);
   };
 
-  // ==================== STEP B: QUESTION ACTIONS ====================
+  const insertSymbol = (sym: string) => {
+    setQStatementEn(prev => prev + sym);
+  };
+
+  // Duplicate Check
   const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
 
   const checkDuplicates = (text: string) => {
     const target = cleanStr(text);
-    if (!target || target.length < 5) {
-      setDuplicateWarning(null);
-      return;
+    if (!target || target.length < 6) {
+      setDuplicateWarning(null); return;
     }
-
     const exact = questionsList.find(q => {
       if (editingQuestionId && q.id === editingQuestionId) return false;
       return cleanStr(q.questionEn) === target || cleanStr(q.questionHi) === target;
     });
-
     if (exact) {
-      setDuplicateWarning(`🚨 HARD DUPLICATE DETECTED: This exact question already exists in [${exact.segment}] (ID: ${exact.id})!`);
+      setDuplicateWarning(`🚨 HARD DUPLICATE DETECTED: This exact question exists in [${exact.segment}] (ID: ${exact.id})!`);
       return;
     }
-
-    const semantic = questionsList.find(q => {
-      if (editingQuestionId && q.id === editingQuestionId) return false;
-      const en = cleanStr(q.questionEn);
-      return target.length > 15 && en.includes(target.slice(0, 15));
-    });
-
-    if (semantic) {
-      setDuplicateWarning(`⚠️ SEMANTIC MIRROR ALERT: High similarity found with question: "${semantic.questionEn.slice(0, 45)}...". Please verify if this is an inverted variation.`);
-    } else {
-      setDuplicateWarning(null);
-    }
+    setDuplicateWarning(null);
   };
 
   const openCreateQuestionModal = () => {
     setEditingQuestionId(null);
     setDuplicateWarning(null);
-    setQStatementEn('');
-    setQStatementHi('');
-    setQOptionsEn(['', '', '', '']);
-    setQOptionsHi(['', '', '', '']);
-    setQCorrectOpt(0);
-    setQExplanationEn('');
-    setQExplanationHi('');
-    setQSegment('PRACTICE');
+    setQStatementEn(''); setQStatementHi('');
+    setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
+    setQCorrectOpt(0); setQExplanationEn(''); setQExplanationHi('');
+    setQDiagramUrl(''); setQSegment('PRACTICE');
     setIsQuestionModalOpen(true);
   };
 
   const openEditQuestionModal = (q: QuestionData) => {
     setEditingQuestionId(q.id);
     setDuplicateWarning(null);
-    setQClass(q.className || '');
-    setQExam(q.examName || '');
-    setQSubject(q.subjectName || '');
-    setQTopic(q.topicName || '');
+    setQClass(q.className || q.class || '');
+    setQExam(q.examName || q.category || '');
+    setQSubject(q.subjectName || q.subject || '');
+    setQTopic(q.topicName || q.topic || '');
     setQSegment(q.segment || 'PRACTICE');
     setQPyqYear(q.pyqYear || '2024');
     setQStatementEn(q.questionEn || '');
@@ -274,6 +296,7 @@ export default function AbhyaasMasterTower() {
     setQCorrectOpt(q.correctOption || 0);
     setQExplanationEn(q.explanationEn || '');
     setQExplanationHi(q.explanationHi || '');
+    setQDiagramUrl(q.diagramUrl || '');
     setIsQuestionModalOpen(true);
   };
 
@@ -288,12 +311,16 @@ export default function AbhyaasMasterTower() {
       return alert("Class, Exam, Subject, and English Question Statement are required!");
     }
 
-    const questionPayload: QuestionData = {
+    const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       className: finalClass,
       examName: finalExam,
       subjectName: finalSubject,
       topicName: finalTopic || 'General',
+      category: finalExam,
+      subject: finalSubject,
+      class: finalClass,
+      topic: finalTopic || 'General',
       segment: qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
       questionEn: qStatementEn.trim(),
@@ -303,19 +330,19 @@ export default function AbhyaasMasterTower() {
       correctOption: qCorrectOpt,
       explanationEn: qExplanationEn.trim(),
       explanationHi: qExplanationHi.trim(),
+      diagramUrl: qDiagramUrl.trim(),
       timesUsedInOlympiad: 0
     };
 
     if (editingQuestionId) {
-      setQuestionsList(prev => prev.map(item => item.id === editingQuestionId ? questionPayload : item));
-      await updateQuestion(editingQuestionId, questionPayload);
+      setQuestionsList(prev => prev.map(item => item.id === editingQuestionId ? payload : item));
+      await updateQuestion(editingQuestionId, payload);
       alert("Question updated successfully!");
     } else {
-      setQuestionsList(prev => [questionPayload, ...prev]);
-      await createQuestion(questionPayload);
-      alert(`Question created and saved to [${qSegment}]!`);
+      setQuestionsList(prev => [payload, ...prev]);
+      await createQuestion(payload);
+      alert(`Saved question to [${qSegment}]!`);
     }
-
     setIsQuestionModalOpen(false);
   };
 
@@ -325,39 +352,108 @@ export default function AbhyaasMasterTower() {
     await deleteQuestion(id);
   };
 
-  // Bulk CSV Upload Handler
-  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Re-Align Legacy or Misplaced Questions
+  const handleExecuteRealign = async () => {
+    if (!realignTargetClass || !realignTargetExam || !realignTargetSubject) {
+      return alert("Select target Class, Exam, and Subject to align questions.");
+    }
+    const unalignedQuestions = questionsList.filter(q => 
+      !q.className || !q.examName || q.examName === 'General' || q.subjectName === 'General' || q.questionEn.toLowerCase().includes('photosynthesis')
+    );
+
+    if (unalignedQuestions.length === 0) {
+      return alert("No unassigned questions found. All questions are already categorized!");
+    }
+
+    const ids = unalignedQuestions.map(q => q.id);
+    await reclassifyQuestions(realignTargetClass, realignTargetExam, realignTargetSubject, realignTargetTopic || 'General', ids);
+    alert(`🎉 Successfully re-aligned ${ids.length} questions into ${realignTargetExam} ➔ ${realignTargetSubject}!`);
+    setIsRealignModalOpen(false);
+    loadAllData();
+  };
+
+  // Direct Paste from Excel (100% Unicode Safe)
+  const handleDirectExcelPaste = async () => {
+    if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
+    const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const parsed: QuestionData[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const row = lines[i].split('\t');
+      if (row.length >= 7) {
+        const seg = (row[0] || '').toUpperCase();
+        const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
+        parsed.push({
+          id: `q-paste-${Date.now()}-${i}`,
+          segment: validSegment,
+          className: row[1] || 'Civil Services / Competitive',
+          examName: row[2] || 'UPSC Civil Services (Prelims)',
+          subjectName: row[3] || 'General Studies / Geography',
+          topicName: row[4] || 'Global Mineral Resources & EV Transition',
+          category: row[2] || 'UPSC Civil Services (Prelims)',
+          subject: row[3] || 'General Studies / Geography',
+          class: row[1] || 'Civil Services / Competitive',
+          topic: row[4] || 'Global Mineral Resources & EV Transition',
+          pyqYear: row[5] || '2024',
+          questionEn: row[6] || '',
+          questionHi: row[7] || row[6] || '',
+          optionsEn: [row[8] || '', row[9] || '', row[10] || '', row[11] || ''],
+          optionsHi: [row[12] || row[8] || '', row[13] || row[9] || '', row[14] || row[10] || '', row[15] || row[11] || ''],
+          correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
+          explanationEn: row[17] || '',
+          explanationHi: row[18] || '',
+          diagramUrl: row[19] || '',
+          timesUsedInOlympiad: 0
+        });
+      }
+    }
+
+    if (parsed.length === 0) return alert("Could not parse rows. Ensure columns match the sample template.");
+    const count = await bulkUploadQuestions(parsed);
+    setQuestionsList(prev => [...parsed, ...prev]);
+    setPasteData('');
+    setIsBulkModalOpen(false);
+    alert(`🎉 Imported ${count} questions directly from Excel without any encoding errors!`);
+  };
+
+  // CSV File Reader
+  const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-      if (lines.length <= 1) return alert("Empty CSV file.");
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = (evt.target?.result as string) || '';
+      const rows = parseCSVProperly(text);
+      if (rows.length <= 1) return alert("Empty CSV file.");
 
       const parsed: QuestionData[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-        const clean = (val: string) => val ? val.replace(/^"|"$/g, '').trim() : '';
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
         if (row.length >= 7) {
-          const seg = clean(row[0]).toUpperCase();
+          const seg = (row[0] || '').toUpperCase();
           const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
 
           parsed.push({
             id: `q-csv-${Date.now()}-${i}`,
             segment: validSegment,
-            className: clean(row[1]) || 'Class 6th',
-            examName: clean(row[2]) || 'JNVST',
-            subjectName: clean(row[3]) || 'Mathematics',
-            topicName: clean(row[4]) || 'General',
-            pyqYear: clean(row[5]) || '2024',
-            questionEn: clean(row[6]),
-            questionHi: clean(row[7]) || clean(row[6]),
-            optionsEn: [clean(row[8]), clean(row[9]), clean(row[10]), clean(row[11])],
-            optionsHi: [clean(row[12]) || clean(row[8]), clean(row[13]) || clean(row[9]), clean(row[14]) || clean(row[10]), clean(row[15]) || clean(row[11])],
-            correctOption: (parseInt(clean(row[16])) - 1) >= 0 ? parseInt(clean(row[16])) - 1 : 0,
-            explanationEn: clean(row[17]) || '',
-            explanationHi: clean(row[18]) || '',
+            className: row[1] || 'Civil Services / Competitive',
+            examName: row[2] || 'UPSC Civil Services (Prelims)',
+            subjectName: row[3] || 'General Studies / Geography',
+            topicName: row[4] || 'Global Mineral Resources & EV Transition',
+            category: row[2] || 'UPSC Civil Services (Prelims)',
+            subject: row[3] || 'General Studies / Geography',
+            class: row[1] || 'Civil Services / Competitive',
+            topic: row[4] || 'Global Mineral Resources & EV Transition',
+            pyqYear: row[5] || '2024',
+            questionEn: row[6] || '',
+            questionHi: row[7] || row[6] || '',
+            optionsEn: [row[8] || '', row[9] || '', row[10] || '', row[11] || ''],
+            optionsHi: [row[12] || row[8] || '', row[13] || row[9] || '', row[14] || row[10] || '', row[15] || row[11] || ''],
+            correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
+            explanationEn: row[17] || '',
+            explanationHi: row[18] || '',
+            diagramUrl: row[19] || '',
             timesUsedInOlympiad: 0
           });
         }
@@ -365,40 +461,20 @@ export default function AbhyaasMasterTower() {
 
       const uploadedCount = await bulkUploadQuestions(parsed);
       setQuestionsList(prev => [...parsed, ...prev]);
-      setIsCsvModalOpen(false);
+      setIsBulkModalOpen(false);
       alert(`🎉 Successfully uploaded ${uploadedCount} questions in bulk!`);
-    } catch (err) {
-      alert("Error parsing CSV file. Please use the provided template.");
-    }
-  };
-
-  // Download Sample CSV Template
-  const downloadSampleCsv = () => {
-    const header = "Segment(PRACTICE/PYQ/OLYMPIAD),Class,Exam,Subject,Topic,PYQYear,QuestionEn,QuestionHi,Opt1_En,Opt2_En,Opt3_En,Opt4_En,Opt1_Hi,Opt2_Hi,Opt3_Hi,Opt4_Hi,CorrectOpt(1-4),ExplanationEn,ExplanationHi\n";
-    const sample = 'PRACTICE,Class 6th,JNVST,Mathematics,Number System,2024,"What is the smallest prime number?","सबसे छोटी अभाज्य संख्या कौन सी है?","1","2","3","4","1","2","3","4",2,"2 is the only even prime number.","2 एकमात्र सम अभाज्य संख्या है।"\n';
-    const blob = new Blob([header + sample], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'Abhyaas_Question_Bulk_Template.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    };
+    reader.readAsText(file, 'UTF-8');
   };
 
   // Auto-Push Pipeline Execution
   const handleExecuteAutoPush = async () => {
-    if (!pushTargetExam) return alert("Select an Exam or Subject to transfer.");
-    if (!confirm(`Are you sure you want to push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
-
+    if (!pushTargetExam) return alert("Select an Exam or Subject.");
+    if (!confirm(`Push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
     const count = await autoPushOlympiadQuestions(pushTargetExam, pushTargetSegment, pushPyqYear);
-    if (count === 0) {
-      alert(`No Olympiad questions found under "${pushTargetExam}".`);
-    } else {
-      alert(`🚀 Success! Transferred ${count} questions from Olympiad to ${pushTargetSegment}.`);
-      loadAllData();
-      setIsAutoPushModalOpen(false);
-    }
+    alert(`Transferred ${count} questions to ${pushTargetSegment}!`);
+    loadAllData();
+    setIsAutoPushModalOpen(false);
   };
 
   if (!mounted) {
@@ -440,22 +516,24 @@ export default function AbhyaasMasterTower() {
   const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
   const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
 
-  // Filtered Question List for Display
+  // Multi-Tier Filter for Display
   const filteredQuestions = questionsList.filter(q => {
-    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName).includes(cleanStr(searchFilter));
+    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
     const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
-    const matchesClass = selectedClassFilter === 'ALL' || q.className === selectedClassFilter;
-    return matchesSearch && matchesSegment && matchesClass;
+    const matchesClass = filterClass === 'ALL' || q.className === filterClass || q.class === filterClass;
+    const matchesExam = filterExam === 'ALL' || q.examName === filterExam || q.category === filterExam;
+    const matchesSubject = filterSubject === 'ALL' || q.subjectName === filterSubject || q.subject === filterSubject;
+    return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
   });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
       
-      {/* Top Header */}
+      {/* Header */}
       <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-base shadow-sm">A</div>
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-base">A</div>
             <div>
               <h1 className="font-black text-sm sm:text-base tracking-wide flex items-center gap-2">
                 ABHYAAS O.S. <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] rounded font-mono uppercase">Unified Controller</span>
@@ -464,7 +542,7 @@ export default function AbhyaasMasterTower() {
           </div>
           <div className="flex items-center gap-4">
             <Link href="/practice" target="_blank" className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
-              <Eye className="w-4 h-4 text-emerald-400"/> Live Storefront
+              <Eye className="w-4 h-4 text-emerald-400"/> Live Practice Page
             </Link>
             <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 bg-slate-800 p-2 rounded-xl">
               <LogOut className="w-4 h-4"/>
@@ -476,11 +554,11 @@ export default function AbhyaasMasterTower() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
 
-        {/* Master Navigation Tabs: Step A vs Step B */}
+        {/* Master Navigation */}
         <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex gap-2">
           <button
             onClick={() => setAdminTab('questions')}
-            className={`flex-1 py-3.5 px-5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3.5 px-5 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
               adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -488,7 +566,7 @@ export default function AbhyaasMasterTower() {
           </button>
           <button
             onClick={() => setAdminTab('hierarchy')}
-            className={`flex-1 py-3.5 px-5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3.5 px-5 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
               adminTab === 'hierarchy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -496,12 +574,9 @@ export default function AbhyaasMasterTower() {
           </button>
         </div>
 
-        {/* ========================================================================= */}
-        {/* TAB 1: STEP A - CATEGORY & HIERARCHY MANAGEMENT (PRESERVED 100%) */}
-        {/* ========================================================================= */}
+        {/* TAB 1: HIERARCHY MANAGEMENT */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
-            {/* Level Selector Tabs */}
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { id: 'CLASS', title: '1. Classes', count: classes.length },
@@ -527,7 +602,6 @@ export default function AbhyaasMasterTower() {
               ))}
             </div>
 
-            {/* Hierarchy Form */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
               <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-blue-600" />
@@ -538,7 +612,7 @@ export default function AbhyaasMasterTower() {
                   <select
                     value={presetChoice}
                     onChange={e => handlePresetChange(e.target.value)}
-                    className="w-full h-11 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 appearance-none outline-none cursor-pointer"
+                    className="w-full h-11 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
                   >
                     <option value="">-- Choose from standard presets --</option>
                     {PRESETS[activeLevel]?.map((p, i) => <option key={i} value={p.en}>{p.en} ({p.hi})</option>)}
@@ -586,34 +660,14 @@ export default function AbhyaasMasterTower() {
                 </button>
               </form>
             </div>
-
-            {/* Current Nodes List */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-400 uppercase">Active {activeLevel} Nodes</h3>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {taxonomyList.filter(t => t.level === activeLevel).map(item => (
-                  <div key={item.id} className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div>
-                      <p className="font-extrabold text-sm text-slate-900">{item.nameEn}</p>
-                      {item.nameHi && <p className="text-xs text-slate-500">{item.nameHi}</p>}
-                    </div>
-                    <button onClick={() => handleDeleteTaxonomy(item.id, item.nameEn)} className="text-rose-400 hover:text-rose-600 p-2 rounded-xl">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 2: STEP B - QUESTION BANK MANAGEMENT STUDIO & VAULT */}
-        {/* ========================================================================= */}
+        {/* TAB 2: QUESTION BANK & VAULT */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
             
-            {/* Top Command Toolbar */}
+            {/* Toolbar */}
             <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -621,10 +675,9 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Question Bank & Quarantine Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Manage Practice Sets, PYQs, and Live Olympiad Question Banks.</p>
+                  <p className="text-xs text-slate-500">Every question stays preserved. Manage Practice Sets, PYQs, and Olympiads.</p>
                 </div>
 
-                {/* Primary Action Buttons */}
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={openCreateQuestionModal}
@@ -633,67 +686,94 @@ export default function AbhyaasMasterTower() {
                     <Plus className="w-4 h-4" /> Single Question Studio
                   </button>
                   <button
-                    onClick={() => setIsCsvModalOpen(true)}
+                    onClick={() => setIsBulkModalOpen(true)}
                     className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
                   >
-                    <FileSpreadsheet className="w-4 h-4" /> Bulk CSV Upload
+                    <FileSpreadsheet className="w-4 h-4" /> Bulk Upload / Excel Paste
+                  </button>
+                  <button
+                    onClick={() => setIsRealignModalOpen(true)}
+                    className="px-4 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                    title="Align older or unassigned questions to a specific exam/subject"
+                  >
+                    <ArrowLeftRight className="w-4 h-4" /> Align Legacy Questions
                   </button>
                   <button
                     onClick={() => setIsAutoPushModalOpen(true)}
                     className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
                   >
-                    <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ/Practice
+                    <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ
                   </button>
                 </div>
               </div>
 
-              {/* Segment & Search Filter Bar */}
-              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
-                
-                {/* Segment Badges */}
-                <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black w-full sm:w-auto">
-                  {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
-                    <button
-                      key={seg}
-                      onClick={() => setSegmentFilter(seg)}
-                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition ${
-                        segmentFilter === seg 
-                          ? 'bg-white text-slate-900 shadow-sm' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {seg === 'ALL' ? `All (${questionsList.length})` :
-                       seg === 'PRACTICE' ? `Practice Sets (${questionsList.filter(q=>q.segment==='PRACTICE').length})` :
-                       seg === 'PYQ' ? `PYQ Archive (${questionsList.filter(q=>q.segment==='PYQ').length})` :
-                       `🛡️ Olympiad (${questionsList.filter(q=>q.segment==='OLYMPIAD').length})`}
-                    </button>
-                  ))}
-                </div>
+              {/* Advanced Multi-Tier Filters */}
+              <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Segment Buttons */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
+                    {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
+                      <button
+                        key={seg}
+                        onClick={() => setSegmentFilter(seg)}
+                        className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
+                          segmentFilter === seg ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+                        }`}
+                      >
+                        {seg === 'ALL' ? `All (${questionsList.length})` :
+                         seg === 'PRACTICE' ? `Practice (${questionsList.filter(q=>q.segment==='PRACTICE').length})` :
+                         seg === 'PYQ' ? `PYQ (${questionsList.filter(q=>q.segment==='PYQ').length})` :
+                         `🛡️ Olympiad (${questionsList.filter(q=>q.segment==='OLYMPIAD').length})`}
+                      </button>
+                    ))}
+                  </div>
 
-                {/* Search Bar */}
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search question, subject, topic..."
-                    value={searchFilter}
-                    onChange={e => setSearchFilter(e.target.value)}
-                    className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
-                  />
-                </div>
+                  {/* Filter by Exam */}
+                  <select
+                    value={filterExam}
+                    onChange={e => setFilterExam(e.target.value)}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                  >
+                    <option value="ALL">All Examinations</option>
+                    {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
+                      <option key={e.id} value={e.nameEn}>{e.nameEn}</option>
+                    ))}
+                  </select>
 
+                  {/* Filter by Subject */}
+                  <select
+                    value={filterSubject}
+                    onChange={e => setFilterSubject(e.target.value)}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                  >
+                    <option value="ALL">All Subjects</option>
+                    {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
+                      <option key={s.id} value={s.nameEn}>{s.nameEn}</option>
+                    ))}
+                  </select>
+
+                  {/* Search input */}
+                  <div className="relative flex-grow min-w-[200px]">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search questions or keywords..."
+                      value={searchFilter}
+                      onChange={e => setSearchFilter(e.target.value)}
+                      className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Questions Table / List */}
+            {/* Questions Stream */}
             <div className="space-y-3">
               {filteredQuestions.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="font-extrabold text-sm text-slate-800">No Questions Found</p>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Click on <strong>Single Question Studio</strong> or <strong>Bulk CSV Upload</strong> to add your questions.
-                  </p>
+                  <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
+                  <p className="text-xs text-slate-400">Try changing the filters above or upload new questions.</p>
                 </div>
               ) : (
                 filteredQuestions.map((q, idx) => (
@@ -703,28 +783,26 @@ export default function AbhyaasMasterTower() {
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        {/* Segment Badge */}
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                           q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                           q.segment === 'PYQ' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
                           'bg-emerald-100 text-emerald-900 border border-emerald-300'
                         }`}>
-                          {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad Only' :
-                           q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Exam'})` :
+                          {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
+                           q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
                            '📘 Free Practice Drill'}
                         </span>
 
-                        {/* Hierarchy Tagging */}
-                        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                          {q.className} ➔ {q.examName} ➔ {q.subjectName}
+                        {/* Complete Hierarchy Breadcrumb */}
+                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
+                          {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
                         </span>
 
-                        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                          Topic: {q.topicName}
+                        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
+                          Topic: {q.topicName || q.topic}
                         </span>
                       </div>
 
-                      {/* Edit & Delete Controls */}
                       <div className="flex items-center gap-1 self-end sm:self-center">
                         <button
                           onClick={() => openEditQuestionModal(q)}
@@ -743,18 +821,22 @@ export default function AbhyaasMasterTower() {
                       </div>
                     </div>
 
-                    {/* Question Statement */}
                     <div>
                       <p className="font-bold text-sm text-slate-900">{q.questionEn}</p>
-                      {q.questionHi && <p className="text-xs text-slate-600 mt-0.5">{q.questionHi}</p>}
+                      {q.questionHi && <p className="text-xs text-slate-600 mt-1">{q.questionHi}</p>}
                     </div>
 
-                    {/* Options Preview */}
+                    {q.diagramUrl && (
+                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl w-fit">
+                        <img src={q.diagramUrl} alt="Diagram" className="max-h-48 rounded-lg object-contain" />
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
                       {q.optionsEn?.map((opt, i) => (
                         <div
                           key={i}
-                          className={`p-2 rounded-xl border flex items-center gap-1.5 ${
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 ${
                             q.correctOption === i
                               ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
                               : 'bg-slate-50 border-slate-200 text-slate-600'
@@ -770,11 +852,9 @@ export default function AbhyaasMasterTower() {
                       ))}
                     </div>
 
-                    {/* Explanation Snippet */}
                     {(q.explanationEn || q.explanationHi) && (
-                      <div className="p-2.5 bg-blue-50/60 rounded-xl text-[11px] text-blue-900 border border-blue-100 flex items-start gap-1.5">
-                        <span className="font-black shrink-0">💡 Explanation:</span>
-                        <span>{q.explanationEn || q.explanationHi}</span>
+                      <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
+                        <strong className="font-black">💡 Solution:</strong> {q.explanationEn || q.explanationHi}
                       </div>
                     )}
                   </div>
@@ -787,9 +867,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: SINGLE QUESTION STUDIO (CASCADING + BILINGUAL + ANTI-DUPLICATE) */}
-      {/* ========================================================================= */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -797,9 +875,9 @@ export default function AbhyaasMasterTower() {
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Add Question to Bank'}
+                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Configure hierarchy cascade, bilingual statements, and correct key.</p>
+                <p className="text-xs text-slate-500">Configure hierarchy cascade, bilingual statements, formulas, and diagrams.</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -811,28 +889,23 @@ export default function AbhyaasMasterTower() {
 
             <form onSubmit={handleSaveQuestion} className="space-y-5">
               
-              {/* Anti-Duplicate Warning Banner */}
               {duplicateWarning && (
-                <div className={`p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 ${
-                  duplicateWarning.includes('HARD') 
-                    ? 'bg-rose-50 border-rose-300 text-rose-800' 
-                    : 'bg-amber-50 border-amber-300 text-amber-800'
-                }`}>
+                <div className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-rose-50 border-rose-300 text-rose-800">
                   <AlertTriangle className="w-5 h-5 shrink-0" />
                   <span>{duplicateWarning}</span>
                 </div>
               )}
 
-              {/* Segment / Vault Selector */}
+              {/* Vault Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
                   Target Vault / Segment*
                 </label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student practice access' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year repository' },
-                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until contest' },
+                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
+                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
+                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
                   ].map(s => (
                     <button
                       type="button"
@@ -866,10 +939,8 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* 4-Tier Cascading Hierarchy */}
+              {/* 4-Tier Hierarchy */}
               <div className="grid sm:grid-cols-2 gap-4">
-                
-                {/* 1. Class Cascading Dropdown */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
                   <div className="relative">
@@ -886,17 +957,12 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qClass === 'OTHER' && (
                     <input
-                      type="text"
-                      placeholder="Enter custom Class name"
-                      value={qClassCustom}
-                      onChange={e => setQClassCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
-                      required
+                      type="text" placeholder="Custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
 
-                {/* 2. Exam Cascading Dropdown */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
                   <div className="relative">
@@ -913,17 +979,12 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qExam === 'OTHER' && (
                     <input
-                      type="text"
-                      placeholder="Enter custom Exam name"
-                      value={qExamCustom}
-                      onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
-                      required
+                      type="text" placeholder="Custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
 
-                {/* 3. Subject Cascading Dropdown */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
                   <div className="relative">
@@ -940,17 +1001,12 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qSubject === 'OTHER' && (
                     <input
-                      type="text"
-                      placeholder="Enter custom Subject name"
-                      value={qSubjectCustom}
-                      onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
-                      required
+                      type="text" placeholder="Custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
 
-                {/* 4. Topic Cascading Dropdown */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
                   <div className="relative">
@@ -967,28 +1023,44 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qTopic === 'OTHER' && (
                     <input
-                      type="text"
-                      placeholder="Enter custom Topic name"
-                      value={qTopicCustom}
-                      onChange={e => setQTopicCustom(e.target.value)}
+                      type="text" placeholder="Custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
                       className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
                     />
                   )}
                 </div>
-
               </div>
 
-              {/* Bilingual Question Statements */}
+              {/* Science & Math Formula Toolbar */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-1.5">
+                <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  Science, Math & Chemistry 1-Click Symbols:
+                </span>
+                <div className="flex flex-wrap gap-1.5 text-xs font-mono">
+                  {['H₂O', 'CO₂', 'LiFePO₄', 'x²', 'x³', 'x₁', '√', 'π', 'Δ', 'Ω', '±', '≠', '≤', '≥', '→', '⇌', '°C'].map(sym => (
+                    <button
+                      type="button"
+                      key={sym}
+                      onClick={() => insertSymbol(sym)}
+                      className="px-2 py-1 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded-md font-bold transition shadow-xs"
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Statements */}
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Question Statement in English*
+                    Question Statement (English)*
                   </label>
                   <textarea
                     rows={2}
                     value={qStatementEn}
                     onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                    placeholder="Enter English question text..."
+                    placeholder="Enter English question statement..."
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
                     required
                   />
@@ -996,22 +1068,41 @@ export default function AbhyaasMasterTower() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    प्रश्न विवरण हिंदी में (Hindi Statement)
+                    प्रश्न विवरण (हिंदी में)
                   </label>
                   <textarea
                     rows={2}
                     value={qStatementHi}
                     onChange={e => setQStatementHi(e.target.value)}
-                    placeholder="हिंदी में प्रश्न दर्ज करें..."
+                    placeholder="हिंदी अनुवाद दर्ज करें..."
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              {/* 4 Bilingual Options & Correct Answer Radio */}
+              {/* Diagram / Map URL */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map / Chemistry Image URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="Paste direct image link (https://...)"
+                  value={qDiagramUrl}
+                  onChange={e => setQDiagramUrl(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                />
+                {qDiagramUrl && (
+                  <div className="mt-2 p-2 bg-slate-100 rounded-xl w-fit border">
+                    <img src={qDiagramUrl} alt="Preview" className="max-h-36 rounded-lg object-contain" />
+                  </div>
+                )}
+              </div>
+
+              {/* Options */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
-                  Options & Correct Answer Key*
+                  Options & Correct Key*
                 </label>
                 {[0, 1, 2, 3].map(i => (
                   <div key={i} className="flex items-center gap-2">
@@ -1042,7 +1133,7 @@ export default function AbhyaasMasterTower() {
                 ))}
               </div>
 
-              {/* Bilingual Explanations */}
+              {/* Explanations */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Explanation (English)</label>
@@ -1050,7 +1141,7 @@ export default function AbhyaasMasterTower() {
                     rows={2}
                     value={qExplanationEn}
                     onChange={e => setQExplanationEn(e.target.value)}
-                    placeholder="Explain why the answer is correct..."
+                    placeholder="Solution..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
                   />
                 </div>
@@ -1060,7 +1151,7 @@ export default function AbhyaasMasterTower() {
                     rows={2}
                     value={qExplanationHi}
                     onChange={e => setQExplanationHi(e.target.value)}
-                    placeholder="विस्तृत समाधान यहाँ लिखें..."
+                    placeholder="विस्तृत व्याख्या..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
                   />
                 </div>
@@ -1072,7 +1163,7 @@ export default function AbhyaasMasterTower() {
                   className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
                 >
                   <Check className="w-4 h-4" />
-                  {editingQuestionId ? 'Update & Commit Changes' : 'Save Question to Selected Vault'}
+                  {editingQuestionId ? 'Update Question' : 'Save Question to Vault'}
                 </button>
               </div>
 
@@ -1081,65 +1172,164 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 2: BULK CSV UPLOAD */}
-      {/* ========================================================================= */}
-      {isCsvModalOpen && (
+      {/* MODAL 2: BULK UPLOAD + DIRECT EXCEL PASTE */}
+      {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                Bulk Question Flat-File Upload
+                Bulk Question Importer
               </h3>
-              <button onClick={() => setIsCsvModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <p className="text-slate-600 leading-relaxed">
-                Upload hundreds of questions formatted with Segment, Class, Exam, Subject, Topic, Bilingual Options, and Correct Keys via a single CSV.
-              </p>
-
+            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
               <button
-                type="button"
-                onClick={downloadSampleCsv}
-                className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold rounded-xl flex items-center justify-center gap-2 transition"
+                onClick={() => setBulkMode('paste')}
+                className={`flex-1 py-2 rounded-lg transition ${bulkMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
               >
-                <Download className="w-4 h-4" /> Download Official Sample CSV Template
+                1. Direct Paste from Excel (Recommended)
               </button>
-
-              <div
-                onClick={() => csvInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-8 text-center bg-slate-50 cursor-pointer transition"
+              <button
+                onClick={() => setBulkMode('csv')}
+                className={`flex-1 py-2 rounded-lg transition ${bulkMode === 'csv' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
               >
-                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <p className="font-bold text-slate-800">Click to Select or Drop CSV File</p>
-                <p className="text-[11px] text-slate-400 mt-1">UTF-8 Encoded .CSV files supported</p>
-                <input
-                  type="file"
-                  accept=".csv"
-                  ref={csvInputRef}
-                  onChange={handleCsvUpload}
-                  className="hidden"
-                />
-              </div>
+                2. Upload UTF-8 CSV File
+              </button>
             </div>
+
+            {bulkMode === 'paste' ? (
+              <div className="space-y-3 text-xs">
+                <p className="text-slate-600 leading-relaxed">
+                  Simply select your cells in Microsoft Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>. Windows clipboard preserves all Hindi Devnagari characters perfectly!
+                </p>
+                <textarea
+                  rows={6}
+                  value={pasteData}
+                  onChange={e => setPasteData(e.target.value)}
+                  placeholder="Paste copied cells from Excel here (tab-delimited)..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleDirectExcelPaste}
+                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
+                >
+                  <ClipboardCheck className="w-4 h-4" /> Import Pasted Rows
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4 text-xs">
+                <p className="text-slate-600 leading-relaxed">
+                  Upload CSV files saved with UTF-8 encoding. Quotes and multi-line explanations are parsed cleanly.
+                </p>
+                <div
+                  onClick={() => csvInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-8 text-center bg-slate-50 cursor-pointer transition"
+                >
+                  <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="font-bold text-slate-800">Click to Select UTF-8 CSV</p>
+                  <input type="file" accept=".csv" ref={csvInputRef} onChange={handleCsvFile} className="hidden" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 3: AUTO-PUSH OLYMPIAD ➔ PYQ / PRACTICE PIPELINE */}
-      {/* ========================================================================= */}
+      {/* MODAL 3: RE-ALIGN LEGACY QUESTIONS TOOL */}
+      {isRealignModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <ArrowLeftRight className="w-5 h-5 text-indigo-600" />
+                Align Legacy / Unassigned Questions
+              </h3>
+              <button onClick={() => setIsRealignModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Target questions that were created earlier with missing hierarchy tags (e.g. photosythesis questions) and batch move them into the correct Exam and Subject without deleting them.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Class:</label>
+                <select
+                  value={realignTargetClass}
+                  onChange={e => setRealignTargetClass(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl font-bold outline-none"
+                >
+                  <option value="">-- Choose Class --</option>
+                  {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Examination:</label>
+                <select
+                  value={realignTargetExam}
+                  onChange={e => setRealignTargetExam(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl font-bold outline-none"
+                >
+                  <option value="">-- Choose Exam --</option>
+                  {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
+                    <option key={e.id} value={e.nameEn}>{e.nameEn}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Subject:</label>
+                <select
+                  value={realignTargetSubject}
+                  onChange={e => setRealignTargetSubject(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl font-bold outline-none"
+                >
+                  <option value="">-- Choose Subject --</option>
+                  {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
+                    <option key={s.id} value={s.nameEn}>{s.nameEn}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Topic / Chapter:</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Fundamental Rights or Ecology"
+                  value={realignTargetTopic}
+                  onChange={e => setRealignTargetTopic(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExecuteRealign}
+              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" /> Move & Align Questions Now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: AUTO-PUSH PIPELINE */}
       {isAutoPushModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <RefreshCw className="w-5 h-5 text-emerald-600" />
-                Auto-Push Pipeline
+                Auto-Push Olympiad ➔ PYQ/Practice
               </h3>
               <button onClick={() => setIsAutoPushModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-4 h-4" />
@@ -1147,7 +1337,7 @@ export default function AbhyaasMasterTower() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Once an Olympiad contest completes, automatically transfer quarantined Olympiad questions into the Free Practice Bank or official PYQ Archive.
+              Transfer quarantined Olympiad questions into the Free Practice Bank or official PYQ Archive after a contest.
             </p>
 
             <div className="space-y-3 text-xs">
@@ -1157,7 +1347,7 @@ export default function AbhyaasMasterTower() {
                   <select
                     value={pushTargetExam}
                     onChange={e => setPushTargetExam(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold appearance-none outline-none cursor-pointer"
+                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                   >
                     <option value="">-- Choose Exam or Subject --</option>
                     {taxonomyList.filter(t => t.level === 'EXAM' || t.level === 'SUBJECT').map(item => (
