@@ -9,7 +9,7 @@ import {
   FileSpreadsheet, Upload, Download, RefreshCw,
   Filter, Search, Award, HelpCircle, ArrowDownCircle,
   AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Copy, Atom
+  RotateCcw, ShieldAlert, Copy, Atom, FolderPlus, GitFork
 } from 'lucide-react';
 
 import { 
@@ -52,6 +52,7 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   DOMAIN: []
 };
 
+// RFC-4180 Multi-line & Quoted CSV Parser
 function parseCSVProperly(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
@@ -97,19 +98,19 @@ export default function AbhyaasMasterTower() {
   const [loginPassword, setLoginPassword] = useState('');
 
   // Primary Navigation
-  const [adminTab, setAdminTab] = useState<'questions' | 'recycle_bin' | 'hierarchy'>('questions');
+  const [adminTab, setAdminTab] = useState<'hierarchy' | 'questions' | 'recycle_bin'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Taxonomy Form State
+  // ==================== HIERARCHY FORM STATE ====================
   const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('CLASS');
   const [presetChoice, setPresetChoice] = useState<string>('');
   const [manualNameEn, setManualNameEn] = useState('');
   const [manualNameHi, setManualNameHi] = useState('');
   const [selectedParentId, setSelectedParentId] = useState('');
 
-  // Question Studio State
+  // ==================== QUESTION STUDIO STATE ====================
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -119,15 +120,16 @@ export default function AbhyaasMasterTower() {
   const [pasteData, setPasteData] = useState('');
   const [copiedSample, setCopiedSample] = useState(false);
 
-  // Filters
+  // Filtering Controls
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
+  const [filterClass, setFilterClass] = useState('ALL');
   const [filterExam, setFilterExam] = useState('ALL');
   const [filterSubject, setFilterSubject] = useState('ALL');
 
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
-  // Cascading Question Form
+  // 4-Tier Cascading Question Form
   const [qClass, setQClass] = useState('');
   const [qClassCustom, setQClassCustom] = useState('');
   const [qExam, setQExam] = useState('');
@@ -203,7 +205,7 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // Hierarchy Actions
+  // Hierarchy Node Add
   const handlePresetChange = (val: string) => {
     setPresetChoice(val);
     if (val === 'OTHER') {
@@ -246,7 +248,7 @@ export default function AbhyaasMasterTower() {
     setQStatementEn(prev => prev + sym);
   };
 
-  // Duplicate Check
+  // Anti-Duplicate Check
   const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
 
   const checkDuplicates = (text: string) => {
@@ -304,6 +306,23 @@ export default function AbhyaasMasterTower() {
 
     if (!finalClass || !finalExam || !finalSubject || !qStatementEn.trim()) {
       return alert("Class, Exam, Subject, and English Question Statement are required!");
+    }
+
+    // Auto-create new taxonomy nodes if added via OTHER
+    if (qClass === 'OTHER' && qClassCustom.trim()) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-c`, level: 'CLASS', nameEn: finalClass };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
+    }
+    if (qExam === 'OTHER' && qExamCustom.trim()) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-e`, level: 'EXAM', nameEn: finalExam };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
+    }
+    if (qSubject === 'OTHER' && qSubjectCustom.trim()) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-s`, level: 'SUBJECT', nameEn: finalSubject };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
     }
 
     const payload: QuestionData = {
@@ -382,7 +401,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Wipe Recycle Bin
+  // Wipe Entire Recycle Bin
   const handleWipeAllRecycleBin = async () => {
     if (!confirm("🚨 DANGER: Wipe ALL questions currently in the Recycle Bin permanently?")) return;
     try {
@@ -394,7 +413,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Download Sample CSV (UTF-8 with BOM)
+  // Download Sample CSV
   const downloadSampleCsv = () => {
     const headers = [
       "Segment", "Class", "Exam", "Subject", "Topic", "PYQYear",
@@ -436,7 +455,7 @@ export default function AbhyaasMasterTower() {
     document.body.removeChild(link);
   };
 
-  // Copy Sample Row
+  // Copy Sample Row for Clipboard Test
   const copySampleRowToClipboard = () => {
     const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Geography\tGlobal Mineral Resources & EV Transition\t2024\tWhich group of South American nations is called Lithium Triangle?\tदक्षिण अमेरिकी देशों के किस समूह को लिथियम ट्रायंगल कहा जाता है?\tBrazil, Peru, Chile\tArgentina, Bolivia, Chile\tColombia, Venezuela, Ecuador\tArgentina, Brazil, Peru\tब्राजील, पेरू, चिली\tअर्जेंटीना, बोलीविया, चिली\tकोलंबिया, वेनेजुएला, इक्वाडोर\tअर्जेंटीना, ब्राजील, पेरू\t2\tThe Lithium Triangle consists of Argentina, Bolivia, and Chile.\tलिथियम ट्रायंगल अर्जेंटीना, बोलीविया और चिली से मिलकर बना है।\t";
     navigator.clipboard.writeText(sample);
@@ -444,7 +463,7 @@ export default function AbhyaasMasterTower() {
     setTimeout(() => setCopiedSample(false), 3000);
   };
 
-  // Direct Excel Paste (Unicode Safe)
+  // Direct Excel Paste Ingestion
   const handleDirectExcelPaste = async () => {
     if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
     const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -496,7 +515,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // CSV File Reader
+  // CSV File Upload Ingestion
   const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -599,7 +618,7 @@ export default function AbhyaasMasterTower() {
     );
   }
 
-  // Cascading Helpers
+  // 4-Tier Cascading Tree Helpers
   const classes = taxonomyList.filter(t => t.level === 'CLASS' || t.level === 'DOMAIN');
   const currentClassNode = classes.find(c => c.nameEn === qClass);
   const availableExams = taxonomyList.filter(t => t.level === 'EXAM' && (!currentClassNode || t.parentId === currentClassNode.id));
@@ -608,7 +627,7 @@ export default function AbhyaasMasterTower() {
   const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
   const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
 
-  // Active Questions
+  // Active Questions vs Archived Questions
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   const archivedQuestions = questionsList.filter(q => q.isArchived);
 
@@ -616,15 +635,16 @@ export default function AbhyaasMasterTower() {
   const filteredActiveQuestions = activeQuestions.filter(q => {
     const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
     const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
+    const matchesClass = filterClass === 'ALL' || q.className === filterClass || q.class === filterClass;
     const matchesExam = filterExam === 'ALL' || q.examName === filterExam || q.category === filterExam;
     const matchesSubject = filterSubject === 'ALL' || q.subjectName === filterSubject || q.subject === filterSubject;
-    return matchesSearch && matchesSegment && matchesExam && matchesSubject;
+    return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
   });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
       
-      {/* Header */}
+      {/* Top Header */}
       <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -657,16 +677,7 @@ export default function AbhyaasMasterTower() {
               adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> Active Question Bank ({activeQuestions.length})
-          </button>
-
-          <button
-            onClick={() => setAdminTab('recycle_bin')}
-            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
-              adminTab === 'recycle_bin' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Trash2 className="w-4 h-4" /> 🗑️ Recycle Bin ({archivedQuestions.length})
+            <BookOpen className="w-4 h-4" /> 1. Question Bank & Vault ({activeQuestions.length})
           </button>
 
           <button
@@ -675,11 +686,22 @@ export default function AbhyaasMasterTower() {
               adminTab === 'hierarchy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <FolderTree className="w-4 h-4" /> Category & Hierarchy ({taxonomyList.length})
+            <FolderTree className="w-4 h-4" /> 2. Category & Hierarchy Tree ({taxonomyList.length})
+          </button>
+
+          <button
+            onClick={() => setAdminTab('recycle_bin')}
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+              adminTab === 'recycle_bin' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Trash2 className="w-4 h-4" /> 3. Recycle Bin ({archivedQuestions.length})
           </button>
         </div>
 
-        {/* TAB 1: ACTIVE QUESTION BANK */}
+        {/* ========================================================================= */}
+        {/* TAB 1: QUESTION BANK & VAULT (WITH 4-TIER TAGGING & SCIENTIFIC PARSER) */}
+        {/* ========================================================================= */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
             
@@ -691,7 +713,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Indexed questions with strict multi-tier hierarchy alignment and auto-subscripts.</p>
+                  <p className="text-xs text-slate-500">Every question is cleanly tagged by Class ➔ Exam ➔ Subject ➔ Topic.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -719,6 +741,7 @@ export default function AbhyaasMasterTower() {
               {/* Multi-Tier Filter Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Segment Filter */}
                   <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
                     {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
                       <button
@@ -736,6 +759,17 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </div>
 
+                  {/* Filter by Class */}
+                  <select
+                    value={filterClass}
+                    onChange={e => setFilterClass(e.target.value)}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                  >
+                    <option value="ALL">All Classes</option>
+                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                  </select>
+
+                  {/* Filter by Exam */}
                   <select
                     value={filterExam}
                     onChange={e => setFilterExam(e.target.value)}
@@ -747,6 +781,7 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </select>
 
+                  {/* Filter by Subject */}
                   <select
                     value={filterSubject}
                     onChange={e => setFilterSubject(e.target.value)}
@@ -758,11 +793,12 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </select>
 
+                  {/* Search input */}
                   <div className="relative flex-grow min-w-[200px]">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search questions..."
+                      placeholder="Search questions or terms..."
                       value={searchFilter}
                       onChange={e => setSearchFilter(e.target.value)}
                       className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
@@ -777,8 +813,8 @@ export default function AbhyaasMasterTower() {
               {filteredActiveQuestions.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="font-extrabold text-sm text-slate-800">No Questions Found</p>
-                  <p className="text-xs text-slate-400">Use Bulk Upload or Single Question Studio to add questions.</p>
+                  <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
+                  <p className="text-xs text-slate-400">Add questions using Single Question Studio or Bulk Excel Paste.</p>
                 </div>
               ) : (
                 filteredActiveQuestions.map((q, idx) => (
@@ -788,6 +824,7 @@ export default function AbhyaasMasterTower() {
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div className="flex flex-wrap items-center gap-2">
+                        {/* Segment Badge */}
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                           q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                           q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
@@ -798,6 +835,7 @@ export default function AbhyaasMasterTower() {
                            '📘 Free Practice Drill'}
                         </span>
 
+                        {/* Complete Breadcrumb Tag */}
                         <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
                           {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
                         </span>
@@ -807,6 +845,7 @@ export default function AbhyaasMasterTower() {
                         </span>
                       </div>
 
+                      {/* Controls */}
                       <div className="flex items-center gap-1 self-end sm:self-center">
                         <button
                           onClick={() => openEditQuestionModal(q)}
@@ -825,7 +864,7 @@ export default function AbhyaasMasterTower() {
                       </div>
                     </div>
 
-                    {/* Scientific Rendered Question Statement */}
+                    {/* Scientific Statements */}
                     <div>
                       <p className="font-bold text-sm text-slate-900">
                         {formatScientific(q.questionEn)}
@@ -837,13 +876,14 @@ export default function AbhyaasMasterTower() {
                       )}
                     </div>
 
+                    {/* Image / Diagram / Map */}
                     {q.diagramUrl && (
                       <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl w-fit">
                         <img src={q.diagramUrl} alt="Diagram" className="max-h-48 rounded-lg object-contain" />
                       </div>
                     )}
 
-                    {/* Scientific Rendered Options */}
+                    {/* Options with Subscripts */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
                       {q.optionsEn?.map((opt, i) => (
                         <div
@@ -864,7 +904,7 @@ export default function AbhyaasMasterTower() {
                       ))}
                     </div>
 
-                    {/* Scientific Rendered Explanation */}
+                    {/* Explanation */}
                     {(q.explanationEn || q.explanationHi) && (
                       <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
                         <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
@@ -878,7 +918,129 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 2: RECYCLE BIN */}
+        {/* ========================================================================= */}
+        {/* TAB 2: MASTER CATEGORY & HIERARCHY TREE (ENTITIES SETUP) */}
+        {/* ========================================================================= */}
+        {adminTab === 'hierarchy' && (
+          <div className="space-y-6 animate-in fade-in">
+            
+            {/* Level Selector Tabs */}
+            <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { id: 'CLASS', title: '1. Classes', count: classes.length },
+                { id: 'EXAM', title: '2. Examinations', count: taxonomyList.filter(t => t.level === 'EXAM').length },
+                { id: 'SUBJECT', title: '3. Subjects', count: taxonomyList.filter(t => t.level === 'SUBJECT').length },
+                { id: 'TOPIC', title: '4. Topics', count: taxonomyList.filter(t => t.level === 'TOPIC').length },
+              ].map(lvl => (
+                <button
+                  key={lvl.id}
+                  onClick={() => { 
+                    setActiveLevel(lvl.id as TaxonomyLevel); 
+                    setPresetChoice(''); setManualNameEn(''); setManualNameHi(''); setSelectedParentId(''); 
+                  }}
+                  className={`py-3.5 px-4 rounded-2xl text-xs font-black transition flex flex-col items-center gap-1 ${
+                    activeLevel === lvl.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>{lvl.title}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeLevel === lvl.id ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                    {lvl.count} active
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Hierarchy Add Card */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-blue-600" />
+                Add New {activeLevel}
+              </h2>
+              <form onSubmit={handleSaveTaxonomy} className="space-y-4">
+                <div className="relative">
+                  <select
+                    value={presetChoice}
+                    onChange={e => handlePresetChange(e.target.value)}
+                    className="w-full h-11 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose from standard presets --</option>
+                    {PRESETS[activeLevel]?.map((p, i) => <option key={i} value={p.en}>{p.en} ({p.hi})</option>)}
+                    <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Name in English*"
+                    value={manualNameEn}
+                    onChange={e => { setManualNameEn(e.target.value); setPresetChoice('OTHER'); }}
+                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="नाम हिंदी में (Optional)"
+                    value={manualNameHi}
+                    onChange={e => setManualNameHi(e.target.value)}
+                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {activeLevel !== 'CLASS' && (
+                  <div className="relative">
+                    <select
+                      value={selectedParentId}
+                      onChange={e => setSelectedParentId(e.target.value)}
+                      className="w-full h-11 px-4 pr-10 bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl text-xs appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Select Parent Entity (Required for sub-categorization) --</option>
+                      {activeLevel === 'EXAM' && classes.map(c => <option key={c.id} value={c.id}>Belongs to Class: {c.nameEn}</option>)}
+                      {activeLevel === 'SUBJECT' && taxonomyList.filter(t => t.level === 'EXAM').map(e => <option key={e.id} value={e.id}>Belongs to Exam: {e.nameEn}</option>)}
+                      {activeLevel === 'TOPIC' && taxonomyList.filter(t => t.level === 'SUBJECT').map(s => <option key={s.id} value={s.id}>Belongs to Subject: {s.nameEn}</option>)}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-blue-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                )}
+
+                <button type="submit" className="px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Save {activeLevel} Node to Tree
+                </button>
+              </form>
+            </div>
+
+            {/* Entity Nodes Display */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-black text-slate-400 uppercase">Active {activeLevel} Nodes ({taxonomyList.filter(t => t.level === activeLevel).length})</h3>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {taxonomyList.filter(t => t.level === activeLevel).map(item => {
+                  const parent = taxonomyList.find(t => t.id === item.parentId);
+                  return (
+                    <div key={item.id} className="bg-white border border-slate-200 hover:border-blue-300 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                      <div>
+                        <p className="font-extrabold text-sm text-slate-900">{item.nameEn}</p>
+                        {item.nameHi && <p className="text-xs text-slate-500">{item.nameHi}</p>}
+                        {parent && (
+                          <span className="inline-block mt-1 text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                            ↳ Linked to: {parent.nameEn}
+                          </span>
+                        )}
+                      </div>
+                      <button onClick={() => handleDeleteTaxonomy(item.id, item.nameEn)} className="text-rose-400 hover:text-rose-600 p-2 rounded-xl">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: RECYCLE BIN (TWO-STAGE DELETION) */}
+        {/* ========================================================================= */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -888,7 +1050,7 @@ export default function AbhyaasMasterTower() {
                   Recycle Bin / Archived Questions ({archivedQuestions.length})
                 </h2>
                 <p className="text-xs text-rose-700 mt-1">
-                  Questions deleted from the active bank are moved here first. You can restore them or permanently wipe them from Firestore.
+                  Questions deleted from the active bank are held here. Restore them back or permanently wipe them from Firestore.
                 </p>
               </div>
 
@@ -938,98 +1100,9 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 3: CATEGORY & HIERARCHY STUDIO */}
-        {adminTab === 'hierarchy' && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { id: 'CLASS', title: '1. Classes', count: classes.length },
-                { id: 'EXAM', title: '2. Examinations', count: taxonomyList.filter(t => t.level === 'EXAM').length },
-                { id: 'SUBJECT', title: '3. Subjects', count: taxonomyList.filter(t => t.level === 'SUBJECT').length },
-                { id: 'TOPIC', title: '4. Topics', count: taxonomyList.filter(t => t.level === 'TOPIC').length },
-              ].map(lvl => (
-                <button
-                  key={lvl.id}
-                  onClick={() => { 
-                    setActiveLevel(lvl.id as TaxonomyLevel); 
-                    setPresetChoice(''); setManualNameEn(''); setManualNameHi(''); setSelectedParentId(''); 
-                  }}
-                  className={`py-3.5 px-4 rounded-2xl text-xs font-black transition flex flex-col items-center gap-1 ${
-                    activeLevel === lvl.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <span>{lvl.title}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeLevel === lvl.id ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                    {lvl.count} active
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
-              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-blue-600" />
-                Add New {activeLevel}
-              </h2>
-              <form onSubmit={handleSaveTaxonomy} className="space-y-4">
-                <div className="relative">
-                  <select
-                    value={presetChoice}
-                    onChange={e => handlePresetChange(e.target.value)}
-                    className="w-full h-11 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose from standard presets --</option>
-                    {PRESETS[activeLevel]?.map((p, i) => <option key={i} value={p.en}>{p.en} ({p.hi})</option>)}
-                    <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Name in English*"
-                    value={manualNameEn}
-                    onChange={e => { setManualNameEn(e.target.value); setPresetChoice('OTHER'); }}
-                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="नाम हिंदी में (Optional)"
-                    value={manualNameHi}
-                    onChange={e => setManualNameHi(e.target.value)}
-                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {activeLevel !== 'CLASS' && (
-                  <div className="relative">
-                    <select
-                      value={selectedParentId}
-                      onChange={e => setSelectedParentId(e.target.value)}
-                      className="w-full h-11 px-4 pr-10 bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl text-xs appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Select Parent Entity (Optional) --</option>
-                      {activeLevel === 'EXAM' && classes.map(c => <option key={c.id} value={c.id}>{c.nameEn}</option>)}
-                      {activeLevel === 'SUBJECT' && taxonomyList.filter(t => t.level === 'EXAM').map(e => <option key={e.id} value={e.id}>{e.nameEn}</option>)}
-                      {activeLevel === 'TOPIC' && taxonomyList.filter(t => t.level === 'SUBJECT').map(s => <option key={s.id} value={s.id}>{s.nameEn}</option>)}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-blue-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                )}
-
-                <button type="submit" className="px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2">
-                  <Plus className="w-4 h-4" /> Save {activeLevel} Node
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO (CASCADING 4-TIER SELECTORS) */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1058,10 +1131,10 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Vault Destination */}
+              {/* Segment / Vault Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Vault / Destination*
+                  Target Destination / Vault*
                 </label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
@@ -1101,14 +1174,16 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* 4-Tier Hierarchy */}
+              {/* 4-Tier Cascading Hierarchy */}
               <div className="grid sm:grid-cols-2 gap-4">
+                
+                {/* 1. Class */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
                   <div className="relative">
                     <select
                       value={qClass}
-                      onChange={e => setQClass(e.target.value)}
+                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
                       className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
                     >
                       <option value="">-- Choose Class --</option>
@@ -1119,18 +1194,19 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qClass === 'OTHER' && (
                     <input
-                      type="text" placeholder="Custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
+                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
                       className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
 
+                {/* 2. Exam (Filtered by Class) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
                   <div className="relative">
                     <select
                       value={qExam}
-                      onChange={e => setQExam(e.target.value)}
+                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
                       className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
                     >
                       <option value="">-- Choose Exam --</option>
@@ -1141,18 +1217,19 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qExam === 'OTHER' && (
                     <input
-                      type="text" placeholder="Custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
+                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
                       className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
 
+                {/* 3. Subject (Filtered by Exam) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
                   <div className="relative">
                     <select
                       value={qSubject}
-                      onChange={e => setQSubject(e.target.value)}
+                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
                       className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
                     >
                       <option value="">-- Choose Subject --</option>
@@ -1163,12 +1240,13 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qSubject === 'OTHER' && (
                     <input
-                      type="text" placeholder="Custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
+                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
                       className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
 
+                {/* 4. Topic (Filtered by Subject) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
                   <div className="relative">
@@ -1185,18 +1263,18 @@ export default function AbhyaasMasterTower() {
                   </div>
                   {qTopic === 'OTHER' && (
                     <input
-                      type="text" placeholder="Custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
+                      type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
                       className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
                     />
                   )}
                 </div>
               </div>
 
-              {/* Scientific Toolbar */}
+              {/* Scientific & Formula Toolbar */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
-                  Scientific Toolbar (Click to insert):
+                  Scientific Toolbar (Click to insert into Question statement):
                 </span>
                 
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
@@ -1361,7 +1439,7 @@ export default function AbhyaasMasterTower() {
                   <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
                   Bulk Question Importer
                 </h3>
-                <p className="text-xs text-slate-500">Upload multiple questions via Excel paste or CSV file.</p>
+                <p className="text-xs text-slate-500">Upload questions via Excel paste or CSV file.</p>
               </div>
               <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-4 h-4" />
@@ -1432,7 +1510,7 @@ export default function AbhyaasMasterTower() {
             ) : (
               <div className="space-y-4 text-xs">
                 <p className="text-slate-600 leading-relaxed">
-                  Upload CSV files. Click <strong>Download Template (.CSV)</strong> above if you need the base format.
+                  Upload CSV files.
                 </p>
                 <div
                   onClick={() => csvInputRef.current?.click()}
