@@ -4,12 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Plus, Trash2, Edit3, Eye, LogOut, KeyRound,
-  ArrowRight, Layers, ChevronDown, Check, X,
-  FolderTree, BookOpen, Sparkles, AlertCircle,
-  FileSpreadsheet, Upload, Download, RefreshCw,
-  Filter, Search, Award, HelpCircle, ArrowDownCircle,
-  AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Copy, Atom, FolderPlus, GitFork
+  Layers, ChevronDown, Check, X,
+  FolderTree, BookOpen, FileSpreadsheet, Upload, Download, RefreshCw,
+  Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
+  RotateCcw, ShieldAlert, Copy, Atom
 } from 'lucide-react';
 
 import { 
@@ -47,12 +45,12 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   TOPIC: [
     { en: 'Global Mineral Resources & EV Transition', hi: 'वैश्विक खनिज संसाधन एवं ईवी संक्रमण' },
     { en: 'Number System & Place Value', hi: 'संख्या पद्धति एवं स्थानीय मान' },
-    { en: 'Preamble & Fundamental Rights', hi: 'प्रस्तावना एवं मौलिक अधिकार' }
+    { en: 'Preamble & Fundamental Rights', hi: 'प्रस्तावना एवं मौलिक अधिकार' },
+    { en: 'Chemical Bonding & Polycyclic Compounds', hi: 'रासायनिक आबंधन एवं बहुचक्रीय यौगिक' }
   ],
   DOMAIN: []
 };
 
-// RFC-4180 Multi-line & Quoted CSV Parser
 function parseCSVProperly(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
@@ -103,14 +101,14 @@ export default function AbhyaasMasterTower() {
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ==================== HIERARCHY FORM STATE ====================
+  // Hierarchy Form State
   const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('CLASS');
   const [presetChoice, setPresetChoice] = useState<string>('');
   const [manualNameEn, setManualNameEn] = useState('');
   const [manualNameHi, setManualNameHi] = useState('');
   const [selectedParentId, setSelectedParentId] = useState('');
 
-  // ==================== QUESTION STUDIO STATE ====================
+  // Question Studio State
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -205,7 +203,6 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // Hierarchy Node Add
   const handlePresetChange = (val: string) => {
     setPresetChoice(val);
     if (val === 'OTHER') {
@@ -248,7 +245,6 @@ export default function AbhyaasMasterTower() {
     setQStatementEn(prev => prev + sym);
   };
 
-  // Anti-Duplicate Check
   const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
 
   const checkDuplicates = (text: string) => {
@@ -308,7 +304,6 @@ export default function AbhyaasMasterTower() {
       return alert("Class, Exam, Subject, and English Question Statement are required!");
     }
 
-    // Auto-create new taxonomy nodes if added via OTHER
     if (qClass === 'OTHER' && qClassCustom.trim()) {
       const node: TaxonomyNode = { id: `tax-${Date.now()}-c`, level: 'CLASS', nameEn: finalClass };
       saveTaxonomyNode(node);
@@ -367,7 +362,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Move to Recycle Bin
   const handleMoveToRecycleBin = async (id: string, text: string) => {
     if (!confirm(`Move question "${text.slice(0, 40)}..." to Recycle Bin?`)) return;
     try {
@@ -378,7 +372,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Restore Question
   const handleRestoreFromRecycleBin = async (id: string) => {
     try {
       await restoreQuestion(id);
@@ -389,7 +382,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Permanent Delete
   const handlePermanentDelete = async (q: QuestionData) => {
     if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This will be permanently erased from Firestore!")) return;
     try {
@@ -401,7 +393,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Wipe Entire Recycle Bin
   const handleWipeAllRecycleBin = async () => {
     if (!confirm("🚨 DANGER: Wipe ALL questions currently in the Recycle Bin permanently?")) return;
     try {
@@ -413,7 +404,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Download Sample CSV
   const downloadSampleCsv = () => {
     const headers = [
       "Segment", "Class", "Exam", "Subject", "Topic", "PYQYear",
@@ -426,23 +416,23 @@ export default function AbhyaasMasterTower() {
       "PRACTICE",
       '"Civil Services / Competitive"',
       '"UPSC Civil Services (Prelims)"',
-      '"General Studies / Geography"',
-      '"Global Mineral Resources & EV Transition"',
+      '"General Studies / Science"',
+      '"Chemical Bonding & Polycyclic Compounds"',
       "2024",
-      '"Which group of South American nations is collectively referred to as the \'Lithium Triangle\'?"',
-      '"दक्षिण अमेरिकी देशों के किस समूह को सामूहिक रूप से \'लिथियम ट्रायंगल\' कहा जाता है?"',
-      '"Brazil, Peru, Chile"',
-      '"Argentina, Bolivia, Chile"',
-      '"Colombia, Venezuela, Ecuador"',
-      '"Argentina, Brazil, Peru"',
-      '"ब्राजील, पेरू, चिली"',
-      '"अर्जेंटीना, बोलीविया, चिली"',
-      '"कोलंबिया, वेनेजुएला, इक्वाडोर"',
-      '"अर्जेंटीना, ब्राजील, पेरू"',
-      "2",
-      '"The Lithium Triangle consists of Argentina, Bolivia, and Chile, containing roughly 55-60% of identified reserves."',
-      '"लिथियम ट्रायंगल अर्जेंटीना, बोलीविया और चिली से मिलकर बना है, जहां लगभग 55-60% भंडार मौजूद हैं।"',
-      '""'
+      '"Consider the molecular structure of the vat dye Indigo (chemical formula C16H10N2O2) shown below. Determine the correct set of: (i) Total number of sigma bonds, (ii) Total number of pi bonds, (iii) Number of sp2-hybridized carbon atoms, and (iv) Total number of lone pairs:"',
+      '"नीचे प्रदर्शित वैट रंजक इंडिगो (रासायनिक सूत्र C16H10N2O2) की आणविक संरचना पर विचार करें। इसमें उपस्थित: (i) कुल sigma बंधों की संख्या, (ii) कुल pi बंधों की संख्या, (iii) sp2-कार्बन, और (iv) लोन पेयर्स ज्ञात करें:"',
+      '"33 sigma bonds, 9 pi bonds, 16 sp2 carbons, and 6 lone pairs"',
+      '"31 sigma bonds, 8 pi bonds, 14 sp2 carbons, and 4 lone pairs"',
+      '"35 sigma bonds, 9 pi bonds, 16 sp2 carbons, and 8 lone pairs"',
+      '"33 sigma bonds, 7 pi bonds, 12 sp2 carbons, and 6 lone pairs"',
+      '"33 sigma बंध, 9 pi बंध, 16 sp2 कार्बन, और 6 लोन पेयर"',
+      '"31 sigma बंध, 8 pi बंध, 14 sp2 कार्बन, और 4 लोन पेयर"',
+      '"35 sigma बंध, 9 pi बंध, 16 sp2 कार्बन, और 8 लोन पेयर"',
+      '"33 sigma बंध, 7 pi बंध, 12 sp2 कार्बन, और 6 लोन पेयर"',
+      "1",
+      '"Sigma bonds = Atoms - 1 + Rings = 30 - 1 + 4 = 33. Pi bonds = 9. All 16 carbons are sp2. Total = 6 lone pairs."',
+      '"सिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।"',
+      '"https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Indigo_skeletal.svg/640px-Indigo_skeletal.svg.png"'
     ].join(",");
 
     const blob = new Blob(['\uFEFF' + headers + '\n' + sampleRow], { type: 'text/csv;charset=utf-8;' });
@@ -455,15 +445,13 @@ export default function AbhyaasMasterTower() {
     document.body.removeChild(link);
   };
 
-  // Copy Sample Row for Clipboard Test
   const copySampleRowToClipboard = () => {
-    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Geography\tGlobal Mineral Resources & EV Transition\t2024\tWhich group of South American nations is called Lithium Triangle?\tदक्षिण अमेरिकी देशों के किस समूह को लिथियम ट्रायंगल कहा जाता है?\tBrazil, Peru, Chile\tArgentina, Bolivia, Chile\tColombia, Venezuela, Ecuador\tArgentina, Brazil, Peru\tब्राजील, पेरू, चिली\tअर्जेंटीना, बोलीविया, चिली\tकोलंबिया, वेनेजुएला, इक्वाडोर\tअर्जेंटीना, ब्राजील, पेरू\t2\tThe Lithium Triangle consists of Argentina, Bolivia, and Chile.\tलिथियम ट्रायंगल अर्जेंटीना, बोलीविया और चिली से मिलकर बना है।\t";
+    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Science\tChemical Bonding & Polycyclic Compounds\t2024\tConsider the molecular structure of Indigo (formula C16H10N2O2): Determine total sigma bonds, pi bonds, sp2 carbons, and lone pairs:\tइंडिगो (सूत्र C16H10N2O2) की संरचना में कुल सिग्मा बंध, पाई बंध, sp2 कार्बन और लोन पेयर ज्ञात करें:\t33 sigma, 9 pi, 16 sp2, 6 lone pairs\t31 sigma, 8 pi, 14 sp2, 4 lone pairs\t35 sigma, 9 pi, 16 sp2, 8 lone pairs\t33 sigma, 7 pi, 12 sp2, 6 lone pairs\t33 सिग्मा, 9 पाई, 16 sp2, 6 लोन पेयर\t31 सिग्मा, 8 पाई, 14 sp2, 4 लोन पेयर\t35 सिग्मा, 9 पाई, 16 sp2, 8 लोन पेयर\t33 सिग्मा, 7 पाई, 12 sp2, 6 लोन पेयर\t1\tSigma bonds = 33, Pi bonds = 9, sp2 carbons = 16, Lone pairs = 6.\tसिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।\thttps://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Indigo_skeletal.svg/640px-Indigo_skeletal.svg.png";
     navigator.clipboard.writeText(sample);
     setCopiedSample(true);
     setTimeout(() => setCopiedSample(false), 3000);
   };
 
-  // Direct Excel Paste Ingestion
   const handleDirectExcelPaste = async () => {
     if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
     const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -481,12 +469,12 @@ export default function AbhyaasMasterTower() {
           segment: validSegment,
           className: row[1] || 'Civil Services / Competitive',
           examName: row[2] || 'UPSC Civil Services (Prelims)',
-          subjectName: row[3] || 'General Studies / Geography',
-          topicName: row[4] || 'Global Mineral Resources & EV Transition',
+          subjectName: row[3] || 'General Studies / Science',
+          topicName: row[4] || 'Chemical Bonding & Polycyclic Compounds',
           category: row[2] || 'UPSC Civil Services (Prelims)',
-          subject: row[3] || 'General Studies / Geography',
+          subject: row[3] || 'General Studies / Science',
           class: row[1] || 'Civil Services / Competitive',
-          topic: row[4] || 'Global Mineral Resources & EV Transition',
+          topic: row[4] || 'Chemical Bonding & Polycyclic Compounds',
           pyqYear: row[5] || '2024',
           questionEn: formatScientific(row[6] || ''),
           questionHi: formatScientific(row[7] || row[6] || ''),
@@ -515,7 +503,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // CSV File Upload Ingestion
   const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -540,12 +527,12 @@ export default function AbhyaasMasterTower() {
             segment: validSegment,
             className: row[1] || 'Civil Services / Competitive',
             examName: row[2] || 'UPSC Civil Services (Prelims)',
-            subjectName: row[3] || 'General Studies / Geography',
-            topicName: row[4] || 'Global Mineral Resources & EV Transition',
+            subjectName: row[3] || 'General Studies / Science',
+            topicName: row[4] || 'Chemical Bonding & Polycyclic Compounds',
             category: row[2] || 'UPSC Civil Services (Prelims)',
-            subject: row[3] || 'General Studies / Geography',
+            subject: row[3] || 'General Studies / Science',
             class: row[1] || 'Civil Services / Competitive',
-            topic: row[4] || 'Global Mineral Resources & EV Transition',
+            topic: row[4] || 'Chemical Bonding & Polycyclic Compounds',
             pyqYear: row[5] || '2024',
             questionEn: formatScientific(row[6] || ''),
             questionHi: formatScientific(row[7] || row[6] || ''),
@@ -574,7 +561,6 @@ export default function AbhyaasMasterTower() {
     reader.readAsText(file, 'UTF-8');
   };
 
-  // Auto-Push Pipeline Execution
   const handleExecuteAutoPush = async () => {
     if (!pushTargetExam) return alert("Select an Exam or Subject.");
     if (!confirm(`Push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
@@ -596,7 +582,6 @@ export default function AbhyaasMasterTower() {
     );
   }
 
-  // Auth Screen
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#0b1121] flex flex-col items-center justify-center p-4">
@@ -618,7 +603,7 @@ export default function AbhyaasMasterTower() {
     );
   }
 
-  // 4-Tier Cascading Tree Helpers
+  // 4-Tier Tree Lookups
   const classes = taxonomyList.filter(t => t.level === 'CLASS' || t.level === 'DOMAIN');
   const currentClassNode = classes.find(c => c.nameEn === qClass);
   const availableExams = taxonomyList.filter(t => t.level === 'EXAM' && (!currentClassNode || t.parentId === currentClassNode.id));
@@ -627,11 +612,9 @@ export default function AbhyaasMasterTower() {
   const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
   const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
 
-  // Active Questions vs Archived Questions
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   const archivedQuestions = questionsList.filter(q => q.isArchived);
 
-  // Multi-Tier Filter for Active Stream
   const filteredActiveQuestions = activeQuestions.filter(q => {
     const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
     const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
@@ -669,7 +652,7 @@ export default function AbhyaasMasterTower() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
 
-        {/* Master Navigation Tabs */}
+        {/* Master Navigation */}
         <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex flex-wrap gap-2">
           <button
             onClick={() => setAdminTab('questions')}
@@ -699,9 +682,7 @@ export default function AbhyaasMasterTower() {
           </button>
         </div>
 
-        {/* ========================================================================= */}
-        {/* TAB 1: QUESTION BANK & VAULT (WITH 4-TIER TAGGING & SCIENTIFIC PARSER) */}
-        {/* ========================================================================= */}
+        {/* TAB 1: QUESTION BANK & VAULT */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
             
@@ -713,7 +694,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Every question is cleanly tagged by Class ➔ Exam ➔ Subject ➔ Topic.</p>
+                  <p className="text-xs text-slate-500">Preserved questions with automatic chemical subscripts, formulas, and diagrams.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -741,7 +722,6 @@ export default function AbhyaasMasterTower() {
               {/* Multi-Tier Filter Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Segment Filter */}
                   <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
                     {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
                       <button
@@ -759,7 +739,6 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </div>
 
-                  {/* Filter by Class */}
                   <select
                     value={filterClass}
                     onChange={e => setFilterClass(e.target.value)}
@@ -769,7 +748,6 @@ export default function AbhyaasMasterTower() {
                     {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
                   </select>
 
-                  {/* Filter by Exam */}
                   <select
                     value={filterExam}
                     onChange={e => setFilterExam(e.target.value)}
@@ -781,7 +759,6 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </select>
 
-                  {/* Filter by Subject */}
                   <select
                     value={filterSubject}
                     onChange={e => setFilterSubject(e.target.value)}
@@ -793,7 +770,6 @@ export default function AbhyaasMasterTower() {
                     ))}
                   </select>
 
-                  {/* Search input */}
                   <div className="relative flex-grow min-w-[200px]">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -824,7 +800,6 @@ export default function AbhyaasMasterTower() {
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        {/* Segment Badge */}
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                           q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                           q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
@@ -835,7 +810,6 @@ export default function AbhyaasMasterTower() {
                            '📘 Free Practice Drill'}
                         </span>
 
-                        {/* Complete Breadcrumb Tag */}
                         <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
                           {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
                         </span>
@@ -845,7 +819,6 @@ export default function AbhyaasMasterTower() {
                         </span>
                       </div>
 
-                      {/* Controls */}
                       <div className="flex items-center gap-1 self-end sm:self-center">
                         <button
                           onClick={() => openEditQuestionModal(q)}
@@ -864,22 +837,27 @@ export default function AbhyaasMasterTower() {
                       </div>
                     </div>
 
-                    {/* Scientific Statements */}
+                    {/* Scientific Statements (Cleaned from Raw LaTeX) */}
                     <div>
-                      <p className="font-bold text-sm text-slate-900">
+                      <p className="font-bold text-sm text-slate-900 leading-relaxed">
                         {formatScientific(q.questionEn)}
                       </p>
                       {q.questionHi && (
-                        <p className="text-xs text-slate-600 mt-1">
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                           {formatScientific(q.questionHi)}
                         </p>
                       )}
                     </div>
 
-                    {/* Image / Diagram / Map */}
+                    {/* Image with No-Referrer Policy (Guarantees Wikimedia & external loads) */}
                     {q.diagramUrl && (
-                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl w-fit">
-                        <img src={q.diagramUrl} alt="Diagram" className="max-h-48 rounded-lg object-contain" />
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full">
+                        <img 
+                          src={q.diagramUrl} 
+                          alt="Diagram / Molecular Structure" 
+                          referrerPolicy="no-referrer"
+                          className="max-h-64 object-contain rounded-xl bg-white p-2 border" 
+                        />
                       </div>
                     )}
 
@@ -918,13 +896,9 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 2: MASTER CATEGORY & HIERARCHY TREE (ENTITIES SETUP) */}
-        {/* ========================================================================= */}
+        {/* TAB 2: CATEGORY & HIERARCHY TREE */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
-            
-            {/* Level Selector Tabs */}
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { id: 'CLASS', title: '1. Classes', count: classes.length },
@@ -950,7 +924,6 @@ export default function AbhyaasMasterTower() {
               ))}
             </div>
 
-            {/* Hierarchy Add Card */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
               <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-blue-600" />
@@ -1010,7 +983,6 @@ export default function AbhyaasMasterTower() {
               </form>
             </div>
 
-            {/* Entity Nodes Display */}
             <div className="space-y-3">
               <h3 className="text-xs font-black text-slate-400 uppercase">Active {activeLevel} Nodes ({taxonomyList.filter(t => t.level === activeLevel).length})</h3>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1038,9 +1010,7 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 3: RECYCLE BIN (TWO-STAGE DELETION) */}
-        {/* ========================================================================= */}
+        {/* TAB 3: RECYCLE BIN */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1102,7 +1072,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO (CASCADING 4-TIER SELECTORS) */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1131,7 +1101,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Segment / Vault Destination */}
+              {/* Vault Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
                   Target Destination / Vault*
@@ -1176,8 +1146,6 @@ export default function AbhyaasMasterTower() {
 
               {/* 4-Tier Cascading Hierarchy */}
               <div className="grid sm:grid-cols-2 gap-4">
-                
-                {/* 1. Class */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
                   <div className="relative">
@@ -1200,7 +1168,6 @@ export default function AbhyaasMasterTower() {
                   )}
                 </div>
 
-                {/* 2. Exam (Filtered by Class) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
                   <div className="relative">
@@ -1223,7 +1190,6 @@ export default function AbhyaasMasterTower() {
                   )}
                 </div>
 
-                {/* 3. Subject (Filtered by Exam) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
                   <div className="relative">
@@ -1246,7 +1212,6 @@ export default function AbhyaasMasterTower() {
                   )}
                 </div>
 
-                {/* 4. Topic (Filtered by Subject) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
                   <div className="relative">
@@ -1270,16 +1235,16 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Scientific & Formula Toolbar */}
+              {/* Scientific Toolbar */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
-                  Scientific Toolbar (Click to insert into Question statement):
+                  Scientific Toolbar (Click to insert into Question):
                 </span>
                 
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
                   <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Chem:</span>
-                  {['H₂O', 'CO₂', 'LiFePO₄', 'SO₄²⁻', 'NO₃⁻', 'O₂', 'N₂', 'Fe²⁺', '→', '⇌', 'Δ', '°C'].map(sym => (
+                  {['H₂O', 'CO₂', 'LiFePO₄', 'SO₄²⁻', 'NO₃⁻', 'O₂', 'N₂', 'Fe²⁺', 'σ', 'π', '→', '⇌', 'Δ', '°C'].map(sym => (
                     <button
                       type="button"
                       key={sym}
@@ -1293,7 +1258,7 @@ export default function AbhyaasMasterTower() {
 
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono pt-1 border-t border-blue-200/50">
                   <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Math:</span>
-                  {['x²', 'x³', 'x₁', 'x₂', '√', 'π', 'Ω', 'θ', 'λ', 'α', 'β', '∑', '∫', '±', '≠', '≤', '≥', '∞'].map(sym => (
+                  {['x²', 'x³', 'x₁', 'x₂', 'sp²', 'sp³', '√', 'π', 'Ω', 'θ', 'λ', 'α', 'β', '∑', '∫', '±', '≠', '≤', '≥', '∞'].map(sym => (
                     <button
                       type="button"
                       key={sym}
@@ -1336,7 +1301,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Diagram URL */}
+              {/* Diagram URL with Live Preview */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map Image URL (Optional)
@@ -1350,7 +1315,12 @@ export default function AbhyaasMasterTower() {
                 />
                 {qDiagramUrl && (
                   <div className="mt-2 p-2 bg-slate-100 rounded-xl w-fit border">
-                    <img src={qDiagramUrl} alt="Preview" className="max-h-36 rounded-lg object-contain" />
+                    <img 
+                      src={qDiagramUrl} 
+                      alt="Preview" 
+                      referrerPolicy="no-referrer"
+                      className="max-h-40 rounded-lg object-contain bg-white p-2 border" 
+                    />
                   </div>
                 )}
               </div>
@@ -1446,7 +1416,6 @@ export default function AbhyaasMasterTower() {
               </button>
             </div>
 
-            {/* Template Download & Copy Bar */}
             <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
                 <p className="text-xs font-black text-blue-950">Official Template File & Sample Data</p>
@@ -1471,7 +1440,6 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
-            {/* Ingestion Mode Tabs */}
             <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
               <button
                 onClick={() => setBulkMode('paste')}
@@ -1509,9 +1477,7 @@ export default function AbhyaasMasterTower() {
               </div>
             ) : (
               <div className="space-y-4 text-xs">
-                <p className="text-slate-600 leading-relaxed">
-                  Upload CSV files.
-                </p>
+                <p className="text-slate-600 leading-relaxed">Upload CSV files.</p>
                 <div
                   onClick={() => csvInputRef.current?.click()}
                   className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-8 text-center bg-slate-50 cursor-pointer transition"

@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, collection, getDocs, doc, setDoc, deleteDoc, 
-  updateDoc, Timestamp, writeBatch 
+  Timestamp, writeBatch 
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -16,7 +16,7 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== UNIVERSAL SCIENTIFIC FORMATTER ====================
+// ==================== UNIVERSAL SCIENTIFIC & LATEX ENGINE ====================
 const SUB_MAP: Record<string, string> = {
   '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
   '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
@@ -29,22 +29,64 @@ const SUP_MAP: Record<string, string> = {
   '+': '⁺', '-': '⁻'
 };
 
+const GREEK_LATEX_MAP: Record<string, string> = {
+  '\\sigma': 'σ',
+  '\\pi': 'π',
+  '\\Delta': 'Δ',
+  '\\delta': 'δ',
+  '\\alpha': 'α',
+  '\\beta': 'β',
+  '\\gamma': 'γ',
+  '\\theta': 'θ',
+  '\\lambda': 'λ',
+  '\\mu': 'μ',
+  '\\omega': 'ω',
+  '\\Omega': 'Ω',
+  '\\times': '×',
+  '\\pm': '±',
+  '\\neq': '≠',
+  '\\leq': '≤',
+  '\\le': '≤',
+  '\\geq': '≥',
+  '\\ge': '≥',
+  '\\approx': '≈',
+  '\\infty': '∞',
+  '\\rightarrow': '→',
+  '\\to': '→',
+  '\\rightleftharpoons': '⇌'
+};
+
 const ELEMENTS = "He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|H|B|C|N|O|F|P|S|K|V|Y|I|W|U";
 
 export function formatScientific(text: string): string {
   if (!text || typeof text !== 'string') return text || '';
 
-  // 1. Math superscripts: e.g. x^2 -> x², x^{10} -> x¹⁰
-  let res = text.replace(/\^\{?([0-9+-]+)\}?/g, (_, digits) => {
+  let res = text;
+
+  // 1. Convert LaTeX Greek & Math Symbols (\sigma -> σ, \pi -> π, etc.)
+  Object.keys(GREEK_LATEX_MAP).forEach(k => {
+    const escaped = k.replace(/\\/g, '\\\\');
+    res = res.replace(new RegExp(escaped, 'g'), GREEK_LATEX_MAP[k]);
+  });
+
+  // 2. Unwrap LaTeX \text{...} -> ...
+  res = res.replace(/\\text\{([^}]+)\}/g, '$1');
+
+  // 3. Convert LaTeX / Caret superscripts: e.g. x^2 -> x², x^{2} -> x², sp^2 -> sp²
+  res = res.replace(/\^\{?([0-9+-]+)\}?/g, (_, digits) => {
     return digits.split('').map((d: string) => SUP_MAP[d] || d).join('');
   });
 
-  // 2. Math/chem subscripts with underscore: e.g. x_1 -> x₁, x_{2} -> x₂
+  // 4. Convert LaTeX / Underscore subscripts: e.g. C_{16} -> C₁₆, x_1 -> x₁
   res = res.replace(/_\{?([0-9+-]+)\}?/g, (_, digits) => {
     return digits.split('').map((d: string) => SUB_MAP[d] || d).join('');
   });
 
-  // 3. Chemical formulas auto-subscript (LiCoO2 -> LiCoO₂, Li2O -> Li₂O, O2 -> O₂, CO2 -> CO₂, etc.)
+  // 5. Clean up stray math dollar signs: $...$ -> ...
+  res = res.replace(/\$([^\$]+)\$/g, '$1');
+  res = res.replace(/\$/g, '');
+
+  // 6. Chemical formulas auto-subscript (LiCoO2 -> LiCoO₂, C16H10N2O2 -> C₁₆H₁₀N₂O₂, O2 -> O₂)
   const formulaRegex = new RegExp(`\\b(?:\\d+)?(?:(?:${ELEMENTS})\\d*)+(?:[+-])?\\b`, 'g');
   const elemRegex = new RegExp(`(${ELEMENTS})(\\d+)`, 'g');
 
@@ -56,13 +98,13 @@ export function formatScientific(text: string): string {
     });
   });
 
-  // 4. Reaction arrows and math comparators
+  // 7. Arrow conversions
   res = res.replace(/->/g, '→').replace(/<->/g, '⇌').replace(/<=/g, '≤').replace(/>=/g, '≥');
 
   return res;
 }
 
-// ==================== 1. TAXONOMY / HIERARCHY (SECTION A) ====================
+// ==================== 1. TAXONOMY / HIERARCHY ====================
 export type TaxonomyLevel = 'CLASS' | 'EXAM' | 'SUBJECT' | 'TOPIC' | 'DOMAIN';
 
 export interface TaxonomyNode {
@@ -70,7 +112,7 @@ export interface TaxonomyNode {
   level: TaxonomyLevel;
   nameEn: string;
   nameHi?: string;
-  parentId?: string; // Links EXAM to CLASS, SUBJECT to EXAM, TOPIC to SUBJECT
+  parentId?: string;
   orderIndex?: number;
   [key: string]: any;
 }
@@ -106,7 +148,7 @@ export async function deleteTaxonomyNode(id: string): Promise<void> {
   await deleteDoc(doc(db, 'taxonomy', id));
 }
 
-// ==================== 2. QUESTION VAULT & RECYCLE BIN (SECTION B) ====================
+// ==================== 2. QUESTION VAULT & RECYCLE BIN ====================
 export type QuestionSegment = 'PRACTICE' | 'PYQ' | 'OLYMPIAD';
 
 export interface QuestionData {
@@ -129,7 +171,6 @@ export interface QuestionData {
   diagramUrl?: string | null;
   isArchived: boolean;
   status: 'ACTIVE' | 'ARCHIVED';
-  // Guaranteed string aliases for front-end rendering
   subject: string;
   category: string;
   class: string;
@@ -150,7 +191,7 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
       
       const safeClass = String(data.className || data.class || 'Civil Services / Competitive');
       const safeExam = String(data.examName || data.category || data.exam || 'UPSC Civil Services (Prelims)');
-      const safeSubject = String(data.subjectName || data.subject || 'General Studies / Geography');
+      const safeSubject = String(data.subjectName || data.subject || 'General Studies / Science');
       const safeTopic = String(data.topicName || data.topic || 'General');
       const safeSegment: QuestionSegment = (data.segment as QuestionSegment) || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE');
 
@@ -229,7 +270,6 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
   await setDoc(docRef, payload, { merge: true });
 }
 
-// Stage 1 Delete: Move to Recycle Bin
 export async function archiveQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
   await setDoc(docRef, {
@@ -239,7 +279,6 @@ export async function archiveQuestion(id: string): Promise<void> {
   }, { merge: true });
 }
 
-// Restore from Recycle Bin
 export async function restoreQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
   await setDoc(docRef, {
@@ -249,7 +288,6 @@ export async function restoreQuestion(id: string): Promise<void> {
   }, { merge: true });
 }
 
-// Stage 2 Delete: Permanent deletion from database
 export async function permanentlyDeleteQuestion(id: string, altId?: string): Promise<void> {
   await deleteDoc(doc(db, 'questions', id));
   if (altId && altId !== id) {
@@ -259,7 +297,6 @@ export async function permanentlyDeleteQuestion(id: string, altId?: string): Pro
   }
 }
 
-// Empty Recycle Bin
 export async function wipeAllRecycleBin(): Promise<number> {
   const questions = await getAllQuestions();
   const archived = questions.filter(q => q.isArchived);
@@ -278,7 +315,6 @@ export async function wipeAllRecycleBin(): Promise<number> {
   return archived.length;
 }
 
-// Bulk Upload (Zero Encoding Errors)
 export async function bulkUploadQuestions(questions: QuestionData[]): Promise<number> {
   const batch = writeBatch(db);
   let count = 0;
@@ -307,7 +343,6 @@ export async function bulkUploadQuestions(questions: QuestionData[]): Promise<nu
   return count;
 }
 
-// Auto-Push Pipeline: Transfer Olympiad Questions to Practice / PYQ
 export async function autoPushOlympiadQuestions(
   examOrSubject: string, 
   targetSegment: 'PRACTICE' | 'PYQ', 
@@ -337,7 +372,6 @@ export async function autoPushOlympiadQuestions(
   return updatedCount;
 }
 
-// Compatibility exports
 export interface SiteSettings { [key: string]: any; }
 export async function getSiteSettings(): Promise<any> { return {}; }
 export async function updateSiteSettings(settings: any): Promise<void> {}
