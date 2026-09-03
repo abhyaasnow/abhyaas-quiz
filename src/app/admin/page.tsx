@@ -7,7 +7,7 @@ import {
   Layers, ChevronDown, Check, X,
   FolderTree, BookOpen, FileSpreadsheet, Upload, Download, RefreshCw,
   Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Copy, Atom
+  RotateCcw, ShieldAlert, Copy, Atom, UploadCloud
 } from 'lucide-react';
 
 import { 
@@ -155,6 +155,7 @@ export default function AbhyaasMasterTower() {
   const [pushPyqYear, setPushPyqYear] = useState('2026');
 
   const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const diagramFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -261,6 +262,23 @@ export default function AbhyaasMasterTower() {
       return;
     }
     setDuplicateWarning(null);
+  };
+
+  // Local Image Upload to Base64 (Zero Reliance on Wikipedia)
+  const handleDiagramFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      return alert("Image file size should be less than 2MB.");
+    }
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const b64 = (evt.target?.result as string) || '';
+      setQDiagramUrl(b64);
+    };
+    reader.readAsDataURL(file);
   };
 
   const openCreateQuestionModal = () => {
@@ -419,8 +437,8 @@ export default function AbhyaasMasterTower() {
       '"General Studies / Science"',
       '"Chemical Bonding & Polycyclic Compounds"',
       "2024",
-      '"Consider the molecular structure of the vat dye Indigo (chemical formula C16H10N2O2) shown below. Determine the correct set of: (i) Total number of sigma bonds, (ii) Total number of pi bonds, (iii) Number of sp2-hybridized carbon atoms, and (iv) Total number of lone pairs:"',
-      '"नीचे प्रदर्शित वैट रंजक इंडिगो (रासायनिक सूत्र C16H10N2O2) की आणविक संरचना पर विचार करें। इसमें उपस्थित: (i) कुल sigma बंधों की संख्या, (ii) कुल pi बंधों की संख्या, (iii) sp2-कार्बन, और (iv) लोन पेयर्स ज्ञात करें:"',
+      '"Consider the molecular structure of Indigo (formula C16H10N2O2): Determine total sigma bonds, pi bonds, sp2 carbons, and lone pairs:"',
+      '"नीचे प्रदर्शित इंडिगो (सूत्र C16H10N2O2) की संरचना में कुल सिग्मा बंध, पाई बंध, sp2 कार्बन, और लोन पेयर ज्ञात करें:"',
       '"33 sigma bonds, 9 pi bonds, 16 sp2 carbons, and 6 lone pairs"',
       '"31 sigma bonds, 8 pi bonds, 14 sp2 carbons, and 4 lone pairs"',
       '"35 sigma bonds, 9 pi bonds, 16 sp2 carbons, and 8 lone pairs"',
@@ -430,9 +448,9 @@ export default function AbhyaasMasterTower() {
       '"35 sigma बंध, 9 pi बंध, 16 sp2 कार्बन, और 8 लोन पेयर"',
       '"33 sigma बंध, 7 pi बंध, 12 sp2 कार्बन, और 6 लोन पेयर"',
       "1",
-      '"Sigma bonds = Atoms - 1 + Rings = 30 - 1 + 4 = 33. Pi bonds = 9. All 16 carbons are sp2. Total = 6 lone pairs."',
+      '"Sigma bonds = 33, Pi bonds = 9, sp2 carbons = 16, Lone pairs = 6."',
       '"सिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।"',
-      '"https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Indigo_skeletal.svg/640px-Indigo_skeletal.svg.png"'
+      '""'
     ].join(",");
 
     const blob = new Blob(['\uFEFF' + headers + '\n' + sampleRow], { type: 'text/csv;charset=utf-8;' });
@@ -446,7 +464,7 @@ export default function AbhyaasMasterTower() {
   };
 
   const copySampleRowToClipboard = () => {
-    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Science\tChemical Bonding & Polycyclic Compounds\t2024\tConsider the molecular structure of Indigo (formula C16H10N2O2): Determine total sigma bonds, pi bonds, sp2 carbons, and lone pairs:\tइंडिगो (सूत्र C16H10N2O2) की संरचना में कुल सिग्मा बंध, पाई बंध, sp2 कार्बन और लोन पेयर ज्ञात करें:\t33 sigma, 9 pi, 16 sp2, 6 lone pairs\t31 sigma, 8 pi, 14 sp2, 4 lone pairs\t35 sigma, 9 pi, 16 sp2, 8 lone pairs\t33 sigma, 7 pi, 12 sp2, 6 lone pairs\t33 सिग्मा, 9 पाई, 16 sp2, 6 लोन पेयर\t31 सिग्मा, 8 पाई, 14 sp2, 4 लोन पेयर\t35 सिग्मा, 9 पाई, 16 sp2, 8 लोन पेयर\t33 सिग्मा, 7 पाई, 12 sp2, 6 लोन पेयर\t1\tSigma bonds = 33, Pi bonds = 9, sp2 carbons = 16, Lone pairs = 6.\tसिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।\thttps://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Indigo_skeletal.svg/640px-Indigo_skeletal.svg.png";
+    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tGeneral Studies / Science\tChemical Bonding & Polycyclic Compounds\t2024\tConsider the molecular structure of Indigo (formula C16H10N2O2): Determine total sigma bonds, pi bonds, sp2 carbons, and lone pairs:\tइंडिगो (सूत्र C16H10N2O2) की संरचना में कुल सिग्मा बंध, पाई बंध, sp2 कार्बन और लोन पेयर ज्ञात करें:\t33 sigma, 9 pi, 16 sp2, 6 lone pairs\t31 sigma, 8 pi, 14 sp2, 4 lone pairs\t35 sigma, 9 pi, 16 sp2, 8 lone pairs\t33 sigma, 7 pi, 12 sp2, 6 lone pairs\t33 सिग्मा, 9 पाई, 16 sp2, 6 लोन पेयर\t31 सिग्मा, 8 पाई, 14 sp2, 4 लोन पेयर\t35 सिग्मा, 9 पाई, 16 sp2, 8 लोन पेयर\t33 सिग्मा, 7 पाई, 12 sp2, 6 लोन पेयर\t1\tSigma bonds = 33, Pi bonds = 9, sp2 carbons = 16, Lone pairs = 6.\tसिग्मा बंध = 33, पाई बंध = 9, sp2 कार्बन = 16, कुल लोन पेयर = 6।\t";
     navigator.clipboard.writeText(sample);
     setCopiedSample(true);
     setTimeout(() => setCopiedSample(false), 3000);
@@ -603,7 +621,6 @@ export default function AbhyaasMasterTower() {
     );
   }
 
-  // 4-Tier Tree Lookups
   const classes = taxonomyList.filter(t => t.level === 'CLASS' || t.level === 'DOMAIN');
   const currentClassNode = classes.find(c => c.nameEn === qClass);
   const availableExams = taxonomyList.filter(t => t.level === 'EXAM' && (!currentClassNode || t.parentId === currentClassNode.id));
@@ -686,7 +703,6 @@ export default function AbhyaasMasterTower() {
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
             
-            {/* Toolbar */}
             <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -837,7 +853,7 @@ export default function AbhyaasMasterTower() {
                       </div>
                     </div>
 
-                    {/* Scientific Statements (Cleaned from Raw LaTeX) */}
+                    {/* Scientific Statements */}
                     <div>
                       <p className="font-bold text-sm text-slate-900 leading-relaxed">
                         {formatScientific(q.questionEn)}
@@ -849,14 +865,14 @@ export default function AbhyaasMasterTower() {
                       )}
                     </div>
 
-                    {/* Image with No-Referrer Policy (Guarantees Wikimedia & external loads) */}
+                    {/* Robust Diagram Rendering (With Min Width to prevent collapse) */}
                     {q.diagramUrl && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full">
+                      <div className="p-3 bg-white border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
                         <img 
                           src={q.diagramUrl} 
                           alt="Diagram / Molecular Structure" 
                           referrerPolicy="no-referrer"
-                          className="max-h-64 object-contain rounded-xl bg-white p-2 border" 
+                          className="max-h-72 w-auto min-w-[280px] max-w-full object-contain rounded-xl" 
                         />
                       </div>
                     )}
@@ -1072,7 +1088,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO (WITH DIRECT DEVICE FILE UPLOAD) */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1239,7 +1255,7 @@ export default function AbhyaasMasterTower() {
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
-                  Scientific Toolbar (Click to insert into Question):
+                  Scientific Toolbar (Click to insert):
                 </span>
                 
                 <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
@@ -1301,25 +1317,44 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Diagram URL with Live Preview */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map Image URL (Optional)
-                </label>
+              {/* Dual-Mode Diagram Input: Direct Device Upload + Web URL */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map Image (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={diagramFileInputRef}
+                    onChange={handleDiagramFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => diagramFileInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg flex items-center gap-1.5 transition shadow-xs"
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" /> Upload from Computer / Device
+                  </button>
+                </div>
+
                 <input
-                  type="url"
-                  placeholder="Paste direct image link (https://...)"
+                  type="text"
+                  placeholder="Or paste direct image URL / Base64 here..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
                 />
+
                 {qDiagramUrl && (
-                  <div className="mt-2 p-2 bg-slate-100 rounded-xl w-fit border">
+                  <div className="mt-2 p-3 bg-white rounded-xl w-fit border shadow-xs">
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Live Diagram Preview:</p>
                     <img 
                       src={qDiagramUrl} 
                       alt="Preview" 
                       referrerPolicy="no-referrer"
-                      className="max-h-40 rounded-lg object-contain bg-white p-2 border" 
+                      className="max-h-48 w-auto min-w-[280px] max-w-full rounded-lg object-contain bg-white" 
                     />
                   </div>
                 )}
@@ -1398,11 +1433,10 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: BULK UPLOAD + DIRECT EXCEL PASTE */}
+      {/* MODAL 2: BULK UPLOAD */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
