@@ -60,7 +60,7 @@ export async function deleteTaxonomyNode(id: string): Promise<void> {
   await deleteDoc(doc(db, 'taxonomy', id));
 }
 
-// ==================== 2. QUESTION BANK & RECYCLE BIN ENGINE ====================
+// ==================== 2. QUESTION VAULT & RECYCLE BIN ====================
 export type QuestionSegment = 'PRACTICE' | 'PYQ' | 'OLYMPIAD';
 
 export interface QuestionData {
@@ -83,6 +83,7 @@ export interface QuestionData {
   diagramUrl?: string | null;
   isArchived: boolean;
   status: 'ACTIVE' | 'ARCHIVED';
+  // Guaranteed string aliases for front-end rendering
   subject: string;
   category: string;
   class: string;
@@ -99,9 +100,8 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
     const snap = await getDocs(collection(db, 'questions'));
     return snap.docs.map(d => {
       const data = d.data();
-      
-      // Strict check: if marked archived, flag it
       const isArchived = Boolean(data.isArchived === true || data.status === 'ARCHIVED');
+      
       const safeClass = String(data.className || data.class || 'Civil Services / Competitive');
       const safeExam = String(data.examName || data.category || data.exam || 'UPSC Civil Services (Prelims)');
       const safeSubject = String(data.subjectName || data.subject || 'General Studies / Geography');
@@ -109,8 +109,8 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
       const safeSegment: QuestionSegment = (data.segment as QuestionSegment) || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE');
 
       return {
-        ...data, // Data goes first
-        id: d.id, // d.id ALWAYS WINS as the true Firestore document ID
+        ...data,
+        id: d.id,
         docId: d.id,
         altId: data.id || undefined,
         className: safeClass,
@@ -172,7 +172,6 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
   await setDoc(docRef, payload, { merge: true });
 }
 
-// Stage 1: Move to Recycle Bin (Uses setDoc with merge so it NEVER crashes)
 export async function archiveQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
   await setDoc(docRef, {
@@ -182,7 +181,6 @@ export async function archiveQuestion(id: string): Promise<void> {
   }, { merge: true });
 }
 
-// Restore from Recycle Bin
 export async function restoreQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
   await setDoc(docRef, {
@@ -192,11 +190,8 @@ export async function restoreQuestion(id: string): Promise<void> {
   }, { merge: true });
 }
 
-// Stage 2: Permanent Wipe from Database
 export async function permanentlyDeleteQuestion(id: string, altId?: string): Promise<void> {
-  // Wipe by primary Firestore document ID
   await deleteDoc(doc(db, 'questions', id));
-  // If there's an internal legacy ID, wipe that too
   if (altId && altId !== id) {
     try {
       await deleteDoc(doc(db, 'questions', altId));
@@ -204,7 +199,6 @@ export async function permanentlyDeleteQuestion(id: string, altId?: string): Pro
   }
 }
 
-// Bulk Wipe all Archived Questions
 export async function wipeAllRecycleBin(): Promise<number> {
   const questions = await getAllQuestions();
   const archived = questions.filter(q => q.isArchived);

@@ -9,7 +9,7 @@ import {
   FileSpreadsheet, Upload, Download, RefreshCw,
   Filter, Search, Award, HelpCircle, ArrowDownCircle,
   AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Archive
+  RotateCcw, ShieldAlert, Archive, Atom
 } from 'lucide-react';
 
 import { 
@@ -52,6 +52,7 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   DOMAIN: []
 };
 
+// Robust CSV Parser
 function parseCSVProperly(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
@@ -96,7 +97,6 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Primary Navigation
   const [adminTab, setAdminTab] = useState<'questions' | 'recycle_bin' | 'hierarchy'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
@@ -118,7 +118,7 @@ export default function AbhyaasMasterTower() {
   const [bulkMode, setBulkMode] = useState<'paste' | 'csv'>('paste');
   const [pasteData, setPasteData] = useState('');
 
-  // Filtering Controls
+  // Filters
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
   const [filterExam, setFilterExam] = useState('ALL');
@@ -347,7 +347,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // STAGE 1: Move Question to Recycle Bin with real error handling
+  // Move to Recycle Bin
   const handleMoveToRecycleBin = async (id: string, text: string) => {
     if (!confirm(`Move question "${text.slice(0, 40)}..." to Recycle Bin?`)) return;
     try {
@@ -358,7 +358,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // RESTORE: Bring Question back to Active Bank
+  // Restore Question
   const handleRestoreFromRecycleBin = async (id: string) => {
     try {
       await restoreQuestion(id);
@@ -369,7 +369,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // STAGE 2: Permanent Delete from Firestore
+  // Permanent Delete
   const handlePermanentDelete = async (q: QuestionData) => {
     if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This will be permanently erased from Firestore!")) return;
     try {
@@ -381,7 +381,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // WIPE ENTIRE RECYCLE BIN
+  // Wipe Recycle Bin
   const handleWipeAllRecycleBin = async () => {
     if (!confirm("🚨 DANGER: Wipe ALL questions currently in the Recycle Bin permanently?")) return;
     try {
@@ -393,7 +393,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Direct Paste from Excel
+  // Direct Excel Paste (Unicode Safe)
   const handleDirectExcelPaste = async () => {
     if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
     const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -439,7 +439,7 @@ export default function AbhyaasMasterTower() {
       setQuestionsList(prev => [...parsed, ...prev]);
       setPasteData('');
       setIsBulkModalOpen(false);
-      alert(`🎉 Imported ${count} questions directly from Excel without encoding errors!`);
+      alert(`🎉 Successfully imported ${count} questions directly from Excel without any encoding errors!`);
     } catch (err: any) {
       alert("Error importing from Excel: " + err.message);
     }
@@ -560,7 +560,7 @@ export default function AbhyaasMasterTower() {
   // Active Questions (Not Deleted)
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   
-  // Archived / Recycle Bin Questions (Deleted in Stage 1)
+  // Archived Questions (In Recycle Bin)
   const archivedQuestions = questionsList.filter(q => q.isArchived);
 
   // Multi-Tier Filter for Active Stream
@@ -630,9 +630,7 @@ export default function AbhyaasMasterTower() {
           </button>
         </div>
 
-        {/* ========================================== */}
         {/* TAB 1: ACTIVE QUESTION BANK */}
-        {/* ========================================== */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
             
@@ -760,7 +758,6 @@ export default function AbhyaasMasterTower() {
                         </span>
                       </div>
 
-                      {/* Edit & Move to Trash Buttons */}
                       <div className="flex items-center gap-1 self-end sm:self-center">
                         <button
                           onClick={() => openEditQuestionModal(q)}
@@ -823,9 +820,7 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* ========================================== */}
-        {/* TAB 2: RECYCLE BIN / ARCHIVED QUESTIONS */}
-        {/* ========================================== */}
+        {/* TAB 2: RECYCLE BIN */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -885,9 +880,7 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* ========================================== */}
         {/* TAB 3: CATEGORY & HIERARCHY STUDIO */}
-        {/* ========================================== */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -978,7 +971,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO WITH EXTENDED FORMULA BAR */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1010,7 +1003,7 @@ export default function AbhyaasMasterTower() {
               {/* Vault Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Vault / Segment*
+                  Target Vault / Destination*
                 </label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
@@ -1141,19 +1134,37 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Science & Math Formula Toolbar */}
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-1.5">
+              {/* Enhanced Science, Physics, Chemistry & Math Formula Toolbar */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                  Science, Math & Chemistry 1-Click Symbols:
+                  <Atom className="w-3.5 h-3.5 text-blue-600" />
+                  Scientific & Mathematical Toolbar (Click symbol to insert into Question):
                 </span>
-                <div className="flex flex-wrap gap-1.5 text-xs font-mono">
-                  {['H₂O', 'CO₂', 'LiFePO₄', 'x²', 'x³', 'x₁', '√', 'π', 'Δ', 'Ω', '±', '≠', '≤', '≥', '→', '⇌', '°C'].map(sym => (
+                
+                {/* Chemistry & Subscripts */}
+                <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
+                  <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Chem:</span>
+                  {['H₂O', 'CO₂', 'LiFePO₄', 'SO₄²⁻', 'NO₃⁻', 'O₂', 'N₂', 'Fe²⁺', '→', '⇌', 'Δ', '°C'].map(sym => (
                     <button
                       type="button"
                       key={sym}
                       onClick={() => insertSymbol(sym)}
-                      className="px-2 py-1 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded-md font-bold transition shadow-xs"
+                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs"
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Math & Physics */}
+                <div className="flex flex-wrap items-center gap-1 text-xs font-mono pt-1 border-t border-blue-200/50">
+                  <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Math:</span>
+                  {['x²', 'x³', 'x₁', 'x₂', '√', 'π', 'Ω', 'θ', 'λ', 'α', 'β', '∑', '∫', '±', '≠', '≤', '≥', '∞'].map(sym => (
+                    <button
+                      type="button"
+                      key={sym}
+                      onClick={() => insertSymbol(sym)}
+                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs"
                     >
                       {sym}
                     </button>

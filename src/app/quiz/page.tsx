@@ -12,6 +12,7 @@ import { getAllQuestions, QuestionData } from '@/lib/db';
 
 export interface QuestionItem {
   id: string;
+  category: string;
   subject: string;
   topic: string;
   questionEn: string;
@@ -22,6 +23,26 @@ export interface QuestionItem {
   diagramUrl?: string | null;
   explanationEn: string;
   explanationHi: string;
+}
+
+// Scientific Formula & Chemical Equation Formatter
+function FormattedScientificText({ text }: { text: string }) {
+  if (!text) return null;
+
+  // Format common chemical formulas (e.g. CO2 -> CO₂, H2O -> H₂O, LiFePO4 -> LiFePO₄)
+  // and math powers (x^2 -> x²)
+  const formatted = text
+    .replace(/\bCO2\b/g, 'CO₂')
+    .replace(/\bH2O\b/g, 'H₂O')
+    .replace(/\bO2\b/g, 'O₂')
+    .replace(/\bN2\b/g, 'N₂')
+    .replace(/\bLiFePO4\b/g, 'LiFePO₄')
+    .replace(/\bSO4\b/g, 'SO₄')
+    .replace(/\bNO3\b/g, 'NO₃')
+    .replace(/\bx\^2\b/g, 'x²')
+    .replace(/\bx\^3\b/g, 'x³');
+
+  return <span>{formatted}</span>;
 }
 
 function QuizEngine() {
@@ -43,7 +64,7 @@ function QuizEngine() {
       try {
         const all = await getAllQuestions();
         
-        // Exclude quarantined Olympiad questions AND archived/deleted questions
+        // Only active questions (exclude recycle bin and quarantined Olympiad)
         let filtered = all.filter(q => q.segment !== 'OLYMPIAD' && !q.isArchived);
 
         if (categoryParam) {
@@ -70,12 +91,14 @@ function QuizEngine() {
           if (matchTopic.length > 0) filtered = matchTopic;
         }
 
-        // Guaranteed non-undefined string mapping (Fixes TS2322 permanently)
-        const mappedItems: QuestionItem[] = (filtered.length > 0 ? filtered : all.filter(q => !q.isArchived)).map(q => ({
+        const sourceList = filtered.length > 0 ? filtered : all.filter(q => !q.isArchived);
+
+        const mappedItems: QuestionItem[] = sourceList.map(q => ({
           id: String(q.id),
-          subject: String(q.subjectName || q.subject || 'General'),
+          category: String(q.examName || q.category || 'General Studies'),
+          subject: String(q.subjectName || q.subject || 'General Studies'),
           topic: String(q.topicName || q.topic || 'General'),
-          questionEn: String(q.questionEn || 'Question statement missing'),
+          questionEn: String(q.questionEn || 'Question text missing'),
           questionHi: String(q.questionHi || q.questionEn || ''),
           optionsEn: Array.isArray(q.optionsEn) ? q.optionsEn : ['', '', '', ''],
           optionsHi: Array.isArray(q.optionsHi) ? q.optionsHi : ['', '', '', ''],
@@ -171,8 +194,8 @@ function QuizEngine() {
           </Link>
 
           <div className="text-center hidden sm:block">
-            <p className="text-xs font-black text-slate-900">{categoryParam || currentQ.subject}</p>
-            <p className="text-[10px] text-slate-500 font-bold">{topicParam || currentQ.topic}</p>
+            <p className="text-xs font-black text-slate-900">{categoryParam || currentQ.category}</p>
+            <p className="text-[10px] text-slate-500 font-bold">{subjectParam || currentQ.subject}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -228,6 +251,7 @@ function QuizEngine() {
           </div>
         )}
 
+        {/* Question Numbers Strip */}
         <div className="flex gap-2 overflow-x-auto pb-2">
           {questions.map((_, i) => {
             const isAnswered = selectedAnswers[i] !== undefined;
@@ -256,31 +280,48 @@ function QuizEngine() {
           })}
         </div>
 
+        {/* Question Card */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-            <span className="text-xs font-black text-blue-600 uppercase tracking-wide">
-              Question {currentIndex + 1} of {questions.length}
-            </span>
-            <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md">
-              +2.00 / -0.66 Marks
-            </span>
+          
+          {/* Guaranteed Category Header Pill */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                {currentQ.category}
+              </span>
+              <span className="text-xs font-bold text-slate-600">
+                {currentQ.subject} {currentQ.topic ? `• ${currentQ.topic}` : ''}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-slate-400">
+                Q.{currentIndex + 1} / {questions.length}
+              </span>
+              <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                +2.00 / -0.66
+              </span>
+            </div>
           </div>
 
+          {/* Statement */}
           <div className="space-y-2">
             <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-              {useHindi && currentQ.questionHi ? currentQ.questionHi : currentQ.questionEn}
+              <FormattedScientificText text={useHindi && currentQ.questionHi ? currentQ.questionHi : currentQ.questionEn} />
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              {useHindi ? currentQ.questionEn : currentQ.questionHi}
+              <FormattedScientificText text={useHindi ? currentQ.questionEn : currentQ.questionHi} />
             </p>
           </div>
 
+          {/* Diagram / Map */}
           {currentQ.diagramUrl && (
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full">
               <img src={currentQ.diagramUrl} alt="Diagram" className="max-h-64 object-contain rounded-xl" />
             </div>
           )}
 
+          {/* Options */}
           <div className="space-y-3">
             {[0, 1, 2, 3].map(optIdx => {
               const optText = useHindi && currentQ.optionsHi?.[optIdx] ? currentQ.optionsHi[optIdx] : currentQ.optionsEn[optIdx];
@@ -309,9 +350,13 @@ function QuizEngine() {
                       {String.fromCharCode(65 + optIdx)}
                     </span>
                     <div>
-                      <p className="text-sm font-medium">{optText || `Option ${optIdx + 1}`}</p>
+                      <p className="text-sm font-medium">
+                        <FormattedScientificText text={optText || `Option ${optIdx + 1}`} />
+                      </p>
                       {optAltText && optAltText !== optText && (
-                        <p className="text-[11px] text-slate-400 mt-0.5">{optAltText}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          <FormattedScientificText text={optAltText} />
+                        </p>
                       )}
                     </div>
                   </div>
@@ -326,6 +371,7 @@ function QuizEngine() {
             })}
           </div>
 
+          {/* Solution Analysis */}
           {isSubmitted && (
             <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-2 text-xs leading-relaxed animate-in fade-in">
               <div className="flex items-center gap-1.5 text-blue-950 font-black">
@@ -333,16 +379,17 @@ function QuizEngine() {
                 <span>विस्तृत समाधान / DETAILED SOLUTION:</span>
               </div>
               <p className="text-slate-800 font-medium">
-                {useHindi && currentQ.explanationHi ? currentQ.explanationHi : currentQ.explanationEn}
+                <FormattedScientificText text={useHindi && currentQ.explanationHi ? currentQ.explanationHi : currentQ.explanationEn} />
               </p>
               {currentQ.explanationHi && currentQ.explanationEn && (
                 <p className="text-slate-500 pt-1 border-t border-blue-200/60">
-                  {useHindi ? currentQ.explanationEn : currentQ.explanationHi}
+                  <FormattedScientificText text={useHindi ? currentQ.explanationEn : currentQ.explanationHi} />
                 </p>
               )}
             </div>
           )}
 
+          {/* Navigation Controls */}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100">
             <button
               disabled={currentIndex === 0}
