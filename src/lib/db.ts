@@ -16,7 +16,7 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== GOOGLE DRIVE & ATTACHMENT PARSER ====================
+// ==================== STRICT ATTACHMENT & MEDIA DETECTOR ====================
 export type AttachmentType = 'IMAGE' | 'PDF' | '3D' | 'GDRIVE' | 'NONE';
 
 export interface ParsedAttachment {
@@ -34,10 +34,9 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
 
   const clean = url.trim();
 
-  // 1. Google Drive Link Detector & Converter
+  // 1. Google Drive Links
   const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/(?:document|presentation|spreadsheets)\/d\/)([a-zA-Z0-9_-]{25,})/;
   const match = clean.match(driveRegex);
-
   if (match && match[1]) {
     const fileId = match[1];
     return {
@@ -49,7 +48,7 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     };
   }
 
-  // 2. Base64 Data URLs (SVG, PNG, JPEG, PDF)
+  // 2. Base64 Data URIs
   if (clean.startsWith('data:image/')) {
     return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
   }
@@ -57,7 +56,13 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
   }
 
-  // 3. File Extensions Check
+  // 3. Strict Web URL check: Must begin with http:// or https://
+  if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+    // Normal text (e.g. "Argentina", "Option A", "C16H10N2O2") is NEVER an attachment!
+    return { type: 'NONE', rawUrl: clean, directUrl: '', isDrive: false };
+  }
+
+  // 4. File extension detection
   const lower = clean.toLowerCase().split('?')[0];
   if (lower.endsWith('.pdf')) {
     return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
@@ -66,7 +71,16 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return { type: '3D', rawUrl: clean, directUrl: clean, isDrive: false };
   }
 
-  return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
+  // 5. Valid Web Image
+  const imageExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif', '.bmp', '.ico'];
+  const hasImageExt = imageExts.some(ext => lower.endsWith(ext));
+  const isKnownImageHost = clean.includes('images.unsplash.com') || clean.includes('wikimedia.org') || clean.includes('imgur.com') || clean.includes('cloudinary.com') || clean.includes('googleusercontent.com');
+
+  if (hasImageExt || isKnownImageHost || clean.includes('/image')) {
+    return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
+  }
+
+  return { type: 'NONE', rawUrl: clean, directUrl: '', isDrive: false };
 }
 
 // ==================== UNIVERSAL SCIENTIFIC & LATEX ENGINE ====================

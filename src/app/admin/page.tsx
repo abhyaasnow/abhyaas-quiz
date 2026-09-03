@@ -15,7 +15,7 @@ import {
   getAllQuestions, createQuestion, updateQuestion,
   archiveQuestion, restoreQuestion, permanentlyDeleteQuestion, wipeAllRecycleBin,
   bulkUploadQuestions, autoPushOlympiadQuestions, formatScientific, parseAttachment,
-  TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment, ParsedAttachment
+  TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
 } from '@/lib/db';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
@@ -118,7 +118,7 @@ export default function AbhyaasMasterTower() {
   const [pasteData, setPasteData] = useState('');
   const [copiedSample, setCopiedSample] = useState(false);
 
-  // Filtering Controls
+  // Filters
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
@@ -923,11 +923,11 @@ export default function AbhyaasMasterTower() {
                         </div>
                       )}
 
-                      {/* Options with Inline Diagrams */}
+                      {/* Options: Clean layout. ONLY show image preview if an option genuinely has a diagram! */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
                         {q.optionsEn?.map((opt, i) => {
                           const optDiag = q.optionsDiagrams?.[i] || '';
-                          const optAtt = parseAttachment(optDiag || (parseAttachment(opt).type === 'IMAGE' ? opt : ''));
+                          const optAtt = parseAttachment(optDiag);
 
                           return (
                             <div
@@ -947,11 +947,12 @@ export default function AbhyaasMasterTower() {
                                 <span className="truncate">{formatScientific(opt)}</span>
                               </div>
 
-                              {optAtt.type === 'IMAGE' && (
+                              {/* ONLY RENDER IF THERE IS ACTUALLY A DIAGRAM */}
+                              {optAtt.type === 'IMAGE' && optAtt.directUrl && (
                                 <div className="mt-1 bg-white p-1 rounded-xl border border-slate-200 flex items-center justify-center">
                                   <img 
                                     src={optAtt.directUrl} 
-                                    alt={`Option ${i + 1} Diagram`}
+                                    alt={`Option ${i + 1}`}
                                     referrerPolicy="no-referrer"
                                     className="max-h-28 w-auto object-contain rounded-lg"
                                   />
@@ -1153,9 +1154,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: SINGLE QUESTION STUDIO (WITH DEDICATED OPTION MEDIA SLOTS) */}
-      {/* ========================================================================= */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1165,7 +1164,7 @@ export default function AbhyaasMasterTower() {
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Supports question statements, formulas, GDrive media, and diagrammatic options (A, B, C, D).</p>
+                <p className="text-xs text-slate-500">Configure hierarchy, bilingual statements, formulas, GDrive media, and diagrammatic options (A, B, C, D).</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -1384,12 +1383,12 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Main Question Diagram / Media Hub */}
+              {/* Question Media Hub */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                   <div>
                     <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Media
+                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Media (Optional)
                     </label>
                     <p className="text-[10px] text-slate-400">Supports Abhyaas Google Drive links, PDF Documents, SVG, PNG, and 3D files.</p>
                   </div>
@@ -1419,7 +1418,7 @@ export default function AbhyaasMasterTower() {
                 />
 
                 {/* Live Question Preview */}
-                {modalAttachmentPreview.type !== 'NONE' && (
+                {modalAttachmentPreview.type !== 'NONE' && modalAttachmentPreview.directUrl && (
                   <div className="mt-2 p-3 bg-white rounded-xl w-fit border shadow-xs space-y-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
                       Preview: <strong className="text-blue-600">{modalAttachmentPreview.type}</strong>
@@ -1443,19 +1442,18 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* ========================================================= */}
-              {/* OPTIONS SECTION: NOW WITH DEDICATED DIAGRAM/MEDIA SLOTS! */}
-              {/* ========================================================= */}
+              {/* Options Section */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
                 <div>
                   <label className="block text-xs font-black uppercase text-slate-700">
                     Options (A, B, C, D) & Answer Key*
                   </label>
-                  <p className="text-[10px] text-slate-400">Each option can have Text, an Image / SVG Diagram, or a Google Drive link.</p>
+                  <p className="text-[10px] text-slate-400">Options are purely text by default. You can optionally attach an image/diagram to any option.</p>
                 </div>
 
                 {[0, 1, 2, 3].map(i => {
-                  const optAtt = parseAttachment(qOptionsDiagrams[i] || (parseAttachment(qOptionsEn[i]).type === 'IMAGE' ? qOptionsEn[i] : ''));
+                  const optDiag = qOptionsDiagrams[i] || '';
+                  const optAtt = parseAttachment(optDiag);
                   const currentRef = getOptRef(i);
 
                   return (
@@ -1490,7 +1488,7 @@ export default function AbhyaasMasterTower() {
                         />
                       </div>
 
-                      {/* Option Image / SVG Attachment Slot */}
+                      {/* Optional Diagram Slot */}
                       <div className="pl-6 flex flex-wrap items-center gap-2">
                         <input
                           type="file"
@@ -1504,12 +1502,12 @@ export default function AbhyaasMasterTower() {
                           onClick={() => currentRef.current?.click()}
                           className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition"
                         >
-                          <UploadCloud className="w-3 h-3 text-blue-600" /> Attach Opt {String.fromCharCode(65 + i)} Image
+                          <UploadCloud className="w-3 h-3 text-blue-600" /> Optional Opt {String.fromCharCode(65 + i)} Diagram
                         </button>
 
                         <input
                           type="text"
-                          placeholder="Or paste Option image URL / GDrive / Base64..."
+                          placeholder="Or paste image link (optional)..."
                           value={qOptionsDiagrams[i]}
                           onChange={e => {
                             const d = [...qOptionsDiagrams];
@@ -1519,7 +1517,7 @@ export default function AbhyaasMasterTower() {
                           className="flex-1 h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none font-mono"
                         />
 
-                        {optAtt.type === 'IMAGE' && (
+                        {optAtt.type === 'IMAGE' && optAtt.directUrl && (
                           <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                             <img src={optAtt.directUrl} alt="Opt preview" referrerPolicy="no-referrer" className="h-6 w-auto object-contain rounded" />
                             <span className="text-[9px] font-bold text-blue-700">Preview</span>
