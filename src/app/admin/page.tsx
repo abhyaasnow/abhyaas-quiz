@@ -118,7 +118,7 @@ export default function AbhyaasMasterTower() {
   const [pasteData, setPasteData] = useState('');
   const [copiedSample, setCopiedSample] = useState(false);
 
-  // Filters
+  // Filtering Controls
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
@@ -157,12 +157,17 @@ export default function AbhyaasMasterTower() {
 
   const csvInputRef = useRef<HTMLInputElement | null>(null);
   const fileAttachmentRef = useRef<HTMLInputElement | null>(null);
-  const optionFileRefs = [
-    useRef<HTMLInputElement | null>(null),
-    useRef<HTMLInputElement | null>(null),
-    useRef<HTMLInputElement | null>(null),
-    useRef<HTMLInputElement | null>(null)
-  ];
+  const opt0FileRef = useRef<HTMLInputElement | null>(null);
+  const opt1FileRef = useRef<HTMLInputElement | null>(null);
+  const opt2FileRef = useRef<HTMLInputElement | null>(null);
+  const opt3FileRef = useRef<HTMLInputElement | null>(null);
+
+  const getOptRef = (index: number) => {
+    if (index === 0) return opt0FileRef;
+    if (index === 1) return opt1FileRef;
+    if (index === 2) return opt2FileRef;
+    return opt3FileRef;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -532,6 +537,68 @@ export default function AbhyaasMasterTower() {
     }
   };
 
+  const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = (evt.target?.result as string) || '';
+      const rows = parseCSVProperly(text);
+      if (rows.length <= 1) return alert("Empty CSV file.");
+
+      const parsed: QuestionData[] = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length >= 7) {
+          const seg = (row[0] || '').toUpperCase();
+          const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
+          const newId = `q-csv-${Date.now()}-${i}`;
+          const rawDiagram = row[19] || '';
+          const parsedAtt = parseAttachment(rawDiagram);
+
+          parsed.push({
+            id: newId,
+            docId: newId,
+            segment: validSegment,
+            className: row[1] || 'Civil Services / Competitive',
+            examName: row[2] || 'UPSC Civil Services (Prelims)',
+            subjectName: row[3] || 'General Studies / Science',
+            topicName: row[4] || 'Chemical Bonding & Polycyclic Compounds',
+            category: row[2] || 'UPSC Civil Services (Prelims)',
+            subject: row[3] || 'General Studies / Science',
+            class: row[1] || 'Civil Services / Competitive',
+            topic: row[4] || 'Chemical Bonding & Polycyclic Compounds',
+            pyqYear: row[5] || '2024',
+            questionEn: formatScientific(row[6] || ''),
+            questionHi: formatScientific(row[7] || row[6] || ''),
+            optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
+            optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
+            optionsDiagrams: ['', '', '', ''],
+            correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
+            explanationEn: formatScientific(row[17] || ''),
+            explanationHi: formatScientific(row[18] || ''),
+            diagramUrl: rawDiagram,
+            attachmentType: parsedAtt.type,
+            isArchived: false,
+            status: 'ACTIVE',
+            timesUsedInOlympiad: 0
+          });
+        }
+      }
+
+      try {
+        const uploadedCount = await bulkUploadQuestions(parsed);
+        setQuestionsList(prev => [...parsed, ...prev]);
+        setIsBulkModalOpen(false);
+        alert(`🎉 Successfully uploaded ${uploadedCount} questions in bulk!`);
+      } catch (err: any) {
+        alert("Error saving CSV questions: " + err.message);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
   const handleExecuteAutoPush = async () => {
     if (!pushTargetExam) return alert("Select an Exam or Subject.");
     if (!confirm(`Push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
@@ -665,7 +732,7 @@ export default function AbhyaasMasterTower() {
                     <BookOpen className="w-5 h-5 text-blue-600" />
                     Active Question Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Supports Diagrams, Maps, Chemical Rings & Multi-Format Options (A, B, C, D).</p>
+                  <p className="text-xs text-slate-500">Preserved questions with automatic chemical subscripts, formulas, and diagrams.</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -690,7 +757,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Filter Bar */}
+              {/* Multi-Tier Filter Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
@@ -822,7 +889,7 @@ export default function AbhyaasMasterTower() {
                         )}
                       </div>
 
-                      {/* Multi-Format Question Attachment Rendering */}
+                      {/* Question Media / Attachment */}
                       {att.type !== 'NONE' && (
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
                           {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
@@ -841,7 +908,7 @@ export default function AbhyaasMasterTower() {
                               </div>
                               <div className="flex-1">
                                 <p className="font-bold text-xs text-slate-900">Attached Reference Document (.PDF)</p>
-                                <p className="text-[10px] text-slate-400">Click below to read / preview passage</p>
+                                <p className="text-[10px] text-slate-400">Click below to read / preview</p>
                               </div>
                               <a 
                                 href={att.previewUrl || att.directUrl} 
@@ -856,7 +923,7 @@ export default function AbhyaasMasterTower() {
                         </div>
                       )}
 
-                      {/* Options (Supports Text + Diagram in each Option) */}
+                      {/* Options with Inline Diagrams */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
                         {q.optionsEn?.map((opt, i) => {
                           const optDiag = q.optionsDiagrams?.[i] || '';
@@ -880,7 +947,6 @@ export default function AbhyaasMasterTower() {
                                 <span className="truncate">{formatScientific(opt)}</span>
                               </div>
 
-                              {/* Option Image / SVG Preview if present */}
                               {optAtt.type === 'IMAGE' && (
                                 <div className="mt-1 bg-white p-1 rounded-xl border border-slate-200 flex items-center justify-center">
                                   <img 
@@ -911,7 +977,7 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 2: MASTER CATEGORY & HIERARCHY TREE */}
+        {/* TAB 2: HIERARCHY TREE */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1087,7 +1153,9 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO (WITH OPTIONS DIAGRAM INPUTS) */}
+      {/* ========================================================================= */}
+      {/* MODAL 1: SINGLE QUESTION STUDIO (WITH DEDICATED OPTION MEDIA SLOTS) */}
+      {/* ========================================================================= */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1286,7 +1354,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Statements */}
+              {/* Question Statements */}
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1316,7 +1384,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Universal Question Media Hub (GDrive, PDF, SVG, Images) */}
+              {/* Main Question Diagram / Media Hub */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                   <div>
@@ -1375,7 +1443,9 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* Options Section (With Dedicated Diagram Input for Each Option) */}
+              {/* ========================================================= */}
+              {/* OPTIONS SECTION: NOW WITH DEDICATED DIAGRAM/MEDIA SLOTS! */}
+              {/* ========================================================= */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
                 <div>
                   <label className="block text-xs font-black uppercase text-slate-700">
@@ -1386,6 +1456,8 @@ export default function AbhyaasMasterTower() {
 
                 {[0, 1, 2, 3].map(i => {
                   const optAtt = parseAttachment(qOptionsDiagrams[i] || (parseAttachment(qOptionsEn[i]).type === 'IMAGE' ? qOptionsEn[i] : ''));
+                  const currentRef = getOptRef(i);
+
                   return (
                     <div key={i} className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-xs">
                       <div className="flex items-center gap-2">
@@ -1418,21 +1490,21 @@ export default function AbhyaasMasterTower() {
                         />
                       </div>
 
-                      {/* Option Image / SVG Attachment */}
+                      {/* Option Image / SVG Attachment Slot */}
                       <div className="pl-6 flex flex-wrap items-center gap-2">
                         <input
                           type="file"
                           accept="image/*,.svg"
-                          ref={optionFileRefs[i]}
+                          ref={currentRef}
                           onChange={(e) => handleOptionDiagramUpload(i, e)}
                           className="hidden"
                         />
                         <button
                           type="button"
-                          onClick={() => optionFileRefs[i].current?.click()}
+                          onClick={() => currentRef.current?.click()}
                           className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition"
                         >
-                          <UploadCloud className="w-3 h-3" /> Upload Opt {String.fromCharCode(65 + i)} Image
+                          <UploadCloud className="w-3 h-3 text-blue-600" /> Attach Opt {String.fromCharCode(65 + i)} Image
                         </button>
 
                         <input

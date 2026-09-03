@@ -35,7 +35,6 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
   const clean = url.trim();
 
   // 1. Google Drive Link Detector & Converter
-  // Matches: drive.google.com/file/d/FILE_ID or id=FILE_ID
   const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/(?:document|presentation|spreadsheets)\/d\/)([a-zA-Z0-9_-]{25,})/;
   const match = clean.match(driveRegex);
 
@@ -67,7 +66,6 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return { type: '3D', rawUrl: clean, directUrl: clean, isDrive: false };
   }
 
-  // Default to standard image
   return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
 }
 
@@ -213,6 +211,7 @@ export interface QuestionData {
   questionHi: string;
   optionsEn: string[];
   optionsHi: string[];
+  optionsDiagrams?: string[];
   correctOption: number;
   explanationEn?: string;
   explanationHi?: string;
@@ -265,6 +264,7 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
         questionHi: String(data.questionHi || ''),
         optionsEn: Array.isArray(data.optionsEn) ? data.optionsEn : (Array.isArray(data.options) ? data.options : ['', '', '', '']),
         optionsHi: Array.isArray(data.optionsHi) ? data.optionsHi : ['', '', '', ''],
+        optionsDiagrams: Array.isArray(data.optionsDiagrams) ? data.optionsDiagrams : ['', '', '', ''],
         correctOption: typeof data.correctOption === 'number' ? data.correctOption : 0,
         explanationEn: data.explanationEn || '',
         explanationHi: data.explanationHi || '',
@@ -287,6 +287,7 @@ export async function createQuestion(q: QuestionData): Promise<void> {
     questionHi: formatScientific(q.questionHi),
     optionsEn: q.optionsEn.map(o => formatScientific(o)),
     optionsHi: q.optionsHi.map(o => formatScientific(o)),
+    optionsDiagrams: Array.isArray(q.optionsDiagrams) ? q.optionsDiagrams : ['', '', '', ''],
     explanationEn: formatScientific(q.explanationEn || ''),
     explanationHi: formatScientific(q.explanationHi || ''),
     category: q.examName,
@@ -311,6 +312,7 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
   if (q.questionHi) payload.questionHi = formatScientific(q.questionHi);
   if (q.optionsEn) payload.optionsEn = q.optionsEn.map(o => formatScientific(o));
   if (q.optionsHi) payload.optionsHi = q.optionsHi.map(o => formatScientific(o));
+  if (q.optionsDiagrams) payload.optionsDiagrams = q.optionsDiagrams;
   if (q.explanationEn) payload.explanationEn = formatScientific(q.explanationEn);
   if (q.explanationHi) payload.explanationHi = formatScientific(q.explanationHi);
   if (q.examName) payload.category = q.examName;
@@ -375,6 +377,7 @@ export async function bulkUploadQuestions(questions: QuestionData[]): Promise<nu
       questionHi: formatScientific(q.questionHi),
       optionsEn: q.optionsEn.map(o => formatScientific(o)),
       optionsHi: q.optionsHi.map(o => formatScientific(o)),
+      optionsDiagrams: Array.isArray(q.optionsDiagrams) ? q.optionsDiagrams : ['', '', '', ''],
       explanationEn: formatScientific(q.explanationEn || ''),
       explanationHi: formatScientific(q.explanationHi || ''),
       category: q.examName,
