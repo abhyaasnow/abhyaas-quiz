@@ -16,7 +16,7 @@ const firebaseConfig = {
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ==================== 1. TAXONOMY / HIERARCHY ====================
+// ==================== 1. TAXONOMY / HIERARCHY (SECTION A) ====================
 export type TaxonomyLevel = 'CLASS' | 'EXAM' | 'SUBJECT' | 'TOPIC' | 'DOMAIN';
 
 export interface TaxonomyNode {
@@ -60,7 +60,7 @@ export async function deleteTaxonomyNode(id: string): Promise<void> {
   await deleteDoc(doc(db, 'taxonomy', id));
 }
 
-// ==================== 2. ENTERPRISE QUESTION VAULT ====================
+// ==================== 2. QUESTION BANK & RECYCLE BIN ENGINE (SECTION B) ====================
 export type QuestionSegment = 'PRACTICE' | 'PYQ' | 'OLYMPIAD';
 
 export interface QuestionData {
@@ -75,15 +75,18 @@ export interface QuestionData {
   questionHi: string;
   optionsEn: string[];
   optionsHi: string[];
-  correctOption: number; // 0, 1, 2, 3
+  correctOption: number;
   explanationEn?: string;
   explanationHi?: string;
-  diagramUrl?: string; // Map, Chart, Formula, Diagram image URL
-  // Guaranteed Frontend Aliases (prevents '—' on practice/quiz pages)
-  subject?: string;
-  category?: string;
-  class?: string;
-  topic?: string;
+  diagramUrl?: string | null;
+  // Two-Stage Deletion & Recycle Bin Controls
+  isArchived?: boolean;
+  status?: 'ACTIVE' | 'ARCHIVED';
+  // Guaranteed string aliases for frontend compatibility
+  subject: string;
+  category: string;
+  class: string;
+  topic: string;
   approvalStatus?: string;
   timesUsedInOlympiad?: number;
   createdAt?: any;
@@ -96,11 +99,12 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
     const snap = await getDocs(collection(db, 'questions'));
     return snap.docs.map(d => {
       const data = d.data();
-      const safeClass = data.className || data.class || 'Civil Services / Competitive';
-      const safeExam = data.examName || data.category || data.exam || 'UPSC Civil Services (Prelims)';
-      const safeSubject = data.subjectName || data.subject || 'General Studies / Geography';
-      const safeTopic = data.topicName || data.topic || 'General';
-      const safeSegment: QuestionSegment = data.segment || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE');
+      const safeClass = String(data.className || data.class || 'Civil Services / Competitive');
+      const safeExam = String(data.examName || data.category || data.exam || 'UPSC Civil Services (Prelims)');
+      const safeSubject = String(data.subjectName || data.subject || 'General Studies / Geography');
+      const safeTopic = String(data.topicName || data.topic || 'General');
+      const safeSegment: QuestionSegment = (data.segment as QuestionSegment) || (data.approvalStatus === 'APPROVED_OLYMPIAD' ? 'OLYMPIAD' : 'PRACTICE');
+      const isArchived = Boolean(data.isArchived || data.status === 'ARCHIVED');
 
       return {
         id: d.id,
@@ -108,21 +112,22 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
         examName: safeExam,
         subjectName: safeSubject,
         topicName: safeTopic,
-        // Aliases so older frontend pages never break
         class: safeClass,
         category: safeExam,
         subject: safeSubject,
         topic: safeTopic,
         segment: safeSegment,
+        isArchived: isArchived,
+        status: isArchived ? 'ARCHIVED' : 'ACTIVE',
         pyqYear: data.pyqYear || '',
-        questionEn: data.questionEn || data.question || 'Untitled Question',
-        questionHi: data.questionHi || '',
+        questionEn: String(data.questionEn || data.question || 'Untitled Question'),
+        questionHi: String(data.questionHi || ''),
         optionsEn: Array.isArray(data.optionsEn) ? data.optionsEn : (Array.isArray(data.options) ? data.options : ['', '', '', '']),
         optionsHi: Array.isArray(data.optionsHi) ? data.optionsHi : ['', '', '', ''],
         correctOption: typeof data.correctOption === 'number' ? data.correctOption : 0,
         explanationEn: data.explanationEn || '',
         explanationHi: data.explanationHi || '',
-        diagramUrl: data.diagramUrl || '',
+        diagramUrl: data.diagramUrl || null,
         timesUsedInOlympiad: data.timesUsedInOlympiad || 0,
         createdAt: data.createdAt || null,
         ...data
@@ -142,6 +147,8 @@ export async function createQuestion(q: QuestionData): Promise<void> {
     subject: q.subjectName,
     class: q.className,
     topic: q.topicName,
+    isArchived: false,
+    status: 'ACTIVE',
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   };
@@ -161,11 +168,31 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
   await updateDoc(docRef, payload);
 }
 
-export async function deleteQuestion(id: string): Promise<void> {
+// Stage 1 Delete: Moves question to Recycle Bin / Archived
+export async function archiveQuestion(id: string): Promise<void> {
+  const docRef = doc(db, 'questions', id);
+  await updateDoc(docRef, {
+    isArchived: true,
+    status: 'ARCHIVED',
+    archivedAt: Timestamp.now()
+  });
+}
+
+// Restore: Brings question back from Recycle Bin to Active Bank
+export async function restoreQuestion(id: string): Promise<void> {
+  const docRef = doc(db, 'questions', id);
+  await updateDoc(docRef, {
+    isArchived: false,
+    status: 'ACTIVE',
+    updatedAt: Timestamp.now()
+  });
+}
+
+// Stage 2 Delete: Permanently wipes question from database forever
+export async function permanentlyDeleteQuestion(id: string): Promise<void> {
   await deleteDoc(doc(db, 'questions', id));
 }
 
-// Bulk Upload Engine (Guarantees Perfect Taxonomy Mapping)
 export async function bulkUploadQuestions(questions: QuestionData[]): Promise<number> {
   const batch = writeBatch(db);
   let count = 0;
@@ -177,6 +204,8 @@ export async function bulkUploadQuestions(questions: QuestionData[]): Promise<nu
       subject: q.subjectName,
       class: q.className,
       topic: q.topicName,
+      isArchived: false,
+      status: 'ACTIVE',
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     }, { merge: true });
@@ -186,34 +215,6 @@ export async function bulkUploadQuestions(questions: QuestionData[]): Promise<nu
   return count;
 }
 
-// Re-Align / Re-Classify Tool: Moves unassigned/misplaced questions to the right Exam & Subject
-export async function reclassifyQuestions(
-  targetClass: string,
-  targetExam: string,
-  targetSubject: string,
-  targetTopic: string,
-  questionIds: string[]
-): Promise<number> {
-  const batch = writeBatch(db);
-  questionIds.forEach(id => {
-    const ref = doc(db, 'questions', id);
-    batch.update(ref, {
-      className: targetClass,
-      class: targetClass,
-      examName: targetExam,
-      category: targetExam,
-      subjectName: targetSubject,
-      subject: targetSubject,
-      topicName: targetTopic,
-      topic: targetTopic,
-      updatedAt: Timestamp.now()
-    });
-  });
-  await batch.commit();
-  return questionIds.length;
-}
-
-// Auto-Push Pipeline: Transfer Olympiad Questions to Practice / PYQ
 export async function autoPushOlympiadQuestions(
   examOrSubject: string, 
   targetSegment: 'PRACTICE' | 'PYQ', 
@@ -225,7 +226,7 @@ export async function autoPushOlympiadQuestions(
 
   questions.forEach(q => {
     const matchesExam = q.examName === examOrSubject || q.subjectName === examOrSubject;
-    if (matchesExam && q.segment === 'OLYMPIAD') {
+    if (matchesExam && q.segment === 'OLYMPIAD' && !q.isArchived) {
       const ref = doc(db, 'questions', q.id);
       batch.update(ref, {
         segment: targetSegment,
@@ -319,7 +320,7 @@ export async function getAllPayments(): Promise<PaymentRecord[]> {
   }
 }
 
-// Backward Compatibility Placeholders
+// Compatibility Placeholders
 export interface CategoryConfig { id: string; name: string; [key: string]: any; }
 export async function getCustomCategories(): Promise<CategoryConfig[]> { return []; }
 export async function saveCustomCategory(cat: any): Promise<void> {}

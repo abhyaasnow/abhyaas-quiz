@@ -8,13 +8,15 @@ import {
   FolderTree, BookOpen, Sparkles, AlertCircle,
   FileSpreadsheet, Upload, Download, RefreshCw,
   Filter, Search, Award, HelpCircle, ArrowDownCircle,
-  AlertTriangle, Image as ImageIcon, ClipboardCheck, ArrowLeftRight
+  AlertTriangle, Image as ImageIcon, ClipboardCheck,
+  RotateCcw, ShieldAlert, Archive
 } from 'lucide-react';
 
 import { 
   getTaxonomyNodes, saveTaxonomyNode, deleteTaxonomyNode, 
-  getAllQuestions, createQuestion, updateQuestion, deleteQuestion,
-  bulkUploadQuestions, autoPushOlympiadQuestions, reclassifyQuestions,
+  getAllQuestions, createQuestion, updateQuestion,
+  archiveQuestion, restoreQuestion, permanentlyDeleteQuestion,
+  bulkUploadQuestions, autoPushOlympiadQuestions,
   TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
 } from '@/lib/db';
 
@@ -50,7 +52,6 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   DOMAIN: []
 };
 
-// RFC-4180 Multi-line & Quoted CSV Parser
 function parseCSVProperly(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
@@ -95,7 +96,8 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  const [adminTab, setAdminTab] = useState<'questions' | 'hierarchy'>('questions');
+  // Primary Navigation
+  const [adminTab, setAdminTab] = useState<'questions' | 'recycle_bin' | 'hierarchy'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,7 +113,6 @@ export default function AbhyaasMasterTower() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isRealignModalOpen, setIsRealignModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
 
   const [bulkMode, setBulkMode] = useState<'paste' | 'csv'>('paste');
@@ -120,7 +121,6 @@ export default function AbhyaasMasterTower() {
   // Filtering Controls
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
-  const [filterClass, setFilterClass] = useState('ALL');
   const [filterExam, setFilterExam] = useState('ALL');
   const [filterSubject, setFilterSubject] = useState('ALL');
 
@@ -147,12 +147,6 @@ export default function AbhyaasMasterTower() {
   const [qExplanationEn, setQExplanationEn] = useState('');
   const [qExplanationHi, setQExplanationHi] = useState('');
   const [qDiagramUrl, setQDiagramUrl] = useState('');
-
-  // Re-align Tool State
-  const [realignTargetClass, setRealignTargetClass] = useState('');
-  const [realignTargetExam, setRealignTargetExam] = useState('');
-  const [realignTargetSubject, setRealignTargetSubject] = useState('');
-  const [realignTargetTopic, setRealignTargetTopic] = useState('');
 
   // Auto-Push Pipeline State
   const [pushTargetExam, setPushTargetExam] = useState('');
@@ -208,7 +202,7 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // Hierarchy Handlers
+  // Hierarchy Actions
   const handlePresetChange = (val: string) => {
     setPresetChoice(val);
     if (val === 'OTHER') {
@@ -331,6 +325,8 @@ export default function AbhyaasMasterTower() {
       explanationEn: qExplanationEn.trim(),
       explanationHi: qExplanationHi.trim(),
       diagramUrl: qDiagramUrl.trim(),
+      isArchived: false,
+      status: 'ACTIVE',
       timesUsedInOlympiad: 0
     };
 
@@ -346,33 +342,29 @@ export default function AbhyaasMasterTower() {
     setIsQuestionModalOpen(false);
   };
 
-  const handleDeleteQuestion = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this question?")) return;
+  // Stage 1: Move Question to Recycle Bin
+  const handleMoveToRecycleBin = async (id: string, text: string) => {
+    if (!confirm(`Move question "${text.slice(0, 40)}..." to Recycle Bin?`)) return;
+    setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
+    await archiveQuestion(id);
+  };
+
+  // Restore Question from Recycle Bin
+  const handleRestoreFromRecycleBin = async (id: string) => {
+    setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: false, status: 'ACTIVE' } : q));
+    await restoreQuestion(id);
+    alert("Question restored back to Active Question Bank!");
+  };
+
+  // Stage 2: Permanent Delete from Firestore
+  const handlePermanentDelete = async (id: string) => {
+    if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This question will be completely erased from the database forever!")) return;
     setQuestionsList(prev => prev.filter(q => q.id !== id));
-    await deleteQuestion(id);
+    await permanentlyDeleteQuestion(id);
+    alert("Question permanently erased from database.");
   };
 
-  // Re-Align Legacy or Misplaced Questions
-  const handleExecuteRealign = async () => {
-    if (!realignTargetClass || !realignTargetExam || !realignTargetSubject) {
-      return alert("Select target Class, Exam, and Subject to align questions.");
-    }
-    const unalignedQuestions = questionsList.filter(q => 
-      !q.className || !q.examName || q.examName === 'General' || q.subjectName === 'General' || q.questionEn.toLowerCase().includes('photosynthesis')
-    );
-
-    if (unalignedQuestions.length === 0) {
-      return alert("No unassigned questions found. All questions are already categorized!");
-    }
-
-    const ids = unalignedQuestions.map(q => q.id);
-    await reclassifyQuestions(realignTargetClass, realignTargetExam, realignTargetSubject, realignTargetTopic || 'General', ids);
-    alert(`🎉 Successfully re-aligned ${ids.length} questions into ${realignTargetExam} ➔ ${realignTargetSubject}!`);
-    setIsRealignModalOpen(false);
-    loadAllData();
-  };
-
-  // Direct Paste from Excel (100% Unicode Safe)
+  // Direct Paste from Excel
   const handleDirectExcelPaste = async () => {
     if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
     const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -403,6 +395,8 @@ export default function AbhyaasMasterTower() {
           explanationEn: row[17] || '',
           explanationHi: row[18] || '',
           diagramUrl: row[19] || '',
+          isArchived: false,
+          status: 'ACTIVE',
           timesUsedInOlympiad: 0
         });
       }
@@ -413,7 +407,7 @@ export default function AbhyaasMasterTower() {
     setQuestionsList(prev => [...parsed, ...prev]);
     setPasteData('');
     setIsBulkModalOpen(false);
-    alert(`🎉 Imported ${count} questions directly from Excel without any encoding errors!`);
+    alert(`🎉 Successfully imported ${count} questions directly from Excel without encoding errors!`);
   };
 
   // CSV File Reader
@@ -454,6 +448,8 @@ export default function AbhyaasMasterTower() {
             explanationEn: row[17] || '',
             explanationHi: row[18] || '',
             diagramUrl: row[19] || '',
+            isArchived: false,
+            status: 'ACTIVE',
             timesUsedInOlympiad: 0
           });
         }
@@ -516,14 +512,19 @@ export default function AbhyaasMasterTower() {
   const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
   const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
 
-  // Multi-Tier Filter for Display
-  const filteredQuestions = questionsList.filter(q => {
+  // Active Questions (Not Deleted)
+  const activeQuestions = questionsList.filter(q => !q.isArchived);
+  
+  // Archived / Recycle Bin Questions (Deleted in Stage 1)
+  const archivedQuestions = questionsList.filter(q => q.isArchived);
+
+  // Multi-Tier Filter for Active Stream
+  const filteredActiveQuestions = activeQuestions.filter(q => {
     const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
     const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
-    const matchesClass = filterClass === 'ALL' || q.className === filterClass || q.class === filterClass;
     const matchesExam = filterExam === 'ALL' || q.examName === filterExam || q.category === filterExam;
     const matchesSubject = filterSubject === 'ALL' || q.subjectName === filterSubject || q.subject === filterSubject;
-    return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
+    return matchesSearch && matchesSegment && matchesExam && matchesSubject;
   });
 
   return (
@@ -554,27 +555,289 @@ export default function AbhyaasMasterTower() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
 
-        {/* Master Navigation */}
-        <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex gap-2">
+        {/* Master Navigation Tabs */}
+        <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex flex-wrap gap-2">
           <button
             onClick={() => setAdminTab('questions')}
-            className={`flex-1 py-3.5 px-5 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
               adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> 2. Question Bank & Vault ({questionsList.length})
+            <BookOpen className="w-4 h-4" /> Active Question Bank ({activeQuestions.length})
           </button>
+
+          <button
+            onClick={() => setAdminTab('recycle_bin')}
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+              adminTab === 'recycle_bin' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Trash2 className="w-4 h-4" /> 🗑️ Recycle Bin ({archivedQuestions.length})
+          </button>
+
           <button
             onClick={() => setAdminTab('hierarchy')}
-            className={`flex-1 py-3.5 px-5 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
               adminTab === 'hierarchy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <FolderTree className="w-4 h-4" /> 1. Category & Hierarchy ({taxonomyList.length})
+            <FolderTree className="w-4 h-4" /> Category & Hierarchy ({taxonomyList.length})
           </button>
         </div>
 
-        {/* TAB 1: HIERARCHY MANAGEMENT */}
+        {/* ========================================== */}
+        {/* TAB 1: ACTIVE QUESTION BANK */}
+        {/* ========================================== */}
+        {adminTab === 'questions' && (
+          <div className="space-y-6 animate-in fade-in">
+            
+            {/* Toolbar */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-blue-600" />
+                    Active Question Vault
+                  </h2>
+                  <p className="text-xs text-slate-500">Every active question is indexed across Class, Exam, Subject, and Topic.</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={openCreateQuestionModal}
+                    className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                  >
+                    <Plus className="w-4 h-4" /> Single Question Studio
+                  </button>
+                  <button
+                    onClick={() => setIsBulkModalOpen(true)}
+                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" /> Bulk Upload / Excel Paste
+                  </button>
+                  <button
+                    onClick={() => setIsAutoPushModalOpen(true)}
+                    className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ
+                  </button>
+                </div>
+              </div>
+
+              {/* Multi-Tier Filter Bar */}
+              <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Segment Buttons */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
+                    {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
+                      <button
+                        key={seg}
+                        onClick={() => setSegmentFilter(seg)}
+                        className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
+                          segmentFilter === seg ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+                        }`}
+                      >
+                        {seg === 'ALL' ? `All (${activeQuestions.length})` :
+                         seg === 'PRACTICE' ? `Practice (${activeQuestions.filter(q=>q.segment==='PRACTICE').length})` :
+                         seg === 'PYQ' ? `PYQ (${activeQuestions.filter(q=>q.segment==='PYQ').length})` :
+                         `🛡️ Olympiad (${activeQuestions.filter(q=>q.segment==='OLYMPIAD').length})`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Filter by Exam */}
+                  <select
+                    value={filterExam}
+                    onChange={e => setFilterExam(e.target.value)}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                  >
+                    <option value="ALL">All Examinations</option>
+                    {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
+                      <option key={e.id} value={e.nameEn}>{e.nameEn}</option>
+                    ))}
+                  </select>
+
+                  {/* Filter by Subject */}
+                  <select
+                    value={filterSubject}
+                    onChange={e => setFilterSubject(e.target.value)}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                  >
+                    <option value="ALL">All Subjects</option>
+                    {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
+                      <option key={s.id} value={s.nameEn}>{s.nameEn}</option>
+                    ))}
+                  </select>
+
+                  {/* Search bar */}
+                  <div className="relative flex-grow min-w-[200px]">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search questions..."
+                      value={searchFilter}
+                      onChange={e => setSearchFilter(e.target.value)}
+                      className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Questions Stream */}
+            <div className="space-y-3">
+              {filteredActiveQuestions.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
+                  <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-extrabold text-sm text-slate-800">No Questions Found</p>
+                  <p className="text-xs text-slate-400">Use Bulk Upload or Single Question Studio to add questions.</p>
+                </div>
+              ) : (
+                filteredActiveQuestions.map((q, idx) => (
+                  <div
+                    key={q.id || idx}
+                    className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                          q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                          q.segment === 'PYQ' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
+                          'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                        }`}>
+                          {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
+                           q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
+                           '📘 Free Practice Drill'}
+                        </span>
+
+                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
+                          {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
+                        </span>
+
+                        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
+                          Topic: {q.topicName || q.topic}
+                        </span>
+                      </div>
+
+                      {/* Edit & Move to Trash Buttons */}
+                      <div className="flex items-center gap-1 self-end sm:self-center">
+                        <button
+                          onClick={() => openEditQuestionModal(q)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          title="Edit Question"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                          title="Move to Recycle Bin"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="font-bold text-sm text-slate-900">{q.questionEn}</p>
+                      {q.questionHi && <p className="text-xs text-slate-600 mt-1">{q.questionHi}</p>}
+                    </div>
+
+                    {q.diagramUrl && (
+                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl w-fit">
+                        <img src={q.diagramUrl} alt="Diagram" className="max-h-48 rounded-lg object-contain" />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+                      {q.optionsEn?.map((opt, i) => (
+                        <div
+                          key={i}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                            q.correctOption === i
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
+                              : 'bg-slate-50 border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
+                            q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+                          }`}>
+                            {i + 1}
+                          </span>
+                          <span className="truncate">{opt}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(q.explanationEn || q.explanationHi) && (
+                      <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
+                        <strong className="font-black">💡 Solution:</strong> {q.explanationEn || q.explanationHi}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 2: RECYCLE BIN / ARCHIVED QUESTIONS */}
+        {/* ========================================== */}
+        {adminTab === 'recycle_bin' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-rose-950 flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-rose-600" />
+                  Recycle Bin / Archived Questions ({archivedQuestions.length})
+                </h2>
+                <p className="text-xs text-rose-700 mt-1">
+                  Questions deleted from the active bank are moved here first. You can restore them or permanently wipe them.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {archivedQuestions.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 text-xs font-bold shadow-sm">
+                  Recycle Bin is completely empty. No deleted questions.
+                </div>
+              ) : (
+                archivedQuestions.map(q => (
+                  <div key={q.id} className="bg-white border border-rose-200 p-5 rounded-2xl shadow-sm space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-500">
+                        {q.className} ➔ {q.examName} ➔ {q.subjectName}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleRestoreFromRecycleBin(q.id)}
+                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1 transition"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" /> Restore to Bank
+                        </button>
+                        <button
+                          onClick={() => handlePermanentDelete(q.id)}
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Permanent Delete
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 line-through opacity-80">{q.questionEn}</p>
+                    {q.questionHi && <p className="text-xs text-slate-500">{q.questionHi}</p>}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 3: CATEGORY & HIERARCHY STUDIO */}
+        {/* ========================================== */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -663,208 +926,6 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 2: QUESTION BANK & VAULT */}
-        {adminTab === 'questions' && (
-          <div className="space-y-6 animate-in fade-in">
-            
-            {/* Toolbar */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-blue-600" />
-                    Question Bank & Quarantine Vault
-                  </h2>
-                  <p className="text-xs text-slate-500">Every question stays preserved. Manage Practice Sets, PYQs, and Olympiads.</p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={openCreateQuestionModal}
-                    className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <Plus className="w-4 h-4" /> Single Question Studio
-                  </button>
-                  <button
-                    onClick={() => setIsBulkModalOpen(true)}
-                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" /> Bulk Upload / Excel Paste
-                  </button>
-                  <button
-                    onClick={() => setIsRealignModalOpen(true)}
-                    className="px-4 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                    title="Align older or unassigned questions to a specific exam/subject"
-                  >
-                    <ArrowLeftRight className="w-4 h-4" /> Align Legacy Questions
-                  </button>
-                  <button
-                    onClick={() => setIsAutoPushModalOpen(true)}
-                    className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ
-                  </button>
-                </div>
-              </div>
-
-              {/* Advanced Multi-Tier Filters */}
-              <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Segment Buttons */}
-                  <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
-                    {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
-                      <button
-                        key={seg}
-                        onClick={() => setSegmentFilter(seg)}
-                        className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
-                          segmentFilter === seg ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-                        }`}
-                      >
-                        {seg === 'ALL' ? `All (${questionsList.length})` :
-                         seg === 'PRACTICE' ? `Practice (${questionsList.filter(q=>q.segment==='PRACTICE').length})` :
-                         seg === 'PYQ' ? `PYQ (${questionsList.filter(q=>q.segment==='PYQ').length})` :
-                         `🛡️ Olympiad (${questionsList.filter(q=>q.segment==='OLYMPIAD').length})`}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Filter by Exam */}
-                  <select
-                    value={filterExam}
-                    onChange={e => setFilterExam(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
-                  >
-                    <option value="ALL">All Examinations</option>
-                    {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
-                      <option key={e.id} value={e.nameEn}>{e.nameEn}</option>
-                    ))}
-                  </select>
-
-                  {/* Filter by Subject */}
-                  <select
-                    value={filterSubject}
-                    onChange={e => setFilterSubject(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
-                  >
-                    <option value="ALL">All Subjects</option>
-                    {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
-                      <option key={s.id} value={s.nameEn}>{s.nameEn}</option>
-                    ))}
-                  </select>
-
-                  {/* Search input */}
-                  <div className="relative flex-grow min-w-[200px]">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search questions or keywords..."
-                      value={searchFilter}
-                      onChange={e => setSearchFilter(e.target.value)}
-                      className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Questions Stream */}
-            <div className="space-y-3">
-              {filteredQuestions.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
-                  <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Try changing the filters above or upload new questions.</p>
-                </div>
-              ) : (
-                filteredQuestions.map((q, idx) => (
-                  <div
-                    key={q.id || idx}
-                    className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                          q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                          q.segment === 'PYQ' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
-                          'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                        }`}>
-                          {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
-                           q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
-                           '📘 Free Practice Drill'}
-                        </span>
-
-                        {/* Complete Hierarchy Breadcrumb */}
-                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
-                          {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
-                        </span>
-
-                        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                          Topic: {q.topicName || q.topic}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 self-end sm:self-center">
-                        <button
-                          onClick={() => openEditQuestionModal(q)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          title="Edit Question"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteQuestion(q.id)}
-                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                          title="Delete Question"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="font-bold text-sm text-slate-900">{q.questionEn}</p>
-                      {q.questionHi && <p className="text-xs text-slate-600 mt-1">{q.questionHi}</p>}
-                    </div>
-
-                    {q.diagramUrl && (
-                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl w-fit">
-                        <img src={q.diagramUrl} alt="Diagram" className="max-h-48 rounded-lg object-contain" />
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-                      {q.optionsEn?.map((opt, i) => (
-                        <div
-                          key={i}
-                          className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                            q.correctOption === i
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
-                              : 'bg-slate-50 border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-                            q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                          }`}>
-                            {i + 1}
-                          </span>
-                          <span className="truncate">{opt}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {(q.explanationEn || q.explanationHi) && (
-                      <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
-                        <strong className="font-black">💡 Solution:</strong> {q.explanationEn || q.explanationHi}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-          </div>
-        )}
-
       </div>
 
       {/* MODAL 1: SINGLE QUESTION STUDIO */}
@@ -896,15 +957,15 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Vault Destination */}
+              {/* Vault Selector */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Vault / Segment*
+                  Target Vault / Destination*
                 </label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
                     { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
+                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year repository' },
                     { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
                   ].map(s => (
                     <button
@@ -1080,7 +1141,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Diagram / Map URL */}
+              {/* Diagram URL */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Diagram / Map / Chemistry Image URL (Optional)
@@ -1204,7 +1265,7 @@ export default function AbhyaasMasterTower() {
             {bulkMode === 'paste' ? (
               <div className="space-y-3 text-xs">
                 <p className="text-slate-600 leading-relaxed">
-                  Simply select your cells in Microsoft Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>. Windows clipboard preserves all Hindi Devnagari characters perfectly!
+                  Select rows in Microsoft Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>. Windows clipboard preserves Hindi characters without any encoding corruption.
                 </p>
                 <textarea
                   rows={6}
@@ -1224,7 +1285,7 @@ export default function AbhyaasMasterTower() {
             ) : (
               <div className="space-y-4 text-xs">
                 <p className="text-slate-600 leading-relaxed">
-                  Upload CSV files saved with UTF-8 encoding. Quotes and multi-line explanations are parsed cleanly.
+                  Upload CSV files saved with UTF-8 encoding.
                 </p>
                 <div
                   onClick={() => csvInputRef.current?.click()}
@@ -1240,89 +1301,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 3: RE-ALIGN LEGACY QUESTIONS TOOL */}
-      {isRealignModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <ArrowLeftRight className="w-5 h-5 text-indigo-600" />
-                Align Legacy / Unassigned Questions
-              </h3>
-              <button onClick={() => setIsRealignModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Target questions that were created earlier with missing hierarchy tags (e.g. photosythesis questions) and batch move them into the correct Exam and Subject without deleting them.
-            </p>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Class:</label>
-                <select
-                  value={realignTargetClass}
-                  onChange={e => setRealignTargetClass(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl font-bold outline-none"
-                >
-                  <option value="">-- Choose Class --</option>
-                  {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Examination:</label>
-                <select
-                  value={realignTargetExam}
-                  onChange={e => setRealignTargetExam(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl font-bold outline-none"
-                >
-                  <option value="">-- Choose Exam --</option>
-                  {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
-                    <option key={e.id} value={e.nameEn}>{e.nameEn}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Subject:</label>
-                <select
-                  value={realignTargetSubject}
-                  onChange={e => setRealignTargetSubject(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl font-bold outline-none"
-                >
-                  <option value="">-- Choose Subject --</option>
-                  {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
-                    <option key={s.id} value={s.nameEn}>{s.nameEn}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Topic / Chapter:</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Fundamental Rights or Ecology"
-                  value={realignTargetTopic}
-                  onChange={e => setRealignTargetTopic(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border rounded-xl outline-none"
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleExecuteRealign}
-              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
-            >
-              <Check className="w-4 h-4" /> Move & Align Questions Now
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: AUTO-PUSH PIPELINE */}
+      {/* MODAL 3: AUTO-PUSH PIPELINE */}
       {isAutoPushModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
