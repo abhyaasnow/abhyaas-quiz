@@ -4,20 +4,20 @@ import {
   updateDoc, Timestamp 
 } from 'firebase/firestore';
 
+// Build-Safe Fallback to prevent "auth/invalid-api-key" during local prerender
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyDummyKeyForBuildProcess12345',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'abhyaas-quiz.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'abhyaas-quiz',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'abhyaas-quiz.appspot.com',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '1234567890',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:1234567890:web:abcdef'
 };
 
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
 // ==================== 1. SITE SETTINGS & CMS ====================
-// bannerGraphicUrl aur baki fields ko string | null | undefined teeno ke liye open kiya gaya hai
 export interface SiteSettings {
   headerLogoUrl?: string | null | any;
   footerLogoUrl?: string | null | any;
@@ -70,7 +70,17 @@ export interface TaxonomyNode {
 export async function getTaxonomyNodes(): Promise<TaxonomyNode[]> {
   try {
     const snap = await getDocs(collection(db, 'taxonomy'));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as TaxonomyNode));
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        level: data.level || 'DOMAIN',
+        nameEn: data.nameEn || data.name || 'Untitled Node',
+        nameHi: data.nameHi || '',
+        parentId: data.parentId || undefined,
+        ...data
+      } as TaxonomyNode;
+    });
   } catch (err) {
     console.error("Error fetching taxonomy:", err);
     return [];
@@ -96,7 +106,7 @@ export interface CategoryConfig {
 export async function getCustomCategories(): Promise<CategoryConfig[]> {
   try {
     const snap = await getDocs(collection(db, 'categories'));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as CategoryConfig));
+    return snap.docs.map(d => ({ id: d.id, name: d.data().name || 'General', ...d.data() } as CategoryConfig));
   } catch (err) {
     return [];
   }
@@ -133,7 +143,29 @@ export interface QuestionData {
 export async function getAllQuestions(): Promise<QuestionData[]> {
   try {
     const snap = await getDocs(collection(db, 'questions'));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as QuestionData));
+    return snap.docs.map(d => {
+      const data = d.data();
+      const textEn = data.questionEn || data.question || 'Untitled Question';
+      const textHi = data.questionHi || '';
+      const optsEn = Array.isArray(data.optionsEn) ? data.optionsEn : (Array.isArray(data.options) ? data.options : ['', '', '', '']);
+      const optsHi = Array.isArray(data.optionsHi) ? data.optionsHi : ['', '', '', ''];
+      
+      return {
+        id: d.id,
+        subject: data.subject || 'General',
+        topic: data.topic || 'General',
+        questionEn: textEn,
+        questionHi: textHi,
+        optionsEn: optsEn,
+        optionsHi: optsHi,
+        correctOption: typeof data.correctOption === 'number' ? data.correctOption : 0,
+        approvalStatus: data.approvalStatus || 'APPROVED_PRACTICE',
+        timesUsedInOlympiad: data.timesUsedInOlympiad || 0,
+        explanationEn: data.explanationEn || '',
+        explanationHi: data.explanationHi || '',
+        ...data
+      } as QuestionData;
+    });
   } catch (err) {
     console.error("Error fetching questions:", err);
     return [];
@@ -141,7 +173,7 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
 }
 
 export async function createQuestion(q: QuestionData): Promise<void> {
-  await setDoc(doc(db, 'questions', q.id), { ...q, createdAt: Timestamp.now() });
+  await setDoc(doc(db, 'questions', q.id), { ...q, createdAt: Timestamp.now() }, { merge: true });
 }
 
 export async function deleteQuestion(id: string): Promise<void> {
@@ -170,7 +202,21 @@ export interface OlympiadConfig {
 export async function getCustomOlympiads(): Promise<OlympiadConfig[]> {
   try {
     const snap = await getDocs(collection(db, 'olympiads'));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as OlympiadConfig));
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        titleEn: data.titleEn || data.title || 'Olympiad',
+        titleHi: data.titleHi || '',
+        category: data.category || 'General',
+        description: data.description || '',
+        assessmentFee: data.assessmentFee || '49',
+        scholarshipPool: data.scholarshipPool || '2,50,000',
+        examDate: data.examDate || 'Upcoming',
+        status: data.status || 'ACTIVE',
+        ...data
+      } as OlympiadConfig;
+    });
   } catch (err) {
     return [];
   }
@@ -184,8 +230,7 @@ export async function deleteCustomOlympiad(id: string): Promise<void> {
   await deleteDoc(doc(db, 'olympiads', id));
 }
 
-// ==================== 6. PAYMENTS ENGINE (FIXES PROFILE & OLYMPIAD) ====================
-// Sabhi fields ko strict string / number dekar profile page ke 'undefined' error ko jad se khatam kiya gaya hai
+// ==================== 6. PAYMENTS ENGINE ====================
 export interface PaymentRecord {
   id: string;
   studentName: string;
@@ -227,8 +272,8 @@ export async function getAllPayments(): Promise<PaymentRecord[]> {
       const data = d.data();
       return {
         id: d.id,
-        studentName: data.studentName || data.candidateName || '',
-        candidateName: data.candidateName || data.studentName || '',
+        studentName: data.studentName || data.candidateName || 'Student',
+        candidateName: data.candidateName || data.studentName || 'Student',
         email: data.email || '',
         phone: data.phone || '',
         amount: data.amount || 0,

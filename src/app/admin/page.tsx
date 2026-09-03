@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Component } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Plus, Trash2, BookOpen, Eye, LogOut, KeyRound,
@@ -18,45 +18,8 @@ import {
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 
-// ==================== 1. SELF-HEALING ERROR BOUNDARY ====================
-class AdminErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error: any, errorInfo: any) {
-    console.error("Admin Error:", error, errorInfo);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center font-sans">
-          <div className="max-w-lg bg-slate-800 border border-slate-700 p-8 rounded-3xl space-y-4 shadow-2xl">
-            <h2 className="text-xl font-black text-rose-400">Admin Console Diagnostic Alert</h2>
-            <p className="text-xs text-slate-300 font-mono bg-slate-950 p-3.5 rounded-xl text-left overflow-auto max-h-40 border border-slate-800">
-              {String(this.state.error?.message || this.state.error)}
-            </p>
-            <div className="flex gap-3 justify-center pt-2">
-              <button onClick={() => { localStorage.removeItem('abhyaas_admin_auth'); window.location.reload(); }} className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 rounded-xl text-xs font-bold transition">
-                Reset Session & Reload
-              </button>
-              <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold transition">
-                Try Reloading
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-// ==================== 2. MAIN ADMIN CONTROLLER ====================
-function AdminDashboard() {
+export default function AbhyaasEnterpriseAdminTower() {
+  const [mounted, setMounted] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -70,7 +33,7 @@ function AdminDashboard() {
   const [olympiadsList, setOlympiadsList] = useState<OlympiadConfig[]>([]);
   const [paymentsList, setPaymentsList] = useState<PaymentRecord[]>([]);
 
-  // 1. Taxonomy State
+  // 1. Taxonomy Module State
   const [taxLevel, setTaxLevel] = useState<TaxonomyLevel>('DOMAIN');
   const [taxNameEn, setTaxNameEn] = useState('');
   const [taxNameHi, setTaxNameHi] = useState('');
@@ -114,7 +77,9 @@ function AdminDashboard() {
     antiCheatRules: 'Full screen mandatory. 3 strikes result in disqualification.'
   });
 
+  // Ensure hydration safety
   useEffect(() => {
+    setMounted(true);
     try {
       const session = localStorage.getItem('abhyaas_admin_auth');
       if (session) setCurrentUser(JSON.parse(session));
@@ -152,13 +117,13 @@ function AdminDashboard() {
 
       if (safeTax.length > 0) {
         const firstDomain = safeTax.find(t => t && t.level === 'DOMAIN') || safeTax[0];
-        const safeName = firstDomain?.nameEn || (firstDomain as any)?.name || 'General';
+        const safeName = String(firstDomain?.nameEn || (firstDomain as any)?.name || 'General');
         setQForm(f => ({ ...f, subject: safeName }));
         setCsvTargetCategory(safeName);
         setOForm(f => ({ ...f, category: safeName }));
       }
     } catch (e) {
-      console.error("Master load error:", e);
+      console.error("Master load caught safely:", e);
     } finally {
       setLoading(false);
     }
@@ -203,8 +168,8 @@ function AdminDashboard() {
     await deleteTaxonomyNode(id);
   };
 
-  // Anti-Duplicate Checker
-  const cleanStr = (s: any) => (typeof s === 'string' ? s.toLowerCase().replace(/[^a-z0-9]/gi, '') : '');
+  // Anti-Duplicate Checker (Bulletproof String Sanitization)
+  const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
 
   const checkDuplicates = (questionText: string, currentSubject: string) => {
     const target = cleanStr(questionText);
@@ -227,12 +192,12 @@ function AdminDashboard() {
     const semanticMatch = questionsList.find(q => {
       const en = cleanStr(q?.questionEn || (q as any)?.question);
       const hasWordOverlap = target.length > 15 && en.includes(target.slice(0, 15));
-      const isSameSubject = (q?.subject || '') === currentSubject;
+      const isSameSubject = cleanStr(q?.subject) === cleanStr(currentSubject);
       return hasWordOverlap && isSameSubject;
     });
 
     if (semanticMatch) {
-      const snippet = (semanticMatch.questionEn || (semanticMatch as any).question || '').slice(0, 40);
+      const snippet = String(semanticMatch.questionEn || (semanticMatch as any).question || '').slice(0, 40);
       setDuplicateWarning(`⚠️ SEMANTIC MIRROR ALERT: High similarity found with: "${snippet}...". Verify if this is an inverted variation.`);
     } else {
       setDuplicateWarning(null);
@@ -352,7 +317,17 @@ function AdminDashboard() {
     alert("Website Policies Updated Globally!");
   };
 
-  // Unauthenticated Gateway
+  // Loading screen during initial mount to prevent SSR mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#0b1121] flex flex-col items-center justify-center p-4">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p className="text-slate-400 text-xs font-mono">Initializing Abhyaas Command Center...</p>
+      </div>
+    );
+  }
+
+  // Login Gateway
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#0b1121] flex flex-col items-center justify-center p-4">
@@ -374,15 +349,15 @@ function AdminDashboard() {
     );
   }
 
-  const domains = taxonomyList.filter(t => t && t.level === 'DOMAIN');
-  const exams = taxonomyList.filter(t => t && t.level === 'EXAM');
-  const subjects = taxonomyList.filter(t => t && t.level === 'SUBJECT');
-  const topics = taxonomyList.filter(t => t && t.level === 'TOPIC');
+  const domains = (taxonomyList || []).filter(t => t && t.level === 'DOMAIN');
+  const exams = (taxonomyList || []).filter(t => t && t.level === 'EXAM');
+  const subjects = (taxonomyList || []).filter(t => t && t.level === 'SUBJECT');
+  const topics = (taxonomyList || []).filter(t => t && t.level === 'TOPIC');
 
-  const filteredQs = questionsList.filter(q => {
-    const qText = (q?.questionEn || (q as any)?.question || '').toLowerCase();
-    const qSubj = (q?.subject || '').toLowerCase();
-    const search = (qSearch || '').toLowerCase();
+  const filteredQs = (questionsList || []).filter(q => {
+    const qText = String(q?.questionEn || (q as any)?.question || '').toLowerCase();
+    const qSubj = String(q?.subject || '').toLowerCase();
+    const search = String(qSearch || '').toLowerCase();
     return qText.includes(search) || qSubj.includes(search);
   });
 
@@ -666,7 +641,7 @@ function AdminDashboard() {
                 </div>
               )}
 
-              {/* List */}
+              {/* Safe Questions List */}
               <div className="space-y-2">
                 {filteredQs.map((q, idx) => (
                   <div key={q?.id || idx} className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center justify-between shadow-sm">
@@ -854,13 +829,5 @@ function AdminDashboard() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function AbhyaasEnterpriseAdminTower() {
-  return (
-    <AdminErrorBoundary>
-      <AdminDashboard />
-    </AdminErrorBoundary>
   );
 }
