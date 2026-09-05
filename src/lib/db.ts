@@ -4,7 +4,7 @@ import {
   Timestamp, writeBatch 
 } from 'firebase/firestore';
 
-// Re-export Timestamp for frontend components
+// Export Timestamp so frontend pages can use it directly
 export { Timestamp };
 
 const firebaseConfig = {
@@ -479,17 +479,21 @@ export interface OlympiadParticipant {
   [key: string]: any;
 }
 
-// Export PaymentRecord explicitly for Profile page compatibility
+// STRICT NON-NULLABLE INTERFACE FOR PROFILE AND BILLING COMPATIBILITY
 export interface PaymentRecord {
-  id?: string;
-  rollNo?: string;
-  candidateName?: string;
-  email?: string;
-  phone?: string;
-  olympiadTier?: string;
-  amount?: number;
-  paymentMethod?: string;
-  createdAt?: any;
+  id: string;
+  rollNo: string;
+  candidateName: string;
+  email: string;
+  phone: string;
+  olympiadTier: string;
+  tierTitle: string;
+  examSlot: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+  date: string;
+  createdAt: any;
   [key: string]: any;
 }
 
@@ -605,11 +609,38 @@ export async function updateParticipantViva(
   }, { merge: true });
 }
 
+export async function getAllPayments(): Promise<PaymentRecord[]> {
+  try {
+    const snap = await getDocs(collection(db, 'olympiad_participants'));
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        rollNo: String(data.rollNo || ''),
+        candidateName: String(data.candidateName || ''),
+        email: String(data.email || ''),
+        phone: String(data.phone || ''),
+        olympiadTier: String(data.olympiadTier || ''),
+        tierTitle: String(data.tierTitle || data.olympiadTier || 'Academic Olympiad'),
+        examSlot: String(data.examSlot || 'Sunday Synchronized Slot'),
+        amount: typeof data.amount === 'number' ? data.amount : 0,
+        paymentMethod: String(data.paymentMethod || 'Online Verified'),
+        status: String(data.status || 'PAID'),
+        date: String(data.date || new Date().toLocaleDateString('en-IN')),
+        createdAt: data.createdAt || null,
+        ...data
+      } as PaymentRecord;
+    });
+  } catch (err) {
+    console.error("Error fetching payments:", err);
+    return [];
+  }
+}
+
 // Backward compatibility stubs
 export interface SiteSettings { [key: string]: any; }
 export async function getSiteSettings(): Promise<any> { return {}; }
 export async function updateSiteSettings(settings: any): Promise<void> {}
-export async function getAllPayments(): Promise<PaymentRecord[]> { return []; }
 export interface CategoryConfig { id: string; name: string; [key: string]: any; }
 export async function getCustomCategories(): Promise<any[]> { return []; }
 export async function saveCustomCategory(cat: any): Promise<void> {}
