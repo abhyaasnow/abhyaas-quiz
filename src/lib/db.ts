@@ -4,7 +4,6 @@ import {
   Timestamp, writeBatch 
 } from 'firebase/firestore';
 
-// Export Timestamp so frontend pages can use it directly
 export { Timestamp };
 
 const firebaseConfig = {
@@ -37,7 +36,6 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
 
   const clean = url.trim();
 
-  // 1. Google Drive Links
   const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/(?:document|presentation|spreadsheets)\/d\/)([a-zA-Z0-9_-]{25,})/;
   const match = clean.match(driveRegex);
   if (match && match[1]) {
@@ -51,7 +49,6 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     };
   }
 
-  // 2. Base64 Data URIs
   if (clean.startsWith('data:image/')) {
     return { type: 'IMAGE', rawUrl: clean, directUrl: clean, isDrive: false };
   }
@@ -59,12 +56,10 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
   }
 
-  // 3. Strict Web URL check
   if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
     return { type: 'NONE', rawUrl: clean, directUrl: '', isDrive: false };
   }
 
-  // 4. File extension detection
   const lower = clean.toLowerCase().split('?')[0];
   if (lower.endsWith('.pdf')) {
     return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
@@ -73,7 +68,6 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return { type: '3D', rawUrl: clean, directUrl: clean, isDrive: false };
   }
 
-  // 5. Valid Web Image
   const imageExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif', '.bmp', '.ico'];
   const hasImageExt = imageExts.some(ext => lower.endsWith(ext));
   const isKnownImageHost = clean.includes('images.unsplash.com') || clean.includes('wikimedia.org') || clean.includes('imgur.com') || clean.includes('cloudinary.com') || clean.includes('googleusercontent.com');
@@ -99,30 +93,12 @@ const SUP_MAP: Record<string, string> = {
 };
 
 const GREEK_LATEX_MAP: Record<string, string> = {
-  '\\sigma': 'σ',
-  '\\pi': 'π',
-  '\\Delta': 'Δ',
-  '\\delta': 'δ',
-  '\\alpha': 'α',
-  '\\beta': 'β',
-  '\\gamma': 'γ',
-  '\\theta': 'θ',
-  '\\lambda': 'λ',
-  '\\mu': 'μ',
-  '\\omega': 'ω',
-  '\\Omega': 'Ω',
-  '\\times': '×',
-  '\\pm': '±',
-  '\\neq': '≠',
-  '\\leq': '≤',
-  '\\le': '≤',
-  '\\geq': '≥',
-  '\\ge': '≥',
-  '\\approx': '≈',
-  '\\infty': '∞',
-  '\\rightarrow': '→',
-  '\\to': '→',
-  '\\rightleftharpoons': '⇌'
+  '\\sigma': 'σ', '\\pi': 'π', '\\Delta': 'Δ', '\\delta': 'δ',
+  '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\theta': 'θ',
+  '\\lambda': 'λ', '\\mu': 'μ', '\\omega': 'ω', '\\Omega': 'Ω',
+  '\\times': '×', '\\pm': '±', '\\neq': '≠', '\\leq': '≤',
+  '\\le': '≤', '\\geq': '≥', '\\ge': '≥', '\\approx': '≈',
+  '\\infty': '∞', '\\rightarrow': '→', '\\to': '→', '\\rightleftharpoons': '⇌'
 };
 
 const ELEMENTS = "He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|H|B|C|N|O|F|P|S|K|V|Y|I|W|U";
@@ -320,10 +296,7 @@ export async function createQuestion(q: QuestionData): Promise<void> {
 
 export async function updateQuestion(id: string, q: Partial<QuestionData>): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  const payload: any = {
-    ...q,
-    updatedAt: Timestamp.now()
-  };
+  const payload: any = { ...q, updatedAt: Timestamp.now() };
   if (q.questionEn) payload.questionEn = formatScientific(q.questionEn);
   if (q.questionHi) payload.questionHi = formatScientific(q.questionHi);
   if (q.optionsEn) payload.optionsEn = q.optionsEn.map(o => formatScientific(o));
@@ -339,20 +312,12 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
 
 export async function archiveQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  await setDoc(docRef, {
-    isArchived: true,
-    status: 'ARCHIVED',
-    archivedAt: Timestamp.now()
-  }, { merge: true });
+  await setDoc(docRef, { isArchived: true, status: 'ARCHIVED', archivedAt: Timestamp.now() }, { merge: true });
 }
 
 export async function restoreQuestion(id: string): Promise<void> {
   const docRef = doc(db, 'questions', id);
-  await setDoc(docRef, {
-    isArchived: false,
-    status: 'ACTIVE',
-    restoredAt: Timestamp.now()
-  }, { merge: true });
+  await setDoc(docRef, { isArchived: false, status: 'ACTIVE', restoredAt: Timestamp.now() }, { merge: true });
 }
 
 export async function permanentlyDeleteQuestion(id: string, altId?: string): Promise<void> {
@@ -447,16 +412,22 @@ export interface OlympiadTournament {
   id: string;
   title: string;
   titleHi?: string;
-  fee: number;
-  totalGrantPool: string;
-  totalSlots: number;
-  bookedSlots: number;
-  durationMinutes: number;
-  questionsCount: number;
+  descriptionEn?: string;
+  fee: number;                      // Manual Fee input (e.g. 49, 99, 1499, etc.)
+  totalGrantPool: string;           // e.g. "₹25,000"
+  totalSlots: number;               // e.g. 500
+  bookedSlots: number;              // Real-time slots booked
+  durationMinutes: number;          // e.g. 45
+  questionsCount: number;           // e.g. 50
   targetClass: string;
   targetExam: string;
   targetSubject: string;
-  scheduleText: string;
+  categorySection: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'GRAND' | 'SPECIAL';
+  streamType: 'UPSC_PSC' | 'ENGINEERING' | 'MEDICAL' | 'SSC_BANKING' | 'LAW' | 'FOUNDATION' | 'GENERAL';
+  startDateTime: string;            // Exact ISO string e.g., "2026-09-13T10:00"
+  scheduleText?: string;
+  rules: string[];                  // Editable list of rules
+  syllabus: { subject: string; questions: number; topics?: string }[];
   status: OlympiadStatus;
   createdAt: any;
   [key: string]: any;
@@ -479,7 +450,6 @@ export interface OlympiadParticipant {
   [key: string]: any;
 }
 
-// STRICT NON-NULLABLE INTERFACE FOR PROFILE AND BILLING COMPATIBILITY
 export interface PaymentRecord {
   id: string;
   rollNo: string;
@@ -497,48 +467,11 @@ export interface PaymentRecord {
   [key: string]: any;
 }
 
-const DEFAULT_OLYMPIADS: OlympiadTournament[] = [
-  {
-    id: 'oly-weekly-49',
-    title: 'Weekly Speed Sprint',
-    titleHi: 'साप्ताहिक स्पीड स्प्रिंट',
-    fee: 49,
-    totalGrantPool: '₹15,000',
-    totalSlots: 500,
-    bookedSlots: 362,
-    durationMinutes: 45,
-    questionsCount: 50,
-    targetClass: 'Civil Services / Competitive',
-    targetExam: 'UPSC Civil Services (Prelims)',
-    targetSubject: 'General Studies / Geography',
-    scheduleText: 'Every Sunday at 10:00 AM IST',
-    status: 'UPCOMING',
-    createdAt: null
-  },
-  {
-    id: 'oly-monthly-199',
-    title: 'Monthly Mega Assessment',
-    titleHi: 'मासिक मेगा ओलंपियाड',
-    fee: 199,
-    totalGrantPool: '₹1,00,000',
-    totalSlots: 600,
-    bookedSlots: 412,
-    durationMinutes: 90,
-    questionsCount: 100,
-    targetClass: 'Civil Services / Competitive',
-    targetExam: 'UPSC Civil Services (Prelims)',
-    targetSubject: 'Chemistry Optional Paper II',
-    scheduleText: 'Last Tuesday of Month at 10:00 AM IST',
-    status: 'UPCOMING',
-    createdAt: null
-  }
-];
-
 export async function getAllOlympiads(): Promise<OlympiadTournament[]> {
   try {
     const snap = await getDocs(collection(db, 'olympiads'));
     if (snap.empty) {
-      return DEFAULT_OLYMPIADS;
+      return [];
     }
     return snap.docs.map(d => ({
       ...d.data(),
@@ -546,7 +479,7 @@ export async function getAllOlympiads(): Promise<OlympiadTournament[]> {
     } as OlympiadTournament));
   } catch (err) {
     console.error("Error fetching olympiads:", err);
-    return DEFAULT_OLYMPIADS;
+    return [];
   }
 }
 

@@ -8,7 +8,7 @@ import {
   FolderTree, BookOpen, FileSpreadsheet, Upload, Download, RefreshCw,
   Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
   RotateCcw, ShieldAlert, Copy, Atom, UploadCloud, FileText, ExternalLink,
-  Trophy, Users, Video, Award, CheckCircle2, XCircle
+  Trophy, Users, Video, Award, CheckCircle2, Calendar, Clock, AlertOctagon
 } from 'lucide-react';
 
 import { 
@@ -27,71 +27,41 @@ const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   CLASS: [
     { en: 'Civil Services / Competitive', hi: 'प्रतियोगी परीक्षा / सिविल सेवा' },
-    { en: 'Class 6th (Middle School)', hi: 'कक्षा 6' },
-    { en: 'Class 9th (Secondary Entrance)', hi: 'कक्षा 9' },
-    { en: 'Class 10th (Board / Foundation)', hi: 'कक्षा 10 बोर्ड' },
-    { en: 'Class 11th - 12th (Senior Secondary)', hi: 'कक्षा 11-12' }
+    { en: 'Class 11th - 12th (Senior Secondary)', hi: 'कक्षा 11-12' },
+    { en: 'Engineering & Technology (JEE / B.Tech)', hi: 'इंजीनियरिंग प्रवेश परीक्षा' },
+    { en: 'Medical & Dental (NEET / MBBS)', hi: 'मेडिकल प्रवेश परीक्षा' },
+    { en: 'Graduate Aptitude (SSC / Banking / CGL)', hi: 'स्नातक प्रतियोगी परीक्षा' }
   ],
   EXAM: [
     { en: 'UPSC Civil Services (Prelims)', hi: 'संघ लोक सेवा आयोग सिविल सेवा' },
-    { en: 'JNVST (Navodaya Entrance Exam)', hi: 'जवाहर नवोदय विद्यालय प्रवेश परीक्षा' },
-    { en: 'AISSEE (All India Sainik School Exam)', hi: 'अखिल भारतीय सैनिक स्कूल परीक्षा' },
-    { en: 'All India Mega Olympiad 2026', hi: 'अखिल भारतीय छात्रवृत्ति ओलंपियाड 2026' }
+    { en: 'IIT JEE (Advanced / Mains)', hi: 'आईआईटी जेईई' },
+    { en: 'NEET UG (Medical Entrance)', hi: 'नीट यूजी' },
+    { en: 'SSC CGL & Banking Mains', hi: 'एसएससी सीजीएल एवं बैंकिंग' }
   ],
   SUBJECT: [
     { en: 'General Studies / Geography', hi: 'सामान्य अध्ययन / भूगोल' },
-    { en: 'General Studies / Science', hi: 'सामान्य अध्ययन / विज्ञान' },
-    { en: 'General Studies / Economy', hi: 'सामान्य अध्ययन / अर्थव्यवस्था' },
-    { en: 'Mathematics', hi: 'गणित' },
-    { en: 'Science (Physics/Chem/Bio)', hi: 'विज्ञान' },
-    { en: 'Mental Ability & Reasoning', hi: 'मानसिक योग्यता एवं तर्कशक्ति' }
+    { en: 'General Studies / Polity', hi: 'सामान्य अध्ययन / राजव्यवस्था' },
+    { en: 'Organic Chemistry', hi: 'कार्बनिक रसायन' },
+    { en: 'Physics & Mechanics', hi: 'भौतिकी' },
+    { en: 'Quantitative Aptitude & CSAT', hi: 'गणित एवं तार्किक योग्यता' }
   ],
   TOPIC: [
-    { en: 'Global Mineral Resources & EV Transition', hi: 'वैश्विक खनिज संसाधन एवं ईवी संक्रमण' },
-    { en: 'Number System & Place Value', hi: 'संख्या पद्धति एवं स्थानीय मान' },
+    { en: 'Global Mineral Resources & EV Transition', hi: 'खनिज संसाधन एवं ईवी' },
     { en: 'Preamble & Fundamental Rights', hi: 'प्रस्तावना एवं मौलिक अधिकार' },
-    { en: 'Chemical Bonding & Polycyclic Compounds', hi: 'रासायनिक आबंधन एवं बहुचक्रीय यौगिक' }
+    { en: 'Chemical Bonding & Polycyclic Compounds', hi: 'रासायनिक आबंधन' }
   ],
   DOMAIN: []
 };
 
-function parseCSVProperly(text: string): string[][] {
-  const clean = text.replace(/^\uFEFF/, '');
-  const rows: string[][] = [];
-  let currentRow: string[] = [];
-  let currentCell = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < clean.length; i++) {
-    const char = clean[i];
-    const nextChar = clean[i + 1];
-
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentCell += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      currentRow.push(currentCell.trim());
-      currentCell = '';
-    } else if ((char === '\r' || char === '\n') && !inQuotes) {
-      if (char === '\r' && nextChar === '\n') i++;
-      currentRow.push(currentCell.trim());
-      if (currentRow.some(c => c.length > 0)) rows.push(currentRow);
-      currentRow = [];
-      currentCell = '';
-    } else {
-      currentCell += char;
-    }
-  }
-  if (currentCell.length > 0 || currentRow.length > 0) {
-    currentRow.push(currentCell.trim());
-    if (currentRow.some(c => c.length > 0)) rows.push(currentRow);
-  }
-  return rows;
-}
+const DEFAULT_RULES = [
+  "Strict Per-Question Timer (e.g. 50s limit with No Backtracking) to prevent AI-relay exploits.",
+  "Full-Screen Browser Lock: Tab-switching or minimizing prompts a penalty; 2 warnings leads to immediate auto-submission.",
+  "Front Camera & Microphone verification authorization required prior to entering the arena.",
+  "Mandatory 1-on-1 Recorded Video Viva within 24 hours for top rankers (must answer 3 out of 5 questions correctly).",
+  "Minimum written test cutoff of 75% marks required to be eligible for academic grants.",
+  "Disqualification of any candidate immediately cascades the fellowship to the next eligible merit ranker.",
+  "Zero-Tolerance Blacklist: Cheating or proxy use permanently blacklists Name, Phone, UPI ID, and Government KYC verification across Abhyaas."
+];
 
 export default function AbhyaasMasterTower() {
   const [mounted, setMounted] = useState(false);
@@ -99,13 +69,37 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Primary Navigation
-  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('questions');
+  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('olympiad');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [olympiadsList, setOlympiadsList] = useState<OlympiadTournament[]>([]);
   const [participantsList, setParticipantsList] = useState<OlympiadParticipant[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Olympiad Creation Modal State (With manual fee, datetime picker, rules, description, syllabus)
+  const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
+  const [newOlyTitle, setNewOlyTitle] = useState('');
+  const [newOlyDesc, setNewOlyDesc] = useState('');
+  const [newOlyFee, setNewOlyFee] = useState<number>(49);
+  const [newOlyGrantPool, setNewOlyGrantPool] = useState('₹15,000');
+  const [newOlySlots, setNewOlySlots] = useState<number>(500);
+  const [newOlyDuration, setNewOlyDuration] = useState<number>(45);
+  const [newOlyQuestions, setNewOlyQuestions] = useState<number>(50);
+  const [newOlySection, setNewOlySection] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'GRAND' | 'SPECIAL'>('WEEKLY');
+  const [newOlyStream, setNewOlyStream] = useState<'UPSC_PSC' | 'ENGINEERING' | 'MEDICAL' | 'SSC_BANKING' | 'LAW' | 'FOUNDATION' | 'GENERAL'>('UPSC_PSC');
+  const [newOlyDateTime, setNewOlyDateTime] = useState('2026-09-13T10:00');
+  const [newOlyRules, setNewOlyRules] = useState<string[]>(DEFAULT_RULES);
+  const [newRuleInput, setNewRuleInput] = useState('');
+  
+  // Syllabus builder state
+  const [newOlySyllabus, setNewOlySyllabus] = useState<{ subject: string; questions: number; topics: string }[]>([
+    { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament' },
+    { subject: 'Modern Indian History', questions: 15, topics: '1857 to 1947, Freedom Struggle' },
+    { subject: 'Indian Economy', questions: 15, topics: 'Macroeconomics, Fiscal Policy, Banking' }
+  ]);
+  const [newSubjName, setNewSubjName] = useState('');
+  const [newSubjQs, setNewSubjQs] = useState(10);
+  const [newSubjTopics, setNewSubjTopics] = useState('');
 
   // Hierarchy Form State
   const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('CLASS');
@@ -118,75 +112,22 @@ export default function AbhyaasMasterTower() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
-
-  // Olympiad Modal State
-  const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
-  const [newOlyTitle, setNewOlyTitle] = useState('');
-  const [newOlyFee, setNewOlyFee] = useState(49);
-  const [newOlySlots, setNewOlySlots] = useState(500);
-  const [newOlyGrantPool, setNewOlyGrantPool] = useState('₹15,000');
-  const [newOlySchedule, setNewOlySchedule] = useState('Every Sunday at 10:00 AM IST');
-  const [newOlyDuration, setNewOlyDuration] = useState(45);
-  const [newOlyQuestions, setNewOlyQuestions] = useState(50);
-  const [newOlyClass, setNewOlyClass] = useState('Civil Services / Competitive');
-  const [newOlyExam, setNewOlyExam] = useState('UPSC Civil Services (Prelims)');
-  const [newOlySubject, setNewOlySubject] = useState('General Studies / Geography');
-
   const [bulkMode, setBulkMode] = useState<'paste' | 'csv'>('paste');
   const [pasteData, setPasteData] = useState('');
-  const [copiedSample, setCopiedSample] = useState(false);
 
-  // Filters
-  const [searchFilter, setSearchFilter] = useState('');
-  const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
-  const [filterClass, setFilterClass] = useState('ALL');
-  const [filterExam, setFilterExam] = useState('ALL');
-  const [filterSubject, setFilterSubject] = useState('ALL');
-
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
-
-  // 4-Tier Cascading Question Form
+  // Question Form State
   const [qClass, setQClass] = useState('');
-  const [qClassCustom, setQClassCustom] = useState('');
   const [qExam, setQExam] = useState('');
-  const [qExamCustom, setQExamCustom] = useState('');
   const [qSubject, setQSubject] = useState('');
-  const [qSubjectCustom, setQSubjectCustom] = useState('');
   const [qTopic, setQTopic] = useState('');
-  const [qTopicCustom, setQTopicCustom] = useState('');
-
-  const [qSegment, setQSegment] = useState<QuestionSegment>('PRACTICE');
-  const [qPyqYear, setQPyqYear] = useState('2024');
-
+  const [qSegment, setQSegment] = useState<QuestionSegment>('OLYMPIAD');
   const [qStatementEn, setQStatementEn] = useState('');
   const [qStatementHi, setQStatementHi] = useState('');
   const [qOptionsEn, setQOptionsEn] = useState(['', '', '', '']);
   const [qOptionsHi, setQOptionsHi] = useState(['', '', '', '']);
-  const [qOptionsDiagrams, setQOptionsDiagrams] = useState<string[]>(['', '', '', '']);
   const [qCorrectOpt, setQCorrectOpt] = useState(0);
   const [qExplanationEn, setQExplanationEn] = useState('');
-  const [qExplanationHi, setQExplanationHi] = useState('');
   const [qDiagramUrl, setQDiagramUrl] = useState('');
-
-  // Auto-Push Pipeline State
-  const [pushTargetExam, setPushTargetExam] = useState('');
-  const [pushTargetSegment, setPushTargetSegment] = useState<'PRACTICE' | 'PYQ'>('PRACTICE');
-  const [pushPyqYear, setPushPyqYear] = useState('2026');
-
-  const csvInputRef = useRef<HTMLInputElement | null>(null);
-  const fileAttachmentRef = useRef<HTMLInputElement | null>(null);
-  const opt0FileRef = useRef<HTMLInputElement | null>(null);
-  const opt1FileRef = useRef<HTMLInputElement | null>(null);
-  const opt2FileRef = useRef<HTMLInputElement | null>(null);
-  const opt3FileRef = useRef<HTMLInputElement | null>(null);
-
-  const getOptRef = (index: number) => {
-    if (index === 0) return opt0FileRef;
-    if (index === 1) return opt1FileRef;
-    if (index === 2) return opt2FileRef;
-    return opt3FileRef;
-  };
 
   useEffect(() => {
     setMounted(true);
@@ -216,9 +157,6 @@ export default function AbhyaasMasterTower() {
       setQuestionsList(questions || []);
       setOlympiadsList(olys || []);
       setParticipantsList(parts || []);
-
-      const classes = (taxNodes || []).filter(t => t.level === 'CLASS');
-      if (classes.length > 0 && !qClass) setQClass(classes[0].nameEn);
     } catch (err) {
       console.error(err);
     } finally {
@@ -242,23 +180,53 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
+  // Add syllabus item to the list
+  const handleAddSyllabusItem = () => {
+    if (!newSubjName.trim()) return alert("Enter Subject Name");
+    setNewOlySyllabus(prev => [
+      ...prev,
+      { subject: newSubjName.trim(), questions: Number(newSubjQs) || 10, topics: newSubjTopics.trim() }
+    ]);
+    setNewSubjName('');
+    setNewSubjTopics('');
+  };
+
+  // Add custom rule
+  const handleAddRule = () => {
+    if (!newRuleInput.trim()) return;
+    setNewOlyRules(prev => [...prev, newRuleInput.trim()]);
+    setNewRuleInput('');
+  };
+
+  const handleRemoveRule = (index: number) => {
+    setNewOlyRules(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Save new Olympiad
   const handleCreateOlympiadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOlyTitle.trim()) return alert("Enter Olympiad Title.");
+    if (!newOlyTitle.trim()) return alert("Enter Tournament Title");
+    if (!newOlyDateTime) return alert("Select start date and time");
 
     const newOly: OlympiadTournament = {
       id: `oly-${Date.now()}`,
       title: newOlyTitle.trim(),
-      fee: Number(newOlyFee),
-      totalSlots: Number(newOlySlots),
+      descriptionEn: newOlyDesc.trim() || 'All-India National Scholarship Olympiad assessment arena.',
+      fee: Number(newOlyFee) >= 0 ? Number(newOlyFee) : 49,
+      totalGrantPool: newOlyGrantPool.trim() || '₹15,000',
+      totalSlots: Number(newOlySlots) || 500,
       bookedSlots: 0,
-      totalGrantPool: newOlyGrantPool.trim(),
-      scheduleText: newOlySchedule.trim(),
-      durationMinutes: Number(newOlyDuration),
-      questionsCount: Number(newOlyQuestions),
-      targetClass: newOlyClass,
-      targetExam: newOlyExam,
-      targetSubject: newOlySubject,
+      durationMinutes: Number(newOlyDuration) || 45,
+      questionsCount: Number(newOlyQuestions) || 50,
+      categorySection: newOlySection,
+      streamType: newOlyStream,
+      targetClass: 'Civil Services & Competitive',
+      targetExam: newOlyStream.replace('_', ' '),
+      targetSubject: 'Multi-Subject Assessment',
+      startDateTime: newOlyDateTime,
+      scheduleText: new Date(newOlyDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+      rules: newOlyRules,
+      syllabus: newOlySyllabus,
       status: 'UPCOMING',
       createdAt: Timestamp.now()
     };
@@ -268,12 +236,14 @@ export default function AbhyaasMasterTower() {
       setOlympiadsList(prev => [newOly, ...prev]);
       setIsOlympiadModalOpen(false);
       setNewOlyTitle('');
-      alert("🎉 Olympiad Tournament Created Successfully!");
+      setNewOlyDesc('');
+      alert("🎉 Olympiad Tournament Created! It is now live on the /olympiad page.");
     } catch (err: any) {
       alert("Error creating tournament: " + err.message);
     }
   };
 
+  // Viva status action
   const handleVivaAction = async (participantId: string, action: 'PASSED' | 'FAILED', candidateName: string) => {
     const grantWon = action === 'PASSED' ? 5000 : 0;
     const confirmMsg = action === 'PASSED' 
@@ -285,239 +255,14 @@ export default function AbhyaasMasterTower() {
     try {
       await updateParticipantViva(participantId, action, grantWon);
       setParticipantsList(prev => prev.map(p => p.id === participantId ? { ...p, vivaStatus: action, grantAmountWon: grantWon } : p));
-      alert(`Viva status updated to ${action}!`);
+      alert(`Candidate Viva marked as ${action}!`);
     } catch (err: any) {
-      alert("Error updating viva: " + err.message);
-    }
-  };
-
-  const handlePresetChange = (val: string) => {
-    setPresetChoice(val);
-    if (val === 'OTHER') {
-      setManualNameEn(''); setManualNameHi('');
-    } else if (val) {
-      const found = PRESETS[activeLevel]?.find(p => p.en === val);
-      if (found) {
-        setManualNameEn(found.en); setManualNameHi(found.hi);
-      }
-    }
-  };
-
-  const handleSaveTaxonomy = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalEn = manualNameEn.trim();
-    const finalHi = manualNameHi.trim() || finalEn;
-    if (!finalEn) return alert("Please enter entity name.");
-
-    const newNode: TaxonomyNode = {
-      id: `tax-${Date.now()}`,
-      level: activeLevel,
-      nameEn: finalEn,
-      nameHi: finalHi,
-      parentId: selectedParentId || undefined
-    };
-
-    setTaxonomyList(prev => [newNode, ...prev]);
-    setManualNameEn(''); setManualNameHi(''); setPresetChoice('');
-    await saveTaxonomyNode(newNode);
-    alert(`Saved "${finalEn}" to ${activeLevel}!`);
-  };
-
-  const handleDeleteTaxonomy = async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}" from ${activeLevel}?`)) return;
-    setTaxonomyList(prev => prev.filter(t => t.id !== id));
-    await deleteTaxonomyNode(id);
-  };
-
-  const insertSymbol = (sym: string) => {
-    setQStatementEn(prev => prev + sym);
-  };
-
-  const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
-
-  const checkDuplicates = (text: string) => {
-    const target = cleanStr(text);
-    if (!target || target.length < 6) {
-      setDuplicateWarning(null); return;
-    }
-    const exact = questionsList.find(q => {
-      if (editingQuestionId && q.id === editingQuestionId) return false;
-      return cleanStr(q.questionEn) === target || cleanStr(q.questionHi) === target;
-    });
-    if (exact) {
-      setDuplicateWarning(`🚨 HARD DUPLICATE DETECTED: This exact question exists in [${exact.segment}] (ID: ${exact.id})!`);
-      return;
-    }
-    setDuplicateWarning(null);
-  };
-
-  const handleLocalFileAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      return alert("File size should be less than 5MB.");
-    }
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const b64 = (evt.target?.result as string) || '';
-      setQDiagramUrl(b64);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleOptionDiagramUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const b64 = (evt.target?.result as string) || '';
-      const updated = [...qOptionsDiagrams];
-      updated[idx] = b64;
-      setQOptionsDiagrams(updated);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const openCreateQuestionModal = () => {
-    setEditingQuestionId(null);
-    setDuplicateWarning(null);
-    setQStatementEn(''); setQStatementHi('');
-    setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
-    setQOptionsDiagrams(['', '', '', '']);
-    setQCorrectOpt(0); setQExplanationEn(''); setQExplanationHi('');
-    setQDiagramUrl(''); setQSegment('PRACTICE');
-    setIsQuestionModalOpen(true);
-  };
-
-  const openEditQuestionModal = (q: QuestionData) => {
-    setEditingQuestionId(q.id);
-    setDuplicateWarning(null);
-    setQClass(q.className || q.class || '');
-    setQExam(q.examName || q.category || '');
-    setQSubject(q.subjectName || q.subject || '');
-    setQTopic(q.topicName || q.topic || '');
-    setQSegment(q.segment || 'PRACTICE');
-    setQPyqYear(q.pyqYear || '2024');
-    setQStatementEn(q.questionEn || '');
-    setQStatementHi(q.questionHi || '');
-    setQOptionsEn([...(q.optionsEn || ['', '', '', ''])]);
-    setQOptionsHi([...(q.optionsHi || ['', '', '', ''])]);
-    setQOptionsDiagrams(Array.isArray(q.optionsDiagrams) ? [...q.optionsDiagrams] : ['', '', '', '']);
-    setQCorrectOpt(q.correctOption || 0);
-    setQExplanationEn(q.explanationEn || '');
-    setQExplanationHi(q.explanationHi || '');
-    setQDiagramUrl(q.diagramUrl || '');
-    setIsQuestionModalOpen(true);
-  };
-
-  const handleSaveQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalClass = qClass === 'OTHER' ? qClassCustom.trim() : qClass;
-    const finalExam = qExam === 'OTHER' ? qExamCustom.trim() : qExam;
-    const finalSubject = qSubject === 'OTHER' ? qSubjectCustom.trim() : qSubject;
-    const finalTopic = qTopic === 'OTHER' ? qTopicCustom.trim() : qTopic;
-
-    if (!finalClass || !finalExam || !finalSubject || !qStatementEn.trim()) {
-      return alert("Class, Exam, Subject, and English Question Statement are required!");
-    }
-
-    const parsedAtt = parseAttachment(qDiagramUrl);
-
-    const payload: QuestionData = {
-      id: editingQuestionId || `q-${Date.now()}`,
-      docId: editingQuestionId || `q-${Date.now()}`,
-      className: finalClass,
-      examName: finalExam,
-      subjectName: finalSubject,
-      topicName: finalTopic || 'General',
-      category: finalExam,
-      subject: finalSubject,
-      class: finalClass,
-      topic: finalTopic || 'General',
-      segment: qSegment,
-      pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
-      questionEn: formatScientific(qStatementEn.trim()),
-      questionHi: formatScientific(qStatementHi.trim() || qStatementEn.trim()),
-      optionsEn: qOptionsEn.map(o => formatScientific(o)),
-      optionsHi: qOptionsHi.map(o => formatScientific(o)),
-      optionsDiagrams: qOptionsDiagrams,
-      correctOption: qCorrectOpt,
-      explanationEn: formatScientific(qExplanationEn.trim()),
-      explanationHi: formatScientific(qExplanationHi.trim()),
-      diagramUrl: qDiagramUrl.trim(),
-      attachmentType: parsedAtt.type,
-      isArchived: false,
-      status: 'ACTIVE',
-      timesUsedInOlympiad: 0
-    };
-
-    try {
-      if (editingQuestionId) {
-        setQuestionsList(prev => prev.map(item => item.id === editingQuestionId ? payload : item));
-        await updateQuestion(editingQuestionId, payload);
-        alert("Question updated successfully!");
-      } else {
-        setQuestionsList(prev => [payload, ...prev]);
-        await createQuestion(payload);
-        alert(`Saved question to [${qSegment}]!`);
-      }
-      setIsQuestionModalOpen(false);
-    } catch (err: any) {
-      alert("Error saving question: " + err.message);
-    }
-  };
-
-  const handleMoveToRecycleBin = async (id: string, text: string) => {
-    if (!confirm(`Move question "${text.slice(0, 40)}..." to Recycle Bin?`)) return;
-    try {
-      await archiveQuestion(id);
-      setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
-    } catch (err: any) {
-      alert("Error archiving question: " + err.message);
-    }
-  };
-
-  const handleRestoreFromRecycleBin = async (id: string) => {
-    try {
-      await restoreQuestion(id);
-      setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: false, status: 'ACTIVE' } : q));
-      alert("Question restored back to Active Question Bank!");
-    } catch (err: any) {
-      alert("Error restoring question: " + err.message);
-    }
-  };
-
-  const handlePermanentDelete = async (q: QuestionData) => {
-    if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This will be permanently erased from Firestore!")) return;
-    try {
-      await permanentlyDeleteQuestion(q.id, q.altId);
-      setQuestionsList(prev => prev.filter(item => item.id !== q.id));
-      alert("Question permanently erased from database!");
-    } catch (err: any) {
-      alert("Error deleting from database: " + err.message);
-    }
-  };
-
-  const handleWipeAllRecycleBin = async () => {
-    if (!confirm("🚨 DANGER: Wipe ALL questions currently in the Recycle Bin permanently?")) return;
-    try {
-      const count = await wipeAllRecycleBin();
-      setQuestionsList(prev => prev.filter(q => !q.isArchived));
-      alert(`Permanently erased ${count} questions from database!`);
-    } catch (err: any) {
-      alert("Error wiping recycle bin: " + err.message);
+      alert("Error: " + err.message);
     }
   };
 
   if (!mounted) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-xs font-mono">
-        Initializing Abhyaas Command Center...
-      </div>
-    );
+    return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-xs font-mono">Loading Abhyaas OS...</div>;
   }
 
   if (!currentUser) {
@@ -529,7 +274,7 @@ export default function AbhyaasMasterTower() {
               <KeyRound className="w-7 h-7 text-white" />
             </div>
             <h2 className="text-2xl font-black text-white">Abhyaas Admin Gateway</h2>
-            <p className="text-xs text-slate-400">Enterprise Operations Console</p>
+            <p className="text-xs text-slate-400">Master Operations Control</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full h-12 px-4 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none" placeholder="admin@domain.com" required />
@@ -540,27 +285,6 @@ export default function AbhyaasMasterTower() {
       </div>
     );
   }
-
-  const classes = taxonomyList.filter(t => t.level === 'CLASS' || t.level === 'DOMAIN');
-  const currentClassNode = classes.find(c => c.nameEn === qClass);
-  const availableExams = taxonomyList.filter(t => t.level === 'EXAM' && (!currentClassNode || t.parentId === currentClassNode.id));
-  const currentExamNode = availableExams.find(e => e.nameEn === qExam);
-  const availableSubjects = taxonomyList.filter(t => t.level === 'SUBJECT' && (!currentExamNode || t.parentId === currentExamNode.id));
-  const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
-  const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
-
-  const activeQuestions = questionsList.filter(q => !q.isArchived);
-  const archivedQuestions = questionsList.filter(q => q.isArchived);
-  const quarantinedOlympiadQs = questionsList.filter(q => q.segment === 'OLYMPIAD' && !q.isArchived);
-
-  const filteredActiveQuestions = activeQuestions.filter(q => {
-    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
-    const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
-    const matchesClass = filterClass === 'ALL' || q.className === filterClass || q.class === filterClass;
-    const matchesExam = filterExam === 'ALL' || q.examName === filterExam || q.category === filterExam;
-    const matchesSubject = filterSubject === 'ALL' || q.subjectName === filterSubject || q.subject === filterSubject;
-    return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
-  });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
@@ -587,27 +311,33 @@ export default function AbhyaasMasterTower() {
         </div>
       </header>
 
+      {/* Global Blacklist & Anti-Cheating Warning Banner */}
+      <div className="bg-rose-600 text-white px-4 py-2.5 shadow-md flex items-center justify-center gap-2 text-xs font-black">
+        <AlertOctagon className="w-4 h-4 shrink-0 animate-pulse" />
+        <span>ZERO-TOLERANCE SECURITY NOTICE: Screen switching (2 warnings limit) or proxy relay triggers permanent blacklisting of candidate Name, Mobile, UPI ID, and Government KYC Verification.</span>
+      </div>
+
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
 
         {/* 4-Tab Navigation */}
         <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex flex-wrap gap-2">
           <button
-            onClick={() => setAdminTab('questions')}
-            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
-              adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" /> 1. Question Bank ({activeQuestions.length})
-          </button>
-
-          <button
             onClick={() => setAdminTab('olympiad')}
             className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
               adminTab === 'olympiad' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Trophy className="w-4 h-4" /> 2. 🛡️ Olympiad Arena &amp; Viva ({olympiadsList.length})
+            <Trophy className="w-4 h-4" /> 1. Olympiad Tournaments &amp; Viva Queue ({olympiadsList.length})
+          </button>
+
+          <button
+            onClick={() => setAdminTab('questions')}
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+              adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" /> 2. Question Bank ({questionsList.filter(q => !q.isArchived).length})
           </button>
 
           <button
@@ -625,11 +355,11 @@ export default function AbhyaasMasterTower() {
               adminTab === 'recycle_bin' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Trash2 className="w-4 h-4" /> 4. Recycle Bin ({archivedQuestions.length})
+            <Trash2 className="w-4 h-4" /> 4. Recycle Bin ({questionsList.filter(q => q.isArchived).length})
           </button>
         </div>
 
-        {/* TAB 2: OLYMPIAD ARENA & VIVA QUEUE */}
+        {/* TAB 1: OLYMPIAD MANAGER & VIVA */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -638,175 +368,130 @@ export default function AbhyaasMasterTower() {
                   <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-black uppercase tracking-wider">
                     High Stakes Arena Manager
                   </span>
-                  <span className="text-xs font-bold text-slate-500">Quarantined Vault: {quarantinedOlympiadQs.length} Questions</span>
+                  <span className="text-xs font-bold text-slate-500">{olympiadsList.length} Tournaments Live in DB</span>
                 </div>
-                <h2 className="text-xl font-black text-slate-900 mt-1">Olympiad Tournaments &amp; Viva Verification</h2>
-                <p className="text-xs text-slate-500">Monitor 50% cohort thresholds, manage multi-tier grant arenas, and conduct 1-on-1 viva verifications.</p>
+                <h2 className="text-xl font-black text-slate-900 mt-1">Olympiad Arena Studio &amp; Viva Verification</h2>
+                <p className="text-xs text-slate-500">Configure manual fees, exact calendar/clock timestamps up to 2099, custom syllabi, and editable anti-cheat rules.</p>
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsOlympiadModalOpen(true)}
-                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                  className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
                 >
-                  <Plus className="w-4 h-4" /> Create New Tournament
+                  <Plus className="w-4 h-4" /> Create Custom Tournament
                 </button>
               </div>
             </div>
 
             {/* Tournaments Grid */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Active &amp; Upcoming Tournaments ({olympiadsList.length})</h3>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">All Active &amp; Upcoming Olympiads ({olympiadsList.length})</h3>
               
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {olympiadsList.map(oly => {
-                  const fillPercent = Math.round((oly.bookedSlots / oly.totalSlots) * 100);
-                  const isThresholdMet = fillPercent >= 50;
+              {olympiadsList.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
+                  <Trophy className="w-12 h-12 text-slate-300 mx-auto" />
+                  <p className="font-bold text-slate-800 text-sm">No Olympiads Created Yet</p>
+                  <p className="text-xs text-slate-400">Click &quot;Create Custom Tournament&quot; above to publish your first Olympiad.</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {olympiadsList.map(oly => {
+                    const fillPercent = Math.round(((oly.bookedSlots || 0) / (oly.totalSlots || 500)) * 100);
+                    const isThresholdMet = fillPercent >= 50;
 
-                  return (
-                    <div key={oly.id} className="bg-white border border-slate-200 hover:border-amber-400 p-5 rounded-3xl shadow-xs space-y-4 transition">
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
-                        <div>
-                          <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                            Fee: ₹{oly.fee} • {oly.totalGrantPool} Pool
-                          </span>
-                          <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
-                          <p className="text-[11px] text-slate-500 font-medium">{oly.scheduleText}</p>
+                    return (
+                      <div key={oly.id} className="bg-white border border-slate-200 hover:border-amber-400 p-5 rounded-3xl shadow-xs space-y-4 transition">
+                        <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                                Fee: ₹{oly.fee}
+                              </span>
+                              <span className="text-[10px] font-black px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
+                                {oly.categorySection}
+                              </span>
+                            </div>
+                            <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
+                            <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                              <Calendar className="w-3 h-3 text-blue-600" />
+                              {oly.startDateTime ? new Date(oly.startDateTime).toLocaleString('en-IN') : oly.scheduleText}
+                            </p>
+                          </div>
+                          <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
                         </div>
-                        <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
-                      </div>
 
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-[11px] font-black">
-                          <span className="text-slate-600">{oly.bookedSlots} / {oly.totalSlots} Slots Booked</span>
-                          <span className={isThresholdMet ? 'text-emerald-600' : 'text-amber-600'}>{fillPercent}%</span>
+                        {/* 50% Threshold Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[11px] font-black">
+                            <span className="text-slate-600">{oly.bookedSlots || 0} / {oly.totalSlots || 500} Slots</span>
+                            <span className={isThresholdMet ? 'text-emerald-600' : 'text-amber-600'}>{fillPercent}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${isThresholdMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                              style={{ width: `${Math.min(fillPercent, 100)}%` }}
+                            />
+                          </div>
+                          <p className={`text-[10px] font-black uppercase ${isThresholdMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            {isThresholdMet ? '✓ 50% Threshold Met' : '⏳ Awaiting 50% Cohort'}
+                          </p>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${isThresholdMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                            style={{ width: `${Math.min(fillPercent, 100)}%` }}
-                          />
-                        </div>
-                        <p className={`text-[10px] font-black uppercase ${isThresholdMet ? 'text-emerald-700' : 'text-amber-700'}`}>
-                          {isThresholdMet ? '✓ 50% Threshold Met (Confirmed)' : '⏳ Awaiting 50% Minimum Cohort'}
-                        </p>
-                      </div>
 
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-slate-500">{oly.questionsCount} Qs • {oly.durationMinutes} Mins</span>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Delete tournament "${oly.title}"?`)) {
-                              await deleteOlympiadTournament(oly.id);
-                              setOlympiadsList(prev => prev.filter(item => item.id !== oly.id));
-                            }
-                          }}
-                          className="text-rose-500 hover:text-rose-700 font-bold"
-                        >
-                          Remove
-                        </button>
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-600">Pool: <strong className="text-blue-600">{oly.totalGrantPool}</strong></span>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Delete Olympiad "${oly.title}"?`)) {
+                                await deleteOlympiadTournament(oly.id);
+                                setOlympiadsList(prev => prev.filter(item => item.id !== oly.id));
+                              }
+                            }}
+                            className="text-rose-500 hover:text-rose-700 font-bold"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Candidates & Viva Verification Queue */}
+            {/* Candidates & Viva Queue */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <Video className="w-4 h-4 text-amber-600" />
-                    Candidate Verification &amp; 1-on-1 Viva Queue ({participantsList.length})
-                  </h3>
-                  <p className="text-xs text-slate-500">Verify provisional rankers scoring ≥75% via live 1-on-1 viva (5 questions, 3/5 passing threshold).</p>
-                </div>
-              </div>
-
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Video className="w-4 h-4 text-amber-600" />
+                Live Candidate Verification &amp; Viva Queue ({participantsList.length})
+              </h3>
               {participantsList.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 font-bold text-xs">
-                  No candidate submissions in verification queue yet. Candidates registering on /olympiad appear here.
-                </div>
+                <p className="text-xs text-slate-400 font-bold p-6 text-center">No participants in viva verification queue yet.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
-                        <th className="py-3 px-3 rounded-l-lg">Roll Number</th>
-                        <th className="py-3 px-3">Candidate Details</th>
-                        <th className="py-3 px-3">Tournament Tier</th>
-                        <th className="py-3 px-3">Written Score</th>
-                        <th className="py-3 px-3">Integrity Telemetry</th>
-                        <th className="py-3 px-3">Viva Status</th>
-                        <th className="py-3 px-3 rounded-r-lg text-right">Verification Actions</th>
+                        <th className="py-3 px-3">Roll Number</th>
+                        <th className="py-3 px-3">Candidate</th>
+                        <th className="py-3 px-3">Score</th>
+                        <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {participantsList.map(p => {
-                        const isCutoffPassed = (p.writtenScore || 0) >= 75;
-
-                        return (
-                          <tr key={p.id} className="hover:bg-slate-50/60">
-                            <td className="py-3 px-3 font-mono font-black text-slate-900">
-                              {p.rollNo}
-                            </td>
-                            <td className="py-3 px-3">
-                              <p className="font-extrabold text-slate-900">{p.candidateName}</p>
-                              <p className="text-[10px] text-slate-400">{p.email} • {p.phone}</p>
-                            </td>
-                            <td className="py-3 px-3 font-bold text-slate-700">
-                              {p.olympiadTier} (₹{p.amount})
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
-                                isCutoffPassed ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-                              }`}>
-                                {p.writtenScore}% {isCutoffPassed ? '(Cutoff Met)' : '(Below 75%)'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-[11px] font-bold text-slate-500">
-                              {p.tabSwitchCount === 0 ? (
-                                <span className="text-emerald-600">✓ 0 Tab Switches</span>
-                              ) : (
-                                <span className="text-rose-600">⚠ {p.tabSwitchCount} Tab Switches</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase ${
-                                p.vivaStatus === 'PASSED' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                                p.vivaStatus === 'FAILED' ? 'bg-rose-100 text-rose-900 border border-rose-300' :
-                                'bg-amber-100 text-amber-900 border border-amber-300'
-                              }`}>
-                                {p.vivaStatus || 'PENDING'}
-                              </span>
-                              {p.grantAmountWon ? (
-                                <p className="text-[10px] text-emerald-600 font-black mt-0.5">Grant: ₹{p.grantAmountWon}</p>
-                              ) : null}
-                            </td>
-                            <td className="py-3 px-3 text-right">
-                              {p.vivaStatus === 'PENDING' ? (
-                                <div className="flex items-center justify-end gap-1.5">
-                                  <button
-                                    onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition"
-                                  >
-                                    Pass Viva (Award)
-                                  </button>
-                                  <button
-                                    onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)}
-                                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg transition"
-                                  >
-                                    Fail &amp; Cascade
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-[10px] text-slate-400 font-bold">Action Completed</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {participantsList.map(p => (
+                        <tr key={p.id}>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900">{p.rollNo}</td>
+                          <td className="py-3 px-3">{p.candidateName}</td>
+                          <td className="py-3 px-3 font-black text-blue-600">{p.writtenScore}%</td>
+                          <td className="py-3 px-3 font-bold">{p.vivaStatus}</td>
+                          <td className="py-3 px-3 text-right">
+                            <button onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded mr-2">Pass</button>
+                            <button onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 text-white font-bold text-[10px] rounded">Fail</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -815,195 +500,18 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 1: QUESTION BANK */}
-        {adminTab === 'questions' && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-blue-600" />
-                    Active Question Vault
-                  </h2>
-                  <p className="text-xs text-slate-500">Preserved questions with automatic chemical subscripts, formulas, and diagrams.</p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={openCreateQuestionModal}
-                    className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <Plus className="w-4 h-4" /> Single Question Studio
-                  </button>
-                  <button
-                    onClick={() => setIsBulkModalOpen(true)}
-                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" /> Bulk Upload / Excel Paste
-                  </button>
-                  <button
-                    onClick={() => setIsAutoPushModalOpen(true)}
-                    className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Bar */}
-              <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
-                    {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
-                      <button
-                        key={seg}
-                        onClick={() => setSegmentFilter(seg)}
-                        className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
-                          segmentFilter === seg ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-                        }`}
-                      >
-                        {seg === 'ALL' ? `All (${activeQuestions.length})` :
-                         seg === 'PRACTICE' ? `Practice (${activeQuestions.filter(q=>q.segment==='PRACTICE').length})` :
-                         seg === 'PYQ' ? `PYQ (${activeQuestions.filter(q=>q.segment==='PYQ').length})` :
-                         `🛡️ Olympiad (${activeQuestions.filter(q=>q.segment==='OLYMPIAD').length})`}
-                      </button>
-                    ))}
-                  </div>
-
-                  <select
-                    value={filterClass}
-                    onChange={e => setFilterClass(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
-                  >
-                    <option value="ALL">All Classes</option>
-                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                  </select>
-
-                  <select
-                    value={filterExam}
-                    onChange={e => setFilterExam(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
-                  >
-                    <option value="ALL">All Examinations</option>
-                    {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
-                      <option key={e.id} value={e.nameEn}>{e.nameEn}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={filterSubject}
-                    onChange={e => setFilterSubject(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
-                  >
-                    <option value="ALL">All Subjects</option>
-                    {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
-                      <option key={s.id} value={s.nameEn}>{s.nameEn}</option>
-                    ))}
-                  </select>
-
-                  <div className="relative flex-grow min-w-[200px]">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search questions..."
-                      value={searchFilter}
-                      onChange={e => setSearchFilter(e.target.value)}
-                      className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Questions Stream */}
-            <div className="space-y-3">
-              {filteredActiveQuestions.map((q, idx) => {
-                const att = parseAttachment(q.diagramUrl);
-                return (
-                  <div key={q.id || idx} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300">
-                          {q.segment}
-                        </span>
-                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded">
-                          {q.className} ➔ {q.examName} ➔ {q.subjectName}
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        <button onClick={() => openEditQuestionModal(q)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="font-bold text-sm text-slate-900">{formatScientific(q.questionEn)}</p>
-                    {att.type === 'IMAGE' && att.directUrl && (
-                      <img src={att.directUrl} alt="Diagram" className="max-h-48 rounded border p-1" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: HIERARCHY TREE */}
-        {adminTab === 'hierarchy' && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-blue-600" />
-                Add New {activeLevel}
-              </h2>
-              <form onSubmit={handleSaveTaxonomy} className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Name in English*"
-                  value={manualNameEn}
-                  onChange={e => setManualNameEn(e.target.value)}
-                  className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                  required
-                />
-                <button type="submit" className="px-6 h-11 bg-blue-600 text-white font-black text-xs rounded-xl shadow-md">
-                  Save {activeLevel} Node
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: RECYCLE BIN */}
-        {adminTab === 'recycle_bin' && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex justify-between items-center">
-              <h2 className="text-lg font-black text-rose-950 flex items-center gap-2">
-                <Trash2 className="w-5 h-5 text-rose-600" />
-                Recycle Bin ({archivedQuestions.length})
-              </h2>
-              {archivedQuestions.length > 0 && (
-                <button onClick={handleWipeAllRecycleBin} className="px-4 py-2.5 bg-rose-600 text-white font-black text-xs rounded-xl">
-                  Empty Recycle Bin
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
       </div>
 
-      {/* CREATE TOURNAMENT MODAL */}
+      {/* MODAL: CREATE CUSTOM OLYMPIAD WITH REAL CALENDAR, MANUAL FEE, SYLLABUS, RULES */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  New Tournament Setup
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  Custom Tournament Engine
                 </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">Configure Olympiad Arena</h3>
+                <h3 className="text-lg font-black text-slate-900 mt-1">Create Standardized Olympiad</h3>
               </div>
               <button onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
@@ -1011,83 +519,92 @@ export default function AbhyaasMasterTower() {
             </div>
 
             <form onSubmit={handleCreateOlympiadSubmit} className="space-y-4 text-xs font-medium">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Weekly Speed Sprint - GS Paper 1"
-                  value={newOlyTitle}
-                  onChange={e => setNewOlyTitle(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              
+              {/* Title & Section */}
+              <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Entry Fee (Tier)*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. All-India Sunday Prelims Arena"
+                    value={newOlyTitle}
+                    onChange={e => setNewOlyTitle(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Section / Frequency Category*</label>
                   <select
-                    value={newOlyFee}
-                    onChange={e => {
-                      const f = Number(e.target.value);
-                      setNewOlyFee(f);
-                      if (f === 49) setNewOlyGrantPool('₹15,000');
-                      else if (f === 99) setNewOlyGrantPool('₹40,000');
-                      else if (f === 199) setNewOlyGrantPool('₹1,00,000');
-                      else if (f === 249) setNewOlyGrantPool('₹1,50,000');
-                      else if (f === 499) setNewOlyGrantPool('₹3,00,000');
-                      else if (f === 1999) setNewOlyGrantPool('₹25,00,000');
-                    }}
+                    value={newOlySection}
+                    onChange={e => setNewOlySection(e.target.value as any)}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
                   >
-                    <option value={49}>₹49 (Weekly Starter)</option>
-                    <option value={99}>₹99 (Foundation Master)</option>
-                    <option value={199}>₹199 (Monthly Mega)</option>
-                    <option value={249}>₹249 (Subject Specialist)</option>
-                    <option value={499}>₹499 (Quarterly National)</option>
-                    <option value={1999}>₹1,999 (Super Grand Yearly Cup)</option>
+                    <option value="WEEKLY">Weekly Sprint (Sundays)</option>
+                    <option value="MONTHLY">Monthly Mega Assessment</option>
+                    <option value="QUARTERLY">Quarterly Talent Search (3-Month)</option>
+                    <option value="GRAND">Super Grand Cup (15 Aug / 26 Jan)</option>
+                    <option value="SPECIAL">Special Subject Invitational</option>
                   </select>
                 </div>
+              </div>
 
+              {/* Stream / Exam Category */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Examination Stream*</label>
+                <select
+                  value={newOlyStream}
+                  onChange={e => setNewOlyStream(e.target.value as any)}
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                >
+                  <option value="UPSC_PSC">Civil Services (UPSC CSE &amp; State PSC)</option>
+                  <option value="ENGINEERING">Engineering &amp; Technology (IIT-JEE / B.Tech)</option>
+                  <option value="MEDICAL">Medical &amp; Life Sciences (NEET / MBBS)</option>
+                  <option value="SSC_BANKING">Government Exams (SSC CGL &amp; Banking)</option>
+                  <option value="LAW">Legal Studies (CLAT &amp; Judicial Services)</option>
+                  <option value="FOUNDATION">Senior Secondary (Class 11th - 12th Foundation)</option>
+                  <option value="GENERAL">General All-India Knowledge</option>
+                </select>
+              </div>
+
+              {/* Manual Entry Fee & Gross Grant Pool */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Total Capacity Slots*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Manual Fee (₹)*</label>
                   <input
                     type="number"
-                    value={newOlySlots}
-                    onChange={e => setNewOlySlots(Number(e.target.value))}
+                    min="0"
+                    placeholder="49"
+                    value={newOlyFee}
+                    onChange={e => setNewOlyFee(Number(e.target.value))}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
                     required
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Gross Grant Pool*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Grant Pool*</label>
                   <input
                     type="text"
+                    placeholder="₹15,000"
                     value={newOlyGrantPool}
                     onChange={e => setNewOlyGrantPool(e.target.value)}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none"
                     required
                   />
                 </div>
-
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Schedule Timing*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Slots Capacity*</label>
                   <input
-                    type="text"
-                    value={newOlySchedule}
-                    onChange={e => setNewOlySchedule(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                    type="number"
+                    min="10"
+                    value={newOlySlots}
+                    onChange={e => setNewOlySlots(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
                     required
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Duration (Minutes)*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Duration (Mins)*</label>
                   <input
                     type="number"
                     value={newOlyDuration}
@@ -1096,154 +613,89 @@ export default function AbhyaasMasterTower() {
                     required
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Question Count*</label>
+              {/* Real Calendar & Clock Timestamp Picker (Up to 2099) */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                  Scheduled Date &amp; Start Time (Calendar &amp; Clock 2026–2099)*
+                </label>
+                <input
+                  type="datetime-local"
+                  min="2026-01-01T00:00"
+                  max="2099-12-31T23:59"
+                  value={newOlyDateTime}
+                  onChange={e => setNewOlyDateTime(e.target.value)}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800"
+                  required
+                />
+              </div>
+
+              {/* Description Box */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Tournament Detailed Overview / Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe this Olympiad, target audience, and key highlights..."
+                  value={newOlyDesc}
+                  onChange={e => setNewOlyDesc(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                />
+              </div>
+
+              {/* Syllabus Builder */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Topics</label>
+                <div className="space-y-2">
+                  {newOlySyllabus.map((s, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
+                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
+                      </div>
+                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2 pt-2">
+                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs" />
+                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs" />
+                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs" />
+                </div>
+                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px]">+ Add Subject Module</button>
+              </div>
+
+              {/* Editable Security Rules */}
+              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat &amp; Assessment Rules</label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {newOlyRules.map((rule, idx) => (
+                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
+                      <span>• {rule}</span>
+                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-1">
                   <input
-                    type="number"
-                    value={newOlyQuestions}
-                    onChange={e => setNewOlyQuestions(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                    required
+                    type="text"
+                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
+                    value={newRuleInput}
+                    onChange={e => setNewRuleInput(e.target.value)}
+                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs"
                   />
+                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs">+ Rule</button>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs"
+                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs"
               >
-                <Trophy className="w-4 h-4" /> Save &amp; Publish Tournament
+                <Trophy className="w-4 h-4" /> Save &amp; Publish Olympiad Live
               </button>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* QUESTION STUDIO MODAL */}
-      {isQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <h3 className="text-lg font-black text-slate-900">
-                {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
-              </h3>
-              <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveQuestion} className="space-y-5">
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">Target Destination / Vault*</label>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {[
-                    { id: 'PRACTICE', title: '📘 Free Practice Drill' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)' },
-                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault' },
-                  ].map(s => (
-                    <button
-                      type="button"
-                      key={s.id}
-                      onClick={() => setQSegment(s.id as QuestionSegment)}
-                      className={`p-3 rounded-xl border text-left transition ${
-                        qSegment === s.id ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      <p className="font-black text-xs">{s.title}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Question Statement (English)*</label>
-                <textarea
-                  rows={2}
-                  value={qStatementEn}
-                  onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none"
-                  required
-                />
-              </div>
-
-              <button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md">
-                Save Question
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* BULK UPLOAD MODAL */}
-      {isBulkModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                Bulk Question Importer
-              </h3>
-              <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <textarea
-              rows={6}
-              value={pasteData}
-              onChange={e => setPasteData(e.target.value)}
-              placeholder="Paste tab-delimited Excel cells..."
-              className="w-full p-3 bg-slate-50 border rounded-xl font-mono text-xs outline-none"
-            />
-            <button
-              type="button"
-              onClick={async () => {
-                if (!pasteData.trim()) return alert("Paste cells first.");
-                const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
-                const parsed: QuestionData[] = [];
-                for (let i = 0; i < lines.length; i++) {
-                  const row = lines[i].split('\t');
-                  if (row.length >= 7) {
-                    const newId = `q-paste-${Date.now()}-${i}`;
-                    parsed.push({
-                      id: newId,
-                      docId: newId,
-                      segment: (row[0] || 'PRACTICE').toUpperCase() as QuestionSegment,
-                      className: row[1] || 'Civil Services / Competitive',
-                      examName: row[2] || 'UPSC Civil Services (Prelims)',
-                      subjectName: row[3] || 'General Studies / Science',
-                      topicName: row[4] || 'General',
-                      category: row[2] || 'UPSC Civil Services (Prelims)',
-                      subject: row[3] || 'General Studies / Science',
-                      class: row[1] || 'Civil Services / Competitive',
-                      topic: row[4] || 'General',
-                      pyqYear: row[5] || '2024',
-                      questionEn: formatScientific(row[6] || ''),
-                      questionHi: formatScientific(row[7] || row[6] || ''),
-                      optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
-                      optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
-                      optionsDiagrams: ['', '', '', ''],
-                      correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-                      explanationEn: formatScientific(row[17] || ''),
-                      explanationHi: formatScientific(row[18] || ''),
-                      diagramUrl: row[19] || '',
-                      isArchived: false,
-                      status: 'ACTIVE',
-                      timesUsedInOlympiad: 0
-                    });
-                  }
-                }
-                const count = await bulkUploadQuestions(parsed);
-                setQuestionsList(prev => [...parsed, ...prev]);
-                setPasteData('');
-                setIsBulkModalOpen(false);
-                alert(`Imported ${count} questions!`);
-              }}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition"
-            >
-              Import Pasted Rows
-            </button>
           </div>
         </div>
       )}
