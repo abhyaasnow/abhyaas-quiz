@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, collection, getDocs, doc, setDoc, deleteDoc, 
-  Timestamp, writeBatch 
+  Timestamp, writeBatch, query, orderBy 
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -56,9 +56,8 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return { type: 'PDF', rawUrl: clean, directUrl: clean, isDrive: false };
   }
 
-  // 3. Strict Web URL check: Must begin with http:// or https://
+  // 3. Strict Web URL check
   if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-    // Normal text (e.g. "Argentina", "Option A", "C16H10N2O2") is NEVER an attachment!
     return { type: 'NONE', rawUrl: clean, directUrl: '', isDrive: false };
   }
 
@@ -438,11 +437,163 @@ export async function autoPushOlympiadQuestions(
   return updatedCount;
 }
 
+// ==================== 3. OLYMPIAD TOURNAMENT & PARTICIPANTS ENGINE ====================
+export type OlympiadStatus = 'UPCOMING' | 'LIVE' | 'EVALUATING' | 'COMPLETED' | 'CANCELLED';
+
+export interface OlympiadTournament {
+  id: string;
+  title: string;
+  titleHi?: string;
+  fee: number;                      // 49 | 99 | 199 | 249 | 499 | 1499 | 1999
+  totalGrantPool: string;           // "₹15,000", "₹1,00,000", etc.
+  totalSlots: number;               // e.g. 500
+  bookedSlots: number;              // Current bookings
+  durationMinutes: number;          // e.g. 45
+  questionsCount: number;           // e.g. 50
+  targetClass: string;
+  targetExam: string;
+  targetSubject: string;
+  scheduleText: string;             // "Every Sunday at 10:00 AM IST"
+  status: OlympiadStatus;
+  createdAt: any;
+  [key: string]: any;
+}
+
+export interface OlympiadParticipant {
+  id: string;
+  rollNo: string;
+  candidateName: string;
+  email: string;
+  phone: string;
+  olympiadTier: string;
+  amount: number;
+  paymentMethod: string;
+  writtenScore?: number;
+  tabSwitchCount?: number;
+  vivaStatus?: 'PENDING' | 'PASSED' | 'FAILED' | 'DISQUALIFIED';
+  grantAmountWon?: number;
+  createdAt?: any;
+  [key: string]: any;
+}
+
+// Default Presets to populate if DB has no tournaments yet
+const DEFAULT_OLYMPIADS: OlympiadTournament[] = [
+  {
+    id: 'oly-weekly-49',
+    title: 'Weekly Speed Sprint',
+    titleHi: 'साप्ताहिक स्पीड स्प्रिंट',
+    fee: 49,
+    totalGrantPool: '₹15,000',
+    totalSlots: 500,
+    bookedSlots: 362,
+    durationMinutes: 45,
+    questionsCount: 50,
+    targetClass: 'Civil Services / Competitive',
+    targetExam: 'UPSC Civil Services (Prelims)',
+    targetSubject: 'General Studies / Geography',
+    scheduleText: 'Every Sunday at 10:00 AM IST',
+    status: 'UPCOMING',
+    createdAt: null
+  },
+  {
+    id: 'oly-monthly-199',
+    title: 'Monthly Mega Assessment',
+    titleHi: 'मासिक मेगा ओलंपियाड',
+    fee: 199,
+    totalGrantPool: '₹1,00,000',
+    totalSlots: 600,
+    bookedSlots: 412,
+    durationMinutes: 90,
+    questionsCount: 100,
+    targetClass: 'Civil Services / Competitive',
+    targetExam: 'UPSC Civil Services (Prelims)',
+    targetSubject: 'Chemistry Optional Paper II',
+    scheduleText: 'Last Tuesday of Month at 10:00 AM IST',
+    status: 'UPCOMING',
+    createdAt: null
+  }
+];
+
+export async function getAllOlympiads(): Promise<OlympiadTournament[]> {
+  try {
+    const snap = await getDocs(collection(db, 'olympiads'));
+    if (snap.empty) {
+      return DEFAULT_OLYMPIADS;
+    }
+    return snap.docs.map(d => ({
+      ...d.data(),
+      id: d.id
+    } as OlympiadTournament));
+  } catch (err) {
+    console.error("Error fetching olympiads:", err);
+    return DEFAULT_OLYMPIADS;
+  }
+}
+
+export async function saveOlympiadTournament(o: OlympiadTournament): Promise<void> {
+  const docRef = doc(db, 'olympiads', o.id);
+  await setDoc(docRef, { ...o, updatedAt: Timestamp.now() }, { merge: true });
+}
+
+export async function deleteOlympiadTournament(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'olympiads', id));
+}
+
+// Student slot registration / payment
+export async function createPaymentRecord(r: any): Promise<{ success: boolean; rollNo: string }> {
+  try {
+    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    const rollNo = `ABH-2026-${randomSuffix}`;
+    const newId = `part-${Date.now()}`;
+
+    const participantRef = doc(db, 'olympiad_participants', newId);
+    await setDoc(participantRef, {
+      ...r,
+      id: newId,
+      rollNo,
+      writtenScore: Math.floor(75 + Math.random() * 20), // Simulated initial high score for testing
+      tabSwitchCount: 0,
+      vivaStatus: 'PENDING',
+      createdAt: Timestamp.now()
+    });
+
+    return { success: true, rollNo };
+  } catch (err) {
+    console.error("Error creating participant record:", err);
+    return { success: false, rollNo: '' };
+  }
+}
+
+export async function getAllOlympiadParticipants(): Promise<OlympiadParticipant[]> {
+  try {
+    const snap = await getDocs(collection(db, 'olympiad_participants'));
+    return snap.docs.map(d => ({
+      ...d.data(),
+      id: d.id
+    } as OlympiadParticipant));
+  } catch (err) {
+    console.error("Error fetching participants:", err);
+    return [];
+  }
+}
+
+export async function updateParticipantViva(
+  id: string, 
+  vivaStatus: 'PENDING' | 'PASSED' | 'FAILED' | 'DISQUALIFIED',
+  grantAmountWon: number = 0
+): Promise<void> {
+  const docRef = doc(db, 'olympiad_participants', id);
+  await setDoc(docRef, {
+    vivaStatus,
+    grantAmountWon,
+    vivaVerifiedAt: Timestamp.now()
+  }, { merge: true });
+}
+
+// Dummy Stubs for backward compatibility
 export interface SiteSettings { [key: string]: any; }
 export async function getSiteSettings(): Promise<any> { return {}; }
 export async function updateSiteSettings(settings: any): Promise<void> {}
-export interface PaymentRecord { [key: string]: any; }
-export async function createPaymentRecord(r: any): Promise<any> { return { success: true }; }
 export async function getAllPayments(): Promise<any[]> { return []; }
 export interface CategoryConfig { id: string; name: string; [key: string]: any; }
 export async function getCustomCategories(): Promise<any[]> { return []; }

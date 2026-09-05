@@ -7,7 +7,8 @@ import {
   Layers, ChevronDown, Check, X,
   FolderTree, BookOpen, FileSpreadsheet, Upload, Download, RefreshCw,
   Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
-  RotateCcw, ShieldAlert, Copy, Atom, UploadCloud, FileText, ExternalLink
+  RotateCcw, ShieldAlert, Copy, Atom, UploadCloud, FileText, ExternalLink,
+  Trophy, Users, Video, Award, CheckCircle2, XCircle
 } from 'lucide-react';
 
 import { 
@@ -15,7 +16,10 @@ import {
   getAllQuestions, createQuestion, updateQuestion,
   archiveQuestion, restoreQuestion, permanentlyDeleteQuestion, wipeAllRecycleBin,
   bulkUploadQuestions, autoPushOlympiadQuestions, formatScientific, parseAttachment,
-  TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment
+  getAllOlympiads, saveOlympiadTournament, deleteOlympiadTournament,
+  getAllOlympiadParticipants, updateParticipantViva,
+  TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment,
+  OlympiadTournament, OlympiadParticipant
 } from '@/lib/db';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
@@ -95,10 +99,12 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Primary Navigation
-  const [adminTab, setAdminTab] = useState<'hierarchy' | 'questions' | 'recycle_bin'>('questions');
+  // Primary Navigation (Now includes 'olympiad')
+  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
+  const [olympiadsList, setOlympiadsList] = useState<OlympiadTournament[]>([]);
+  const [participantsList, setParticipantsList] = useState<OlympiadParticipant[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Hierarchy Form State
@@ -113,6 +119,19 @@ export default function AbhyaasMasterTower() {
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
+
+  // New Tournament Creation Modal State
+  const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
+  const [newOlyTitle, setNewOlyTitle] = useState('');
+  const [newOlyFee, setNewOlyFee] = useState(49);
+  const [newOlySlots, setNewOlySlots] = useState(500);
+  const [newOlyGrantPool, setNewOlyGrantPool] = useState('₹15,000');
+  const [newOlySchedule, setNewOlySchedule] = useState('Every Sunday at 10:00 AM IST');
+  const [newOlyDuration, setNewOlyDuration] = useState(45);
+  const [newOlyQuestions, setNewOlyQuestions] = useState(50);
+  const [newOlyClass, setNewOlyClass] = useState('Civil Services / Competitive');
+  const [newOlyExam, setNewOlyExam] = useState('UPSC Civil Services (Prelims)');
+  const [newOlySubject, setNewOlySubject] = useState('General Studies / Geography');
 
   const [bulkMode, setBulkMode] = useState<'paste' | 'csv'>('paste');
   const [pasteData, setPasteData] = useState('');
@@ -187,9 +206,16 @@ export default function AbhyaasMasterTower() {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [taxNodes, questions] = await Promise.all([getTaxonomyNodes(), getAllQuestions()]);
+      const [taxNodes, questions, olys, parts] = await Promise.all([
+        getTaxonomyNodes(), 
+        getAllQuestions(),
+        getAllOlympiads(),
+        getAllOlympiadParticipants()
+      ]);
       setTaxonomyList(taxNodes || []);
       setQuestionsList(questions || []);
+      setOlympiadsList(olys || []);
+      setParticipantsList(parts || []);
 
       const classes = (taxNodes || []).filter(t => t.level === 'CLASS');
       if (classes.length > 0 && !qClass) setQClass(classes[0].nameEn);
@@ -214,6 +240,55 @@ export default function AbhyaasMasterTower() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('abhyaas_admin_auth');
+  };
+
+  const handleCreateOlympiadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOlyTitle.trim()) return alert("Enter Olympiad Title.");
+
+    const newOly: OlympiadTournament = {
+      id: `oly-${Date.now()}`,
+      title: newOlyTitle.trim(),
+      fee: Number(newOlyFee),
+      totalSlots: Number(newOlySlots),
+      bookedSlots: 0,
+      totalGrantPool: newOlyGrantPool.trim(),
+      scheduleText: newOlySchedule.trim(),
+      durationMinutes: Number(newOlyDuration),
+      questionsCount: Number(newOlyQuestions),
+      targetClass: newOlyClass,
+      targetExam: newOlyExam,
+      targetSubject: newOlySubject,
+      status: 'UPCOMING',
+      createdAt: Timestamp.now()
+    };
+
+    try {
+      await saveOlympiadTournament(newOly);
+      setOlympiadsList(prev => [newOly, ...prev]);
+      setIsOlympiadModalOpen(false);
+      setNewOlyTitle('');
+      alert("🎉 Olympiad Tournament Created Successfully!");
+    } catch (err: any) {
+      alert("Error creating tournament: " + err.message);
+    }
+  };
+
+  const handleVivaAction = async (participantId: string, action: 'PASSED' | 'FAILED', candidateName: string) => {
+    const grantWon = action === 'PASSED' ? 5000 : 0;
+    const confirmMsg = action === 'PASSED' 
+      ? `Approve Viva for ${candidateName} and allocate ₹${grantWon} Grant?` 
+      : `Disqualify ${candidateName} and cascade grant to next rank?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      await updateParticipantViva(participantId, action, grantWon);
+      setParticipantsList(prev => prev.map(p => p.id === participantId ? { ...p, vivaStatus: action, grantAmountWon: grantWon } : p));
+      alert(`Viva status updated to ${action}!`);
+    } catch (err: any) {
+      alert("Error updating viva: " + err.message);
+    }
   };
 
   const handlePresetChange = (val: string) => {
@@ -276,7 +351,6 @@ export default function AbhyaasMasterTower() {
     setDuplicateWarning(null);
   };
 
-  // Device file upload for Question diagram
   const handleLocalFileAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -293,7 +367,6 @@ export default function AbhyaasMasterTower() {
     reader.readAsDataURL(file);
   };
 
-  // Device file upload for individual Option diagram
   const handleOptionDiagramUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -349,22 +422,6 @@ export default function AbhyaasMasterTower() {
 
     if (!finalClass || !finalExam || !finalSubject || !qStatementEn.trim()) {
       return alert("Class, Exam, Subject, and English Question Statement are required!");
-    }
-
-    if (qClass === 'OTHER' && qClassCustom.trim()) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-c`, level: 'CLASS', nameEn: finalClass };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
-    }
-    if (qExam === 'OTHER' && qExamCustom.trim()) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-e`, level: 'EXAM', nameEn: finalExam };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
-    }
-    if (qSubject === 'OTHER' && qSubjectCustom.trim()) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-s`, level: 'SUBJECT', nameEn: finalSubject };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
     }
 
     const parsedAtt = parseAttachment(qDiagramUrl);
@@ -455,163 +512,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  const downloadSampleCsv = () => {
-    const headers = [
-      "Segment", "Class", "Exam", "Subject", "Topic", "PYQYear",
-      "QuestionEn", "QuestionHi",
-      "Opt1_En", "Opt2_En", "Opt3_En", "Opt4_En",
-      "Opt1_Hi", "Opt2_Hi", "Opt3_Hi", "Opt4_Hi",
-      "CorrectOpt", "ExplanationEn", "ExplanationHi", "DiagramUrl"
-    ].join(",");
-
-    const blob = new Blob(['\uFEFF' + headers + '\n'], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'Abhyaas_Bulk_Question_Template.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const copySampleRowToClipboard = () => {
-    const sample = "PRACTICE\tCivil Services / Competitive\tUPSC Civil Services (Prelims)\tChemistry Optional Paper II\tOrganic Reaction Mechanisms\t2026\tIdentify the major organic structure formed in the following transformation:\tनिम्नलिखित रूपांतरण में बनने वाली मुख्य कार्बनिक संरचना की पहचान कीजिए:\tStructure A\tStructure B\tStructure C\tStructure D\tसंरचना A\tसंरचना B\tसंरचना C\tसंरचना D\t1\tReaction proceeds via concerted anti-periplanar elimination.\tअभिक्रिया कॉन्सर्टेड एंटी-पेरीप्लेनर विलोपन द्वारा संपन्न होती है।\t";
-    navigator.clipboard.writeText(sample);
-    setCopiedSample(true);
-    setTimeout(() => setCopiedSample(false), 3000);
-  };
-
-  const handleDirectExcelPaste = async () => {
-    if (!pasteData.trim()) return alert("Please paste copied Excel cells.");
-    const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
-    const parsed: QuestionData[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const row = lines[i].split('\t');
-      if (row.length >= 7) {
-        const seg = (row[0] || '').toUpperCase();
-        const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
-        const newId = `q-paste-${Date.now()}-${i}`;
-        const rawDiagram = row[19] || '';
-        const parsedAtt = parseAttachment(rawDiagram);
-
-        parsed.push({
-          id: newId,
-          docId: newId,
-          segment: validSegment,
-          className: row[1] || 'Civil Services / Competitive',
-          examName: row[2] || 'UPSC Civil Services (Prelims)',
-          subjectName: row[3] || 'General Studies / Science',
-          topicName: row[4] || 'General',
-          category: row[2] || 'UPSC Civil Services (Prelims)',
-          subject: row[3] || 'General Studies / Science',
-          class: row[1] || 'Civil Services / Competitive',
-          topic: row[4] || 'General',
-          pyqYear: row[5] || '2024',
-          questionEn: formatScientific(row[6] || ''),
-          questionHi: formatScientific(row[7] || row[6] || ''),
-          optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
-          optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
-          optionsDiagrams: ['', '', '', ''],
-          correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-          explanationEn: formatScientific(row[17] || ''),
-          explanationHi: formatScientific(row[18] || ''),
-          diagramUrl: rawDiagram,
-          attachmentType: parsedAtt.type,
-          isArchived: false,
-          status: 'ACTIVE',
-          timesUsedInOlympiad: 0
-        });
-      }
-    }
-
-    if (parsed.length === 0) return alert("Could not parse rows. Ensure columns match the template.");
-    try {
-      const count = await bulkUploadQuestions(parsed);
-      setQuestionsList(prev => [...parsed, ...prev]);
-      setPasteData('');
-      setIsBulkModalOpen(false);
-      alert(`🎉 Imported ${count} questions directly from Excel!`);
-    } catch (err: any) {
-      alert("Error importing from Excel: " + err.message);
-    }
-  };
-
-  const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const text = (evt.target?.result as string) || '';
-      const rows = parseCSVProperly(text);
-      if (rows.length <= 1) return alert("Empty CSV file.");
-
-      const parsed: QuestionData[] = [];
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (row.length >= 7) {
-          const seg = (row[0] || '').toUpperCase();
-          const validSegment: QuestionSegment = (seg === 'PYQ' || seg === 'OLYMPIAD') ? seg : 'PRACTICE';
-          const newId = `q-csv-${Date.now()}-${i}`;
-          const rawDiagram = row[19] || '';
-          const parsedAtt = parseAttachment(rawDiagram);
-
-          parsed.push({
-            id: newId,
-            docId: newId,
-            segment: validSegment,
-            className: row[1] || 'Civil Services / Competitive',
-            examName: row[2] || 'UPSC Civil Services (Prelims)',
-            subjectName: row[3] || 'General Studies / Science',
-            topicName: row[4] || 'Chemical Bonding & Polycyclic Compounds',
-            category: row[2] || 'UPSC Civil Services (Prelims)',
-            subject: row[3] || 'General Studies / Science',
-            class: row[1] || 'Civil Services / Competitive',
-            topic: row[4] || 'Chemical Bonding & Polycyclic Compounds',
-            pyqYear: row[5] || '2024',
-            questionEn: formatScientific(row[6] || ''),
-            questionHi: formatScientific(row[7] || row[6] || ''),
-            optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
-            optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
-            optionsDiagrams: ['', '', '', ''],
-            correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-            explanationEn: formatScientific(row[17] || ''),
-            explanationHi: formatScientific(row[18] || ''),
-            diagramUrl: rawDiagram,
-            attachmentType: parsedAtt.type,
-            isArchived: false,
-            status: 'ACTIVE',
-            timesUsedInOlympiad: 0
-          });
-        }
-      }
-
-      try {
-        const uploadedCount = await bulkUploadQuestions(parsed);
-        setQuestionsList(prev => [...parsed, ...prev]);
-        setIsBulkModalOpen(false);
-        alert(`🎉 Successfully uploaded ${uploadedCount} questions in bulk!`);
-      } catch (err: any) {
-        alert("Error saving CSV questions: " + err.message);
-      }
-    };
-    reader.readAsText(file, 'UTF-8');
-  };
-
-  const handleExecuteAutoPush = async () => {
-    if (!pushTargetExam) return alert("Select an Exam or Subject.");
-    if (!confirm(`Push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
-    try {
-      const count = await autoPushOlympiadQuestions(pushTargetExam, pushTargetSegment, pushPyqYear);
-      alert(`Transferred ${count} questions to ${pushTargetSegment}!`);
-      loadAllData();
-      setIsAutoPushModalOpen(false);
-    } catch (err: any) {
-      alert("Error in auto-push pipeline: " + err.message);
-    }
-  };
-
   if (!mounted) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-xs font-mono">
@@ -651,6 +551,7 @@ export default function AbhyaasMasterTower() {
 
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   const archivedQuestions = questionsList.filter(q => q.isArchived);
+  const quarantinedOlympiadQs = questionsList.filter(q => q.segment === 'OLYMPIAD' && !q.isArchived);
 
   const filteredActiveQuestions = activeQuestions.filter(q => {
     const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
@@ -660,8 +561,6 @@ export default function AbhyaasMasterTower() {
     const matchesSubject = filterSubject === 'ALL' || q.subjectName === filterSubject || q.subject === filterSubject;
     return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
   });
-
-  const modalAttachmentPreview = parseAttachment(qDiagramUrl);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
@@ -673,13 +572,13 @@ export default function AbhyaasMasterTower() {
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-base">A</div>
             <div>
               <h1 className="font-black text-sm sm:text-base tracking-wide flex items-center gap-2">
-                ABHYAAS O.S. <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] rounded font-mono uppercase">Unified Controller</span>
+                ABHYAAS O.S. <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] rounded font-mono uppercase">Master Controller</span>
               </h1>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/practice" target="_blank" className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
-              <Eye className="w-4 h-4 text-emerald-400"/> Live Practice Page
+            <Link href="/olympiad" target="_blank" className="text-xs font-bold text-amber-300 hover:text-white flex items-center gap-1.5 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
+              <Trophy className="w-4 h-4 text-amber-400"/> Live Olympiad Arena
             </Link>
             <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 bg-slate-800 p-2 rounded-xl">
               <LogOut className="w-4 h-4"/>
@@ -691,7 +590,7 @@ export default function AbhyaasMasterTower() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
 
-        {/* Master Navigation */}
+        {/* 4-Tab Navigation */}
         <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex flex-wrap gap-2">
           <button
             onClick={() => setAdminTab('questions')}
@@ -699,7 +598,16 @@ export default function AbhyaasMasterTower() {
               adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> 1. Question Bank & Vault ({activeQuestions.length})
+            <BookOpen className="w-4 h-4" /> 1. Question Bank ({activeQuestions.length})
+          </button>
+
+          <button
+            onClick={() => setAdminTab('olympiad')}
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+              adminTab === 'olympiad' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Trophy className="w-4 h-4" /> 2. 🛡️ Olympiad Arena &amp; Viva ({olympiadsList.length})
           </button>
 
           <button
@@ -708,7 +616,7 @@ export default function AbhyaasMasterTower() {
               adminTab === 'hierarchy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <FolderTree className="w-4 h-4" /> 2. Category & Hierarchy Tree ({taxonomyList.length})
+            <FolderTree className="w-4 h-4" /> 3. Category Tree ({taxonomyList.length})
           </button>
 
           <button
@@ -717,14 +625,205 @@ export default function AbhyaasMasterTower() {
               adminTab === 'recycle_bin' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Trash2 className="w-4 h-4" /> 3. Recycle Bin ({archivedQuestions.length})
+            <Trash2 className="w-4 h-4" /> 4. Recycle Bin ({archivedQuestions.length})
           </button>
         </div>
 
-        {/* TAB 1: QUESTION BANK & VAULT */}
-        {adminTab === 'questions' && (
+        {/* ========================================================================= */}
+        {/* TAB 2: OLYMPIAD ARENA & VIVA VERIFICATION WATERFALL QUEUE */}
+        {/* ========================================================================= */}
+        {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
             
+            {/* Header & Controls */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-black uppercase tracking-wider">
+                    High Stakes Arena Manager
+                  </span>
+                  <span className="text-xs font-bold text-slate-500">Quarantined Vault: {quarantinedOlympiadQs.length} Questions</span>
+                </div>
+                <h2 className="text-xl font-black text-slate-900 mt-1">Olympiad Tournaments &amp; Viva Verification</h2>
+                <p className="text-xs text-slate-500">Monitor 50% cohort thresholds, manage multi-tier grant arenas, and conduct 1-on-1 viva verifications.</p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsOlympiadModalOpen(true)}
+                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Plus className="w-4 h-4" /> Create New Tournament
+                </button>
+              </div>
+            </div>
+
+            {/* Active Tournaments with 50% Threshold Meter */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Active &amp; Upcoming Tournaments ({olympiadsList.length})</h3>
+              
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {olympiadsList.map(oly => {
+                  const fillPercent = Math.round((oly.bookedSlots / oly.totalSlots) * 100);
+                  const isThresholdMet = fillPercent >= 50;
+
+                  return (
+                    <div key={oly.id} className="bg-white border border-slate-200 hover:border-amber-400 p-5 rounded-3xl shadow-xs space-y-4 transition">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div>
+                          <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                            Fee: ₹{oly.fee} • {oly.totalGrantPool} Pool
+                          </span>
+                          <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
+                          <p className="text-[11px] text-slate-500 font-medium">{oly.scheduleText}</p>
+                        </div>
+                        <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
+                      </div>
+
+                      {/* 50% Threshold Progress Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-black">
+                          <span className="text-slate-600">{oly.bookedSlots} / {oly.totalSlots} Slots Booked</span>
+                          <span className={isThresholdMet ? 'text-emerald-600' : 'text-amber-600'}>{fillPercent}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${isThresholdMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            style={{ width: `${Math.min(fillPercent, 100)}%` }}
+                          />
+                        </div>
+                        <p className={`text-[10px] font-black uppercase ${isThresholdMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+                          {isThresholdMet ? '✓ 50% Threshold Met (Confirmed)' : '⏳ Awaiting 50% Minimum Cohort'}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-500">{oly.questionsCount} Qs • {oly.durationMinutes} Mins</span>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Delete tournament "${oly.title}"?`)) {
+                              await deleteOlympiadTournament(oly.id);
+                              setOlympiadsList(prev => prev.filter(item => item.id !== oly.id));
+                            }
+                          }}
+                          className="text-rose-500 hover:text-rose-700 font-bold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Candidates & Viva Verification Queue */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                    <Video className="w-4 h-4 text-amber-600" />
+                    Candidate Verification &amp; 1-on-1 Viva Queue ({participantsList.length})
+                  </h3>
+                  <p className="text-xs text-slate-500">Verify provisional rankers scoring ≥75% via live 1-on-1 viva (5 questions, 3/5 passing threshold).</p>
+                </div>
+              </div>
+
+              {participantsList.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 font-bold text-xs">
+                  No candidate submissions in verification queue yet. Candidates registering on /olympiad appear here.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+                        <th className="py-3 px-3 rounded-l-lg">Roll Number</th>
+                        <th className="py-3 px-3">Candidate Details</th>
+                        <th className="py-3 px-3">Tournament Tier</th>
+                        <th className="py-3 px-3">Written Score</th>
+                        <th className="py-3 px-3">Integrity Telemetry</th>
+                        <th className="py-3 px-3">Viva Status</th>
+                        <th className="py-3 px-3 rounded-r-lg text-right">Verification Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {participantsList.map(p => {
+                        const isCutoffPassed = (p.writtenScore || 0) >= 75;
+
+                        return (
+                          <tr key={p.id} className="hover:bg-slate-50/60">
+                            <td className="py-3 px-3 font-mono font-black text-slate-900">
+                              {p.rollNo}
+                            </td>
+                            <td className="py-3 px-3">
+                              <p className="font-extrabold text-slate-900">{p.candidateName}</p>
+                              <p className="text-[10px] text-slate-400">{p.email} • {p.phone}</p>
+                            </td>
+                            <td className="py-3 px-3 font-bold text-slate-700">
+                              {p.olympiadTier} (₹{p.amount})
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
+                                isCutoffPassed ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                              }`}>
+                                {p.writtenScore}% {isCutoffPassed ? '(Cutoff Met)' : '(Below 75%)'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-[11px] font-bold text-slate-500">
+                              {p.tabSwitchCount === 0 ? (
+                                <span className="text-emerald-600">✓ 0 Tab Switches</span>
+                              ) : (
+                                <span className="text-rose-600">⚠ {p.tabSwitchCount} Tab Switches</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase ${
+                                p.vivaStatus === 'PASSED' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
+                                p.vivaStatus === 'FAILED' ? 'bg-rose-100 text-rose-900 border border-rose-300' :
+                                'bg-amber-100 text-amber-900 border border-amber-300'
+                              }`}>
+                                {p.vivaStatus || 'PENDING'}
+                              </span>
+                              {p.grantAmountWon ? (
+                                <p className="text-[10px] text-emerald-600 font-black mt-0.5">Grant: ₹{p.grantAmountWon}</p>
+                              ) : null}
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              {p.vivaStatus === 'PENDING' ? (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition"
+                                  >
+                                    Pass Viva (Award)
+                                  </button>
+                                  <button
+                                    onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)}
+                                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg transition"
+                                  >
+                                    Fail &amp; Cascade
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-bold">Action Completed</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* TAB 1: QUESTION BANK */}
+        {adminTab === 'questions' && (
+          <div className="space-y-6 animate-in fade-in">
             <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -923,7 +1022,7 @@ export default function AbhyaasMasterTower() {
                         </div>
                       )}
 
-                      {/* Options: Clean layout. ONLY show image preview if an option genuinely has a diagram! */}
+                      {/* Options */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
                         {q.optionsEn?.map((opt, i) => {
                           const optDiag = q.optionsDiagrams?.[i] || '';
@@ -947,7 +1046,6 @@ export default function AbhyaasMasterTower() {
                                 <span className="truncate">{formatScientific(opt)}</span>
                               </div>
 
-                              {/* ONLY RENDER IF THERE IS ACTUALLY A DIAGRAM */}
                               {optAtt.type === 'IMAGE' && optAtt.directUrl && (
                                 <div className="mt-1 bg-white p-1 rounded-xl border border-slate-200 flex items-center justify-center">
                                   <img 
@@ -978,7 +1076,7 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 2: HIERARCHY TREE */}
+        {/* TAB 3: HIERARCHY TREE */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1092,7 +1190,7 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 3: RECYCLE BIN */}
+        {/* TAB 4: RECYCLE BIN */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1154,28 +1252,153 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: SINGLE QUESTION STUDIO */}
+      {/* MODAL: CREATE NEW OLYMPIAD TOURNAMENT */}
+      {isOlympiadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  New Tournament Setup
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-1">Configure Olympiad Arena</h3>
+              </div>
+              <button onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateOlympiadSubmit} className="space-y-4 text-xs font-medium">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Weekly Speed Sprint - GS Paper 1"
+                  value={newOlyTitle}
+                  onChange={e => setNewOlyTitle(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-amber-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Entry Fee (Tier)*</label>
+                  <select
+                    value={newOlyFee}
+                    onChange={e => {
+                      const f = Number(e.target.value);
+                      setNewOlyFee(f);
+                      if (f === 49) setNewOlyGrantPool('₹15,000');
+                      else if (f === 99) setNewOlyGrantPool('₹40,000');
+                      else if (f === 199) setNewOlyGrantPool('₹1,00,000');
+                      else if (f === 249) setNewOlyGrantPool('₹1,50,000');
+                      else if (f === 499) setNewOlyGrantPool('₹3,00,000');
+                      else if (f === 1999) setNewOlyGrantPool('₹25,00,000');
+                    }}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                  >
+                    <option value={49}>₹49 (Weekly Starter)</option>
+                    <option value={99}>₹99 (Foundation Master)</option>
+                    <option value={199}>₹199 (Monthly Mega)</option>
+                    <option value={249}>₹249 (Subject Specialist)</option>
+                    <option value={499}>₹499 (Quarterly National)</option>
+                    <option value={1999}>₹1,999 (Super Grand Yearly Cup)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Total Capacity Slots*</label>
+                  <input
+                    type="number"
+                    value={newOlySlots}
+                    onChange={e => setNewOlySlots(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Gross Grant Pool*</label>
+                  <input
+                    type="text"
+                    value={newOlyGrantPool}
+                    onChange={e => setNewOlyGrantPool(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Schedule Timing*</label>
+                  <input
+                    type="text"
+                    value={newOlySchedule}
+                    onChange={e => setNewOlySchedule(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Duration (Minutes)*</label>
+                  <input
+                    type="number"
+                    value={newOlyDuration}
+                    onChange={e => setNewOlyDuration(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Question Count*</label>
+                  <input
+                    type="number"
+                    value={newOlyQuestions}
+                    onChange={e => setNewOlyQuestions(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                <strong>50% Cohort Rule Enforced:</strong> Tournament will confirm automatically once {Math.ceil(newOlySlots * 0.5)} slots are booked. Questions will be drawn from the Quarantined Olympiad Vault.
+              </div>
+
+              <button
+                type="submit"
+                className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs"
+              >
+                <Trophy className="w-4 h-4" /> Save &amp; Publish Tournament
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-            
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Configure hierarchy, bilingual statements, formulas, GDrive media, and diagrammatic options (A, B, C, D).</p>
+                <p className="text-xs text-slate-500">Configure question statements, formulas, GDrive media, and diagrammatic options (A, B, C, D).</p>
               </div>
-              <button
-                onClick={() => setIsQuestionModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full"
-              >
+              <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveQuestion} className="space-y-5">
-              
               {duplicateWarning && (
                 <div className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-rose-50 border-rose-300 text-rose-800">
                   <AlertTriangle className="w-5 h-5 shrink-0" />
@@ -1226,530 +1449,216 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* 4-Tier Hierarchy */}
+              {/* Hierarchy Selection */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <div className="relative">
-                    <select
-                      value={qClass}
-                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qClass === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qClass}
+                    onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
+                  >
+                    <option value="">-- Choose Class --</option>
+                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <div className="relative">
-                    <select
-                      value={qExam}
-                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Exam --</option>
-                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qExam === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qExam}
+                    onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
+                  >
+                    <option value="">-- Choose Exam --</option>
+                    {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
-                  <div className="relative">
-                    <select
-                      value={qSubject}
-                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Subject --</option>
-                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qSubject === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qSubject}
+                    onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
+                  >
+                    <option value="">-- Choose Subject --</option>
+                    {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
-                  <div className="relative">
-                    <select
-                      value={qTopic}
-                      onChange={e => setQTopic(e.target.value)}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Topic --</option>
-                      {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qTopic === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Scientific Toolbar */}
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
-                <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
-                  <Atom className="w-3.5 h-3.5 text-blue-600" />
-                  Scientific Toolbar (Click to insert into Question statement):
-                </span>
-                
-                <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
-                  <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Chem:</span>
-                  {['H₂O', 'CO₂', 'LiFePO₄', 'SO₄²⁻', 'NO₃⁻', 'O₂', 'N₂', 'Fe²⁺', 'σ', 'π', '→', '⇌', 'Δ', '°C'].map(sym => (
-                    <button
-                      type="button"
-                      key={sym}
-                      onClick={() => insertSymbol(sym)}
-                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs"
-                    >
-                      {sym}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1 text-xs font-mono pt-1 border-t border-blue-200/50">
-                  <span className="text-[10px] font-black uppercase text-blue-700 mr-1">Math:</span>
-                  {['x²', 'x³', 'x₁', 'x₂', 'sp²', 'sp³', '√', 'π', 'Ω', 'θ', 'λ', 'α', 'β', '∑', '∫', '±', '≠', '≤', '≥', '∞'].map(sym => (
-                    <button
-                      type="button"
-                      key={sym}
-                      onClick={() => insertSymbol(sym)}
-                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs"
-                    >
-                      {sym}
-                    </button>
-                  ))}
+                  <input
+                    type="text"
+                    placeholder="Chapter / Topic Name"
+                    value={qTopic}
+                    onChange={e => setQTopic(e.target.value)}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
+                  />
                 </div>
               </div>
 
               {/* Question Statements */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Question Statement (English)*
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Question Statement (English)*</label>
                   <textarea
                     rows={2}
                     value={qStatementEn}
                     onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                    placeholder="Enter English question statement..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    प्रश्न विवरण (हिंदी में)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">प्रश्न विवरण (हिंदी में)</label>
                   <textarea
                     rows={2}
                     value={qStatementHi}
                     onChange={e => setQStatementHi(e.target.value)}
-                    placeholder="हिंदी अनुवाद दर्ज करें..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none"
                   />
                 </div>
               </div>
 
-              {/* Question Media Hub */}
+              {/* Question Diagram Slot */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                  <div>
-                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Media (Optional)
-                    </label>
-                    <p className="text-[10px] text-slate-400">Supports Abhyaas Google Drive links, PDF Documents, SVG, PNG, and 3D files.</p>
-                  </div>
-                  
-                  <input
-                    type="file"
-                    accept="image/*,.pdf,.svg,.mol,.pdb"
-                    ref={fileAttachmentRef}
-                    onChange={handleLocalFileAttachment}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileAttachmentRef.current?.click()}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs"
-                  >
-                    <UploadCloud className="w-3.5 h-3.5" /> Attach File from Device
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Media (Optional)
+                  </label>
+                  <input type="file" accept="image/*,.pdf,.svg" ref={fileAttachmentRef} onChange={handleLocalFileAttachment} className="hidden" />
+                  <button type="button" onClick={() => fileAttachmentRef.current?.click()} className="px-3 py-1.5 bg-blue-600 text-white font-bold text-xs rounded-xl">
+                    Attach from Device
                   </button>
                 </div>
-
                 <input
                   type="text"
-                  placeholder="Paste Abhyaas Google Drive link OR direct image/PDF URL..."
+                  placeholder="Or paste image URL / GDrive / Base64..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
-                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-mono"
+                  className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-mono outline-none"
                 />
-
-                {/* Live Question Preview */}
-                {modalAttachmentPreview.type !== 'NONE' && modalAttachmentPreview.directUrl && (
-                  <div className="mt-2 p-3 bg-white rounded-xl w-fit border shadow-xs space-y-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                      Preview: <strong className="text-blue-600">{modalAttachmentPreview.type}</strong>
-                    </span>
-                    {modalAttachmentPreview.type === 'IMAGE' || (modalAttachmentPreview.type === 'GDRIVE' && !modalAttachmentPreview.rawUrl.includes('.pdf')) ? (
-                      <img 
-                        src={modalAttachmentPreview.directUrl} 
-                        alt="Preview" 
-                        referrerPolicy="no-referrer"
-                        className="max-h-40 w-auto min-w-[240px] max-w-full rounded-lg object-contain bg-white border p-1" 
-                      />
-                    ) : (
-                      <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border">
-                        <FileText className="w-6 h-6 text-rose-500" />
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">PDF Document Ready</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Options Section */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
-                <div>
-                  <label className="block text-xs font-black uppercase text-slate-700">
-                    Options (A, B, C, D) & Answer Key*
-                  </label>
-                  <p className="text-[10px] text-slate-400">Options are purely text by default. You can optionally attach an image/diagram to any option.</p>
-                </div>
-
-                {[0, 1, 2, 3].map(i => {
-                  const optDiag = qOptionsDiagrams[i] || '';
-                  const optAtt = parseAttachment(optDiag);
-                  const currentRef = getOptRef(i);
-
-                  return (
-                    <div key={i} className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-xs">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="correctKey"
-                          checked={qCorrectOpt === i}
-                          onChange={() => setQCorrectOpt(i)}
-                          className="w-4 h-4 text-blue-600 cursor-pointer"
-                        />
-                        <span className="text-xs font-black text-slate-700 w-16">
-                          Opt {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct)' : ''}
-                        </span>
-
-                        <input
-                          type="text"
-                          placeholder={`Option ${String.fromCharCode(65 + i)} English Text`}
-                          value={qOptionsEn[i]}
-                          onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }}
-                          className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                          required
-                        />
-
-                        <input
-                          type="text"
-                          placeholder={`विकल्प ${String.fromCharCode(65 + i)} हिंदी`}
-                          value={qOptionsHi[i]}
-                          onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }}
-                          className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                        />
-                      </div>
-
-                      {/* Optional Diagram Slot */}
-                      <div className="pl-6 flex flex-wrap items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*,.svg"
-                          ref={currentRef}
-                          onChange={(e) => handleOptionDiagramUpload(i, e)}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => currentRef.current?.click()}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition"
-                        >
-                          <UploadCloud className="w-3 h-3 text-blue-600" /> Optional Opt {String.fromCharCode(65 + i)} Diagram
-                        </button>
-
-                        <input
-                          type="text"
-                          placeholder="Or paste image link (optional)..."
-                          value={qOptionsDiagrams[i]}
-                          onChange={e => {
-                            const d = [...qOptionsDiagrams];
-                            d[i] = e.target.value;
-                            setQOptionsDiagrams(d);
-                          }}
-                          className="flex-1 h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none font-mono"
-                        />
-
-                        {optAtt.type === 'IMAGE' && optAtt.directUrl && (
-                          <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                            <img src={optAtt.directUrl} alt="Opt preview" referrerPolicy="no-referrer" className="h-6 w-auto object-contain rounded" />
-                            <span className="text-[9px] font-bold text-blue-700">Preview</span>
-                            <button
-                              type="button"
-                              onClick={() => { const d = [...qOptionsDiagrams]; d[i] = ''; setQOptionsDiagrams(d); }}
-                              className="text-rose-500 hover:text-rose-700 text-xs font-black ml-1"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Options */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <label className="block text-xs font-black uppercase text-slate-700">Options (A, B, C, D) &amp; Correct Key*</label>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
+                    <span className="text-xs font-black text-slate-700 w-14">Opt {String.fromCharCode(65 + i)}</span>
+                    <input
+                      type="text"
+                      placeholder={`Option ${String.fromCharCode(65 + i)} English`}
+                      value={qOptionsEn[i]}
+                      onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }}
+                      className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder={`विकल्प ${String.fromCharCode(65 + i)} हिंदी`}
+                      value={qOptionsHi[i]}
+                      onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }}
+                      className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none"
+                    />
+                  </div>
+                ))}
               </div>
 
               {/* Explanations */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Explanation (English)</label>
-                  <textarea
-                    rows={2}
-                    value={qExplanationEn}
-                    onChange={e => setQExplanationEn(e.target.value)}
-                    placeholder="Solution..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                  />
+                  <textarea rows={2} value={qExplanationEn} onChange={e => setQExplanationEn(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">उत्तर का स्पष्टीकरण (Hindi)</label>
-                  <textarea
-                    rows={2}
-                    value={qExplanationHi}
-                    onChange={e => setQExplanationHi(e.target.value)}
-                    placeholder="विस्तृत व्याख्या..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                  />
+                  <textarea rows={2} value={qExplanationHi} onChange={e => setQExplanationHi(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
                 </div>
               </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  {editingQuestionId ? 'Update Question' : 'Save Question to Vault'}
-                </button>
-              </div>
-
+              <button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" />
+                {editingQuestionId ? 'Update Question' : 'Save Question to Vault'}
+              </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 2: BULK UPLOAD */}
+      {/* MODAL: BULK UPLOAD */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                  Bulk Question Importer
-                </h3>
-                <p className="text-xs text-slate-500">Upload questions via Excel paste or CSV file.</p>
-              </div>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                Bulk Question Importer
+              </h3>
               <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div>
-                <p className="text-xs font-black text-blue-950">Official Template File & Sample Data</p>
-                <p className="text-[11px] text-blue-700">Pre-formatted with all 20 required columns.</p>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={downloadSampleCsv}
-                  className="flex-1 sm:flex-none px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
-                >
-                  <Download className="w-3.5 h-3.5" /> Download Template (.CSV)
-                </button>
-                <button
-                  type="button"
-                  onClick={copySampleRowToClipboard}
-                  className="flex-1 sm:flex-none px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition"
-                >
-                  {copiedSample ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedSample ? 'Copied!' : 'Copy Sample Row'}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
-              <button
-                onClick={() => setBulkMode('paste')}
-                className={`flex-1 py-2.5 rounded-lg transition ${bulkMode === 'paste' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-              >
-                1. Direct Paste from Excel (Recommended)
-              </button>
-              <button
-                onClick={() => setBulkMode('csv')}
-                className={`flex-1 py-2.5 rounded-lg transition ${bulkMode === 'csv' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-              >
-                2. Upload UTF-8 CSV File
-              </button>
-            </div>
-
-            {bulkMode === 'paste' ? (
-              <div className="space-y-3 text-xs">
-                <p className="text-slate-600 leading-relaxed">
-                  Click <strong>Copy Sample Row</strong> above or select rows in Excel, press <strong>Ctrl+C</strong>, and paste below with <strong>Ctrl+V</strong>:
-                </p>
-                <textarea
-                  rows={6}
-                  value={pasteData}
-                  onChange={e => setPasteData(e.target.value)}
-                  placeholder="Paste copied cells from Excel here (tab-delimited)..."
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleDirectExcelPaste}
-                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
-                >
-                  <ClipboardCheck className="w-4 h-4" /> Import Pasted Rows
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4 text-xs">
-                <p className="text-slate-600 leading-relaxed">Upload CSV files.</p>
-                <div
-                  onClick={() => csvInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-8 text-center bg-slate-50 cursor-pointer transition"
-                >
-                  <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="font-bold text-slate-800">Click to Select UTF-8 CSV</p>
-                  <input type="file" accept=".csv" ref={csvInputRef} onChange={handleCsvFile} className="hidden" />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: AUTO-PUSH PIPELINE */}
-      {isAutoPushModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-emerald-600" />
-                Auto-Push Olympiad ➔ PYQ/Practice
-              </h3>
-              <button onClick={() => setIsAutoPushModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Transfer quarantined Olympiad questions into the Free Practice Bank or official PYQ Archive after a contest.
-            </p>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Examination or Subject:</label>
-                <div className="relative">
-                  <select
-                    value={pushTargetExam}
-                    onChange={e => setPushTargetExam(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Exam or Subject --</option>
-                    {taxonomyList.filter(t => t.level === 'EXAM' || t.level === 'SUBJECT').map(item => (
-                      <option key={item.id} value={item.nameEn}>{item.nameEn} ({item.level})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Transfer Destination:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPushTargetSegment('PRACTICE')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition ${
-                      pushTargetSegment === 'PRACTICE' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    Free Practice Bank
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPushTargetSegment('PYQ')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition ${
-                      pushTargetSegment === 'PYQ' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    PYQ Archive
-                  </button>
-                </div>
-              </div>
-
-              {pushTargetSegment === 'PYQ' && (
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Assign PYQ Year:</label>
-                  <input
-                    type="text"
-                    value={pushPyqYear}
-                    onChange={e => setPushPyqYear(e.target.value)}
-                    className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none"
-                    placeholder="e.g. 2026"
-                  />
-                </div>
-              )}
-            </div>
-
+            <textarea
+              rows={6}
+              value={pasteData}
+              onChange={e => setPasteData(e.target.value)}
+              placeholder="Paste copied cells from Excel here (tab-delimited)..."
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px] outline-none"
+            />
             <button
               type="button"
-              onClick={handleExecuteAutoPush}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+              onClick={async () => {
+                if (!pasteData.trim()) return alert("Paste cells first.");
+                const lines = pasteData.split(/\r?\n/).filter(l => l.trim().length > 0);
+                const parsed: QuestionData[] = [];
+                for (let i = 0; i < lines.length; i++) {
+                  const row = lines[i].split('\t');
+                  if (row.length >= 7) {
+                    const newId = `q-paste-${Date.now()}-${i}`;
+                    parsed.push({
+                      id: newId,
+                      docId: newId,
+                      segment: (row[0] || 'PRACTICE').toUpperCase() as QuestionSegment,
+                      className: row[1] || 'Civil Services / Competitive',
+                      examName: row[2] || 'UPSC Civil Services (Prelims)',
+                      subjectName: row[3] || 'General Studies / Science',
+                      topicName: row[4] || 'General',
+                      category: row[2] || 'UPSC Civil Services (Prelims)',
+                      subject: row[3] || 'General Studies / Science',
+                      class: row[1] || 'Civil Services / Competitive',
+                      topic: row[4] || 'General',
+                      pyqYear: row[5] || '2024',
+                      questionEn: formatScientific(row[6] || ''),
+                      questionHi: formatScientific(row[7] || row[6] || ''),
+                      optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
+                      optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
+                      optionsDiagrams: ['', '', '', ''],
+                      correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
+                      explanationEn: formatScientific(row[17] || ''),
+                      explanationHi: formatScientific(row[18] || ''),
+                      diagramUrl: row[19] || '',
+                      isArchived: false,
+                      status: 'ACTIVE',
+                      timesUsedInOlympiad: 0
+                    });
+                  }
+                }
+                const count = await bulkUploadQuestions(parsed);
+                setQuestionsList(prev => [...parsed, ...prev]);
+                setPasteData('');
+                setIsBulkModalOpen(false);
+                alert(`Imported ${count} questions!`);
+              }}
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition"
             >
-              <RefreshCw className="w-4 h-4" /> Execute Transfer Now
+              Import Pasted Rows
             </button>
-
           </div>
         </div>
       )}
