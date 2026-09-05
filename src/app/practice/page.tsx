@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { 
   BookOpen, Filter, ChevronRight, ArrowRight,
   FolderOpen, Clock, Sparkles, Search, Layers,
-  Compass, Zap, Award, CheckCircle2, Flame, ShieldAlert
+  Compass, CheckCircle2
 } from 'lucide-react';
 
 import { 
   getTaxonomyNodes, getAllQuestions, 
   TaxonomyNode, QuestionData, formatScientific 
 } from '@/lib/db';
-import OmniRenderer from '@/app/components/OmniRenderer';
 
 export default function DynamicPracticeBank() {
   const [mounted, setMounted] = useState(false);
@@ -305,7 +304,6 @@ export default function DynamicPracticeBank() {
                   availableSubjects.map(subj => {
                     const subjectQs = examQuestions.filter(q => (q.subjectName || q.subject) === subj);
                     
-                    // Filter topics based on search bar
                     const allTopics = Array.from(new Set(subjectQs.map(q => q.topicName || q.topic || 'General'))).filter(Boolean) as string[];
                     const filteredTopics = allTopics.filter(t => 
                       t.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -325,7 +323,7 @@ export default function DynamicPracticeBank() {
                             </div>
                             <div>
                               <h3 className="font-black text-base text-slate-900">
-                                <OmniRenderer text={subj} />
+                                {formatScientific(subj)}
                               </h3>
                               <p className="text-[11px] text-slate-400 font-bold">
                                 {subjectQs.length} Questions across {allTopics.length} Chapters
@@ -355,7 +353,7 @@ export default function DynamicPracticeBank() {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                   <div>
                                     <h4 className="font-black text-sm text-slate-900 leading-snug">
-                                      <OmniRenderer text={topic} />
+                                      {formatScientific(topic)}
                                     </h4>
                                     <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                                       Active Question Bank: <strong className="text-slate-800">{totalCount} Questions</strong> Available
@@ -373,7 +371,6 @@ export default function DynamicPracticeBank() {
                                     const testNum = testIdx + 1;
                                     const startQ = testIdx * 10 + 1;
                                     const endQ = Math.min((testIdx + 1) * 10, totalCount);
-                                    const countInThisSet = Math.max(1, endQ - startQ + 1);
                                     
                                     // Dual compatible parameters for guaranteed quiz routing
                                     const testUrl = `/quiz?category=${encodeURIComponent(activeExam)}&exam=${encodeURIComponent(activeExam)}&subject=${encodeURIComponent(subj)}&topic=${encodeURIComponent(topic)}&set=${testNum}`;
@@ -389,7 +386,7 @@ export default function DynamicPracticeBank() {
                                               Practice Test {testNum}
                                             </p>
                                             {testNum === 1 && totalCount >= 10 && (
-                                              <span className="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 text-[9px] font-black rounded border border-emerald-200">
+                                              <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[9px] font-black rounded border border-emerald-200">
                                                 STANDARD
                                               </span>
                                             )}
