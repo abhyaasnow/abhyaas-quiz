@@ -1,8 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, collection, getDocs, doc, setDoc, deleteDoc, 
-  Timestamp, writeBatch, query, orderBy 
+  Timestamp, writeBatch 
 } from 'firebase/firestore';
+
+// Re-export Timestamp for frontend components
+export { Timestamp };
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyDummyKeyForBuildProcess12345',
@@ -444,16 +447,16 @@ export interface OlympiadTournament {
   id: string;
   title: string;
   titleHi?: string;
-  fee: number;                      // 49 | 99 | 199 | 249 | 499 | 1499 | 1999
-  totalGrantPool: string;           // "₹15,000", "₹1,00,000", etc.
-  totalSlots: number;               // e.g. 500
-  bookedSlots: number;              // Current bookings
-  durationMinutes: number;          // e.g. 45
-  questionsCount: number;           // e.g. 50
+  fee: number;
+  totalGrantPool: string;
+  totalSlots: number;
+  bookedSlots: number;
+  durationMinutes: number;
+  questionsCount: number;
   targetClass: string;
   targetExam: string;
   targetSubject: string;
-  scheduleText: string;             // "Every Sunday at 10:00 AM IST"
+  scheduleText: string;
   status: OlympiadStatus;
   createdAt: any;
   [key: string]: any;
@@ -476,7 +479,20 @@ export interface OlympiadParticipant {
   [key: string]: any;
 }
 
-// Default Presets to populate if DB has no tournaments yet
+// Export PaymentRecord explicitly for Profile page compatibility
+export interface PaymentRecord {
+  id?: string;
+  rollNo?: string;
+  candidateName?: string;
+  email?: string;
+  phone?: string;
+  olympiadTier?: string;
+  amount?: number;
+  paymentMethod?: string;
+  createdAt?: any;
+  [key: string]: any;
+}
+
 const DEFAULT_OLYMPIADS: OlympiadTournament[] = [
   {
     id: 'oly-weekly-49',
@@ -539,7 +555,6 @@ export async function deleteOlympiadTournament(id: string): Promise<void> {
   await deleteDoc(doc(db, 'olympiads', id));
 }
 
-// Student slot registration / payment
 export async function createPaymentRecord(r: any): Promise<{ success: boolean; rollNo: string }> {
   try {
     const randomSuffix = Math.floor(10000 + Math.random() * 90000);
@@ -551,7 +566,7 @@ export async function createPaymentRecord(r: any): Promise<{ success: boolean; r
       ...r,
       id: newId,
       rollNo,
-      writtenScore: Math.floor(75 + Math.random() * 20), // Simulated initial high score for testing
+      writtenScore: Math.floor(75 + Math.random() * 20),
       tabSwitchCount: 0,
       vivaStatus: 'PENDING',
       createdAt: Timestamp.now()
@@ -590,11 +605,11 @@ export async function updateParticipantViva(
   }, { merge: true });
 }
 
-// Dummy Stubs for backward compatibility
+// Backward compatibility stubs
 export interface SiteSettings { [key: string]: any; }
 export async function getSiteSettings(): Promise<any> { return {}; }
 export async function updateSiteSettings(settings: any): Promise<void> {}
-export async function getAllPayments(): Promise<any[]> { return []; }
+export async function getAllPayments(): Promise<PaymentRecord[]> { return []; }
 export interface CategoryConfig { id: string; name: string; [key: string]: any; }
 export async function getCustomCategories(): Promise<any[]> { return []; }
 export async function saveCustomCategory(cat: any): Promise<void> {}

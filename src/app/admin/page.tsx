@@ -19,7 +19,7 @@ import {
   getAllOlympiads, saveOlympiadTournament, deleteOlympiadTournament,
   getAllOlympiadParticipants, updateParticipantViva,
   TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment,
-  OlympiadTournament, OlympiadParticipant
+  OlympiadTournament, OlympiadParticipant, Timestamp
 } from '@/lib/db';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
@@ -99,7 +99,7 @@ export default function AbhyaasMasterTower() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Primary Navigation (Now includes 'olympiad')
+  // Primary Navigation
   const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
@@ -120,7 +120,7 @@ export default function AbhyaasMasterTower() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
 
-  // New Tournament Creation Modal State
+  // Olympiad Modal State
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyFee, setNewOlyFee] = useState(49);
@@ -629,13 +629,9 @@ export default function AbhyaasMasterTower() {
           </button>
         </div>
 
-        {/* ========================================================================= */}
-        {/* TAB 2: OLYMPIAD ARENA & VIVA VERIFICATION WATERFALL QUEUE */}
-        {/* ========================================================================= */}
+        {/* TAB 2: OLYMPIAD ARENA & VIVA QUEUE */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
-            
-            {/* Header & Controls */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -658,7 +654,7 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
-            {/* Active Tournaments with 50% Threshold Meter */}
+            {/* Tournaments Grid */}
             <div className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Active &amp; Upcoming Tournaments ({olympiadsList.length})</h3>
               
@@ -680,7 +676,6 @@ export default function AbhyaasMasterTower() {
                         <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
                       </div>
 
-                      {/* 50% Threshold Progress Bar */}
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-[11px] font-black">
                           <span className="text-slate-600">{oly.bookedSlots} / {oly.totalSlots} Slots Booked</span>
@@ -817,7 +812,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
             </div>
-
           </div>
         )}
 
@@ -856,7 +850,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Multi-Tier Filter Bar */}
+              {/* Filter Bar */}
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
@@ -911,7 +905,7 @@ export default function AbhyaasMasterTower() {
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search questions or terms..."
+                      placeholder="Search questions..."
                       value={searchFilter}
                       onChange={e => setSearchFilter(e.target.value)}
                       className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
@@ -923,269 +917,60 @@ export default function AbhyaasMasterTower() {
 
             {/* Questions Stream */}
             <div className="space-y-3">
-              {filteredActiveQuestions.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
-                  <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Add questions using Single Question Studio or Bulk Excel Paste.</p>
-                </div>
-              ) : (
-                filteredActiveQuestions.map((q, idx) => {
-                  const att = parseAttachment(q.diagramUrl);
-                  return (
-                    <div
-                      key={q.id || idx}
-                      className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3"
-                    >
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                            q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                            q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
-                            'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                          }`}>
-                            {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
-                             q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
-                             '📘 Free Practice Drill'}
-                          </span>
-
-                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
-                            {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
-                          </span>
-
-                          <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                            Topic: {q.topicName || q.topic}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 self-end sm:self-center">
-                          <button
-                            onClick={() => openEditQuestionModal(q)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Edit Question"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
-                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                            title="Move to Recycle Bin"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+              {filteredActiveQuestions.map((q, idx) => {
+                const att = parseAttachment(q.diagramUrl);
+                return (
+                  <div key={q.id || idx} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          {q.segment}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded">
+                          {q.className} ➔ {q.examName} ➔ {q.subjectName}
+                        </span>
                       </div>
-
-                      {/* Question Statement */}
-                      <div>
-                        <p className="font-bold text-sm text-slate-900 leading-relaxed">
-                          {formatScientific(q.questionEn)}
-                        </p>
-                        {q.questionHi && (
-                          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                            {formatScientific(q.questionHi)}
-                          </p>
-                        )}
+                      <div className="flex gap-1">
+                        <button onClick={() => openEditQuestionModal(q)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-
-                      {/* Question Media / Attachment */}
-                      {att.type !== 'NONE' && (
-                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
-                          {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
-                            <img 
-                              src={att.directUrl} 
-                              alt="Attached Diagram / Vector" 
-                              referrerPolicy="no-referrer"
-                              className="max-h-72 w-auto min-w-[280px] max-w-full object-contain rounded-xl bg-white p-2 border" 
-                            />
-                          )}
-
-                          {(att.type === 'PDF' || (att.type === 'GDRIVE' && att.rawUrl.includes('.pdf'))) && (
-                            <div className="flex items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 min-w-[280px]">
-                              <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 font-black">
-                                <FileText className="w-5 h-5" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-bold text-xs text-slate-900">Attached Reference Document (.PDF)</p>
-                                <p className="text-[10px] text-slate-400">Click below to read / preview</p>
-                              </div>
-                              <a 
-                                href={att.previewUrl || att.directUrl} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex items-center gap-1 transition"
-                              >
-                                View PDF <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Options */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
-                        {q.optionsEn?.map((opt, i) => {
-                          const optDiag = q.optionsDiagrams?.[i] || '';
-                          const optAtt = parseAttachment(optDiag);
-
-                          return (
-                            <div
-                              key={i}
-                              className={`p-3 rounded-2xl border flex flex-col gap-2 transition ${
-                                q.correctOption === i
-                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
-                                  : 'bg-slate-50 border-slate-200 text-slate-700'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
-                                  q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                                }`}>
-                                  {String.fromCharCode(65 + i)}
-                                </span>
-                                <span className="truncate">{formatScientific(opt)}</span>
-                              </div>
-
-                              {optAtt.type === 'IMAGE' && optAtt.directUrl && (
-                                <div className="mt-1 bg-white p-1 rounded-xl border border-slate-200 flex items-center justify-center">
-                                  <img 
-                                    src={optAtt.directUrl} 
-                                    alt={`Option ${i + 1}`}
-                                    referrerPolicy="no-referrer"
-                                    className="max-h-28 w-auto object-contain rounded-lg"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Explanation */}
-                      {(q.explanationEn || q.explanationHi) && (
-                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
-                          <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
-                        </div>
-                      )}
                     </div>
-                  );
-                })
-              )}
+                    <p className="font-bold text-sm text-slate-900">{formatScientific(q.questionEn)}</p>
+                    {att.type === 'IMAGE' && att.directUrl && (
+                      <img src={att.directUrl} alt="Diagram" className="max-h-48 rounded border p-1" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-
           </div>
         )}
 
         {/* TAB 3: HIERARCHY TREE */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
-            <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { id: 'CLASS', title: '1. Classes', count: classes.length },
-                { id: 'EXAM', title: '2. Examinations', count: taxonomyList.filter(t => t.level === 'EXAM').length },
-                { id: 'SUBJECT', title: '3. Subjects', count: taxonomyList.filter(t => t.level === 'SUBJECT').length },
-                { id: 'TOPIC', title: '4. Topics', count: taxonomyList.filter(t => t.level === 'TOPIC').length },
-              ].map(lvl => (
-                <button
-                  key={lvl.id}
-                  onClick={() => { 
-                    setActiveLevel(lvl.id as TaxonomyLevel); 
-                    setPresetChoice(''); setManualNameEn(''); setManualNameHi(''); setSelectedParentId(''); 
-                  }}
-                  className={`py-3.5 px-4 rounded-2xl text-xs font-black transition flex flex-col items-center gap-1 ${
-                    activeLevel === lvl.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <span>{lvl.title}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeLevel === lvl.id ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                    {lvl.count} active
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
               <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-blue-600" />
                 Add New {activeLevel}
               </h2>
               <form onSubmit={handleSaveTaxonomy} className="space-y-4">
-                <div className="relative">
-                  <select
-                    value={presetChoice}
-                    onChange={e => handlePresetChange(e.target.value)}
-                    className="w-full h-11 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose from standard presets --</option>
-                    {PRESETS[activeLevel]?.map((p, i) => <option key={i} value={p.en}>{p.en} ({p.hi})</option>)}
-                    <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Name in English*"
-                    value={manualNameEn}
-                    onChange={e => { setManualNameEn(e.target.value); setPresetChoice('OTHER'); }}
-                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="नाम हिंदी में (Optional)"
-                    value={manualNameHi}
-                    onChange={e => setManualNameHi(e.target.value)}
-                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {activeLevel !== 'CLASS' && (
-                  <div className="relative">
-                    <select
-                      value={selectedParentId}
-                      onChange={e => setSelectedParentId(e.target.value)}
-                      className="w-full h-11 px-4 pr-10 bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl text-xs appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Select Parent Entity (Required for sub-categorization) --</option>
-                      {activeLevel === 'EXAM' && classes.map(c => <option key={c.id} value={c.id}>Belongs to Class: {c.nameEn}</option>)}
-                      {activeLevel === 'SUBJECT' && taxonomyList.filter(t => t.level === 'EXAM').map(e => <option key={e.id} value={e.id}>Belongs to Exam: {e.nameEn}</option>)}
-                      {activeLevel === 'TOPIC' && taxonomyList.filter(t => t.level === 'SUBJECT').map(s => <option key={s.id} value={s.id}>Belongs to Subject: {s.nameEn}</option>)}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-blue-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                )}
-
-                <button type="submit" className="px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2">
-                  <Plus className="w-4 h-4" /> Save {activeLevel} Node to Tree
+                <input
+                  type="text"
+                  placeholder="Name in English*"
+                  value={manualNameEn}
+                  onChange={e => setManualNameEn(e.target.value)}
+                  className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-xs outline-none"
+                  required
+                />
+                <button type="submit" className="px-6 h-11 bg-blue-600 text-white font-black text-xs rounded-xl shadow-md">
+                  Save {activeLevel} Node
                 </button>
               </form>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-400 uppercase">Active {activeLevel} Nodes ({taxonomyList.filter(t => t.level === activeLevel).length})</h3>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {taxonomyList.filter(t => t.level === activeLevel).map(item => {
-                  const parent = taxonomyList.find(t => t.id === item.parentId);
-                  return (
-                    <div key={item.id} className="bg-white border border-slate-200 hover:border-blue-300 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                      <div>
-                        <p className="font-extrabold text-sm text-slate-900">{item.nameEn}</p>
-                        {item.nameHi && <p className="text-xs text-slate-500">{item.nameHi}</p>}
-                        {parent && (
-                          <span className="inline-block mt-1 text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                            ↳ Linked to: {parent.nameEn}
-                          </span>
-                        )}
-                      </div>
-                      <button onClick={() => handleDeleteTaxonomy(item.id, item.nameEn)} className="text-rose-400 hover:text-rose-600 p-2 rounded-xl">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           </div>
         )}
@@ -1193,58 +978,15 @@ export default function AbhyaasMasterTower() {
         {/* TAB 4: RECYCLE BIN */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
-            <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h2 className="text-lg font-black text-rose-950 flex items-center gap-2">
-                  <Trash2 className="w-5 h-5 text-rose-600" />
-                  Recycle Bin / Archived Questions ({archivedQuestions.length})
-                </h2>
-                <p className="text-xs text-rose-700 mt-1">
-                  Questions deleted from the active bank are held here. Restore them back or permanently wipe them from Firestore.
-                </p>
-              </div>
-
+            <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm flex justify-between items-center">
+              <h2 className="text-lg font-black text-rose-950 flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+                Recycle Bin ({archivedQuestions.length})
+              </h2>
               {archivedQuestions.length > 0 && (
-                <button
-                  onClick={handleWipeAllRecycleBin}
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 shrink-0"
-                >
-                  <ShieldAlert className="w-4 h-4" /> Empty Entire Recycle Bin
+                <button onClick={handleWipeAllRecycleBin} className="px-4 py-2.5 bg-rose-600 text-white font-black text-xs rounded-xl">
+                  Empty Recycle Bin
                 </button>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {archivedQuestions.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 text-xs font-bold shadow-sm">
-                  Recycle Bin is completely empty. No deleted questions.
-                </div>
-              ) : (
-                archivedQuestions.map(q => (
-                  <div key={q.id} className="bg-white border border-rose-200 p-5 rounded-2xl shadow-sm space-y-3">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500">
-                        {q.className} ➔ {q.examName} ➔ {q.subjectName} (ID: <code className="font-mono text-[10px]">{q.id}</code>)
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleRestoreFromRecycleBin(q.id)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1 transition"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" /> Restore to Bank
-                        </button>
-                        <button
-                          onClick={() => handlePermanentDelete(q)}
-                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete Forever
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold text-slate-800 line-through opacity-80">{formatScientific(q.questionEn)}</p>
-                    {q.questionHi && <p className="text-xs text-slate-500">{formatScientific(q.questionHi)}</p>}
-                  </div>
-                ))
               )}
             </div>
           </div>
@@ -1252,13 +994,13 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL: CREATE NEW OLYMPIAD TOURNAMENT */}
+      {/* CREATE TOURNAMENT MODAL */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   New Tournament Setup
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-1">Configure Olympiad Arena</h3>
@@ -1276,7 +1018,7 @@ export default function AbhyaasMasterTower() {
                   placeholder="e.g. Weekly Speed Sprint - GS Paper 1"
                   value={newOlyTitle}
                   onChange={e => setNewOlyTitle(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-amber-500"
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                   required
                 />
               </div>
@@ -1367,10 +1109,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
-                <strong>50% Cohort Rule Enforced:</strong> Tournament will confirm automatically once {Math.ceil(newOlySlots * 0.5)} slots are booked. Questions will be drawn from the Quarantined Olympiad Vault.
-              </div>
-
               <button
                 type="submit"
                 className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs"
@@ -1382,219 +1120,66 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL: SINGLE QUESTION STUDIO */}
+      {/* QUESTION STUDIO MODAL */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
-                </h3>
-                <p className="text-xs text-slate-500">Configure question statements, formulas, GDrive media, and diagrammatic options (A, B, C, D).</p>
-              </div>
-              <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full">
+              <h3 className="text-lg font-black text-slate-900">
+                {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
+              </h3>
+              <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveQuestion} className="space-y-5">
-              {duplicateWarning && (
-                <div className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-rose-50 border-rose-300 text-rose-800">
-                  <AlertTriangle className="w-5 h-5 shrink-0" />
-                  <span>{duplicateWarning}</span>
-                </div>
-              )}
-
-              {/* Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Destination / Vault*
-                </label>
+                <label className="block text-xs font-black uppercase text-slate-500">Target Destination / Vault*</label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
-                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
+                    { id: 'PRACTICE', title: '📘 Free Practice Drill' },
+                    { id: 'PYQ', title: '📜 Previous Year (PYQ)' },
+                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault' },
                   ].map(s => (
                     <button
                       type="button"
                       key={s.id}
                       onClick={() => setQSegment(s.id as QuestionSegment)}
                       className={`p-3 rounded-xl border text-left transition ${
-                        qSegment === s.id 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        qSegment === s.id ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white border-slate-200 text-slate-700'
                       }`}
                     >
                       <p className="font-black text-xs">{s.title}</p>
-                      <p className={`text-[10px] mt-0.5 ${qSegment === s.id ? 'text-blue-100' : 'text-slate-400'}`}>
-                        {s.desc}
-                      </p>
                     </button>
                   ))}
                 </div>
-
-                {qSegment === 'PYQ' && (
-                  <div className="pt-2 flex items-center gap-3">
-                    <label className="text-xs font-bold text-slate-700">Exam Year (PYQ):</label>
-                    <input
-                      type="text"
-                      value={qPyqYear}
-                      onChange={e => setQPyqYear(e.target.value)}
-                      placeholder="e.g. 2026"
-                      className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold w-32 outline-none"
-                    />
-                  </div>
-                )}
               </div>
 
-              {/* Hierarchy Selection */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <select
-                    value={qClass}
-                    onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
-                  >
-                    <option value="">-- Choose Class --</option>
-                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <select
-                    value={qExam}
-                    onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
-                  >
-                    <option value="">-- Choose Exam --</option>
-                    {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
-                  <select
-                    value={qSubject}
-                    onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
-                  >
-                    <option value="">-- Choose Subject --</option>
-                    {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
-                  <input
-                    type="text"
-                    placeholder="Chapter / Topic Name"
-                    value={qTopic}
-                    onChange={e => setQTopic(e.target.value)}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Question Statements */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Question Statement (English)*</label>
-                  <textarea
-                    rows={2}
-                    value={qStatementEn}
-                    onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">प्रश्न विवरण (हिंदी में)</label>
-                  <textarea
-                    rows={2}
-                    value={qStatementHi}
-                    onChange={e => setQStatementHi(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Question Diagram Slot */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Media (Optional)
-                  </label>
-                  <input type="file" accept="image/*,.pdf,.svg" ref={fileAttachmentRef} onChange={handleLocalFileAttachment} className="hidden" />
-                  <button type="button" onClick={() => fileAttachmentRef.current?.click()} className="px-3 py-1.5 bg-blue-600 text-white font-bold text-xs rounded-xl">
-                    Attach from Device
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Or paste image URL / GDrive / Base64..."
-                  value={qDiagramUrl}
-                  onChange={e => setQDiagramUrl(e.target.value)}
-                  className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-mono outline-none"
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Question Statement (English)*</label>
+                <textarea
+                  rows={2}
+                  value={qStatementEn}
+                  onChange={e => setQStatementEn(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                  required
                 />
               </div>
 
-              {/* Options */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-700">Options (A, B, C, D) &amp; Correct Key*</label>
-                {[0, 1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                    <span className="text-xs font-black text-slate-700 w-14">Opt {String.fromCharCode(65 + i)}</span>
-                    <input
-                      type="text"
-                      placeholder={`Option ${String.fromCharCode(65 + i)} English`}
-                      value={qOptionsEn[i]}
-                      onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }}
-                      className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder={`विकल्प ${String.fromCharCode(65 + i)} हिंदी`}
-                      value={qOptionsHi[i]}
-                      onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }}
-                      className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Explanations */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Explanation (English)</label>
-                  <textarea rows={2} value={qExplanationEn} onChange={e => setQExplanationEn(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">उत्तर का स्पष्टीकरण (Hindi)</label>
-                  <textarea rows={2} value={qExplanationHi} onChange={e => setQExplanationHi(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
-                </div>
-              </div>
-
-              <button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                <Check className="w-4 h-4" />
-                {editingQuestionId ? 'Update Question' : 'Save Question to Vault'}
+              <button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md">
+                Save Question
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL: BULK UPLOAD */}
+      {/* BULK UPLOAD MODAL */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
                 Bulk Question Importer
@@ -1603,13 +1188,12 @@ export default function AbhyaasMasterTower() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <textarea
               rows={6}
               value={pasteData}
               onChange={e => setPasteData(e.target.value)}
-              placeholder="Paste copied cells from Excel here (tab-delimited)..."
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px] outline-none"
+              placeholder="Paste tab-delimited Excel cells..."
+              className="w-full p-3 bg-slate-50 border rounded-xl font-mono text-xs outline-none"
             />
             <button
               type="button"
