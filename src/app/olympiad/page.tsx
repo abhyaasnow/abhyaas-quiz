@@ -1,418 +1,396 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Award,
-  Trophy,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  Users,
-  ShieldCheck,
-  FileText,
-  Sparkles,
-  ArrowRight,
-  HelpCircle,
-  Info,
-  X,
-  Zap,
-  BookOpen,
-  Download,
-  Loader2,
-  AlertCircle,
-  User,
-  Mail,
-  Phone,
-  QrCode,
-  Video,
-  ShieldAlert,
-  Percent,
-  Check
+  Award, Calendar, Clock, CheckCircle2, ShieldCheck,
+  BookOpen, Download, Loader2, User, Mail, Phone,
+  ArrowRight, X, AlertOctagon, Filter, Search,
+  Layers, FileText, Check, GraduationCap
 } from 'lucide-react';
-import { createPaymentRecord } from '@/lib/db';
+import { getAllOlympiads, createPaymentRecord, OlympiadTournament } from '@/lib/db';
 
-interface OlympiadTier {
-  id: string;
-  name: string;
-  nameHi: string;
-  fee: number;
-  totalGrantPool: string;
-  totalSlots: number;
-  bookedSlots: number;
-  durationMinutes: number;
-  questionsCount: number;
-  markingScheme: string;
-  scheduleText: string;
-  targetCategory: string;
-  syllabus: { subject: string; questions: number }[];
-  rewardMatrix: { rank: string; grant: string; perk: string }[];
-}
-
-const OLYMPIAD_TIERS: OlympiadTier[] = [
+const FALLBACK_ACADEMIC_OLYMPIADS: OlympiadTournament[] = [
   {
-    id: 'weekly-starter',
-    name: 'Weekly Speed Sprint',
-    nameHi: 'साप्ताहिक स्पीड स्प्रिंट',
+    id: 'abh-oly-upsc-prelims',
+    title: 'All-India General Studies Evaluation & Fellowship Assessment',
+    titleHi: 'अखिल भारतीय सामान्य अध्ययन मूल्यांकन एवं शोध छात्रवृत्ति परीक्षा',
+    descriptionEn: 'Rigorous national evaluation bench-marked against UPSC Civil Services Preliminary Examination standards. Covers Indian Polity, Modern History, and Macroeconomic Policy.',
     fee: 49,
-    totalGrantPool: '₹15,000',
+    totalGrantPool: '₹15,000 Study Fellowship',
     totalSlots: 500,
     bookedSlots: 362,
     durationMinutes: 45,
     questionsCount: 50,
-    markingScheme: '+2.00 Correct | -0.66 Negative',
-    scheduleText: 'Sunday at 10:00 AM IST',
-    targetCategory: 'UPSC CSE & State PSC Prelims GS',
+    targetClass: 'Civil Services & State PSC Aspirants',
+    targetExam: 'UPSC Civil Services (Prelims)',
+    targetSubject: 'General Studies Paper I',
+    categorySection: 'WEEKLY',
+    streamType: 'UPSC_PSC',
+    startDateTime: '2026-09-13T10:00',
+    scheduleText: 'Scheduled Sunday at 10:00 AM IST',
+    rules: [
+      "Strict Per-Question Timer (50 seconds per question, No Backtracking) to ensure independent analytical readiness.",
+      "Full-Screen Examination Lock: Navigating away from the evaluation environment prompts an immediate penalty; 2 warnings results in permanent auto-submission.",
+      "Integrity & Camera Telemetry: Candidate environment telemetry is recorded for post-examination audit.",
+      "Mandatory 1-on-1 Academic Viva: Provisional top merit rankers must clear a 10-minute conceptual viva (minimum 60% passing threshold) before fellowship sanction.",
+      "Academic Baseline Cutoff: A minimum written score of 75% marks is mandatory to qualify for research fellowship disbursals.",
+      "Disqualification & Ethics Policy: Impersonation, proxy assistance, or generative AI usage results in immediate cancellation and permanent identity blacklisting."
+    ],
     syllabus: [
-      { subject: 'Indian Polity & Constitution (भारतीय राजव्यवस्था)', questions: 15 },
-      { subject: 'Modern Indian History (आधुनिक भारत का इतिहास)', questions: 15 },
-      { subject: 'Physical & Economic Geography (भूगोल)', questions: 10 },
-      { subject: 'Current Affairs & National Events (समसामयिकी)', questions: 10 },
+      { subject: 'Indian Polity & Constitutional Governance', questions: 20, topics: 'Preamble, Fundamental Rights, Directive Principles, Parliamentary Procedures' },
+      { subject: 'Modern Indian History & National Movement', questions: 15, topics: 'Socio-religious reforms, 1857 to 1947, Constitutional evolution' },
+      { subject: 'Indian Economy & Fiscal Dynamics', questions: 15, topics: 'Macroeconomic indicators, Monetary Policy, Union Budget, Inflation targets' }
     ],
-    rewardMatrix: [
-      { rank: 'Rank 1', grant: '₹5,000 Academic Fellowship', perk: '1-on-1 Viva Verified • Merit Certificate' },
-      { rank: 'Rank 2 – 5', grant: '₹1,500 Preparation Grant', perk: 'National Excellence Roll of Honor' },
-      { rank: 'Rank 6 – 20', grant: '₹500 Subject Module Grant', perk: 'Standard Practice Access Credit' },
-      { rank: 'All Participants', grant: 'AI Diagnostic Scorecard', perk: 'Detailed Step-by-Step Solutions' },
-    ],
+    status: 'UPCOMING',
+    createdAt: null
   },
   {
-    id: 'weekly-advanced',
-    name: 'Foundation Master Sprint',
-    nameHi: 'फाउंडेशन मास्टर स्प्रिंट',
-    fee: 99,
-    totalGrantPool: '₹40,000',
-    totalSlots: 500,
-    bookedSlots: 290,
-    durationMinutes: 60,
-    questionsCount: 60,
-    markingScheme: '+2.00 Correct | -0.66 Negative',
-    scheduleText: 'Sunday at 01:00 PM IST',
-    targetCategory: 'Advanced Prelims & Analytical CSAT',
+    id: 'abh-oly-stem-foundation',
+    title: 'National Senior Secondary Foundation Diagnostic Assessment',
+    titleHi: 'राष्ट्रीय उच्चतर माध्यमिक बुनियादी मूल्यांकन परीक्षा',
+    descriptionEn: 'National benchmark examination designed to evaluate core conceptual rigor in advanced physical sciences, structural chemistry, and quantitative calculus.',
+    fee: 0,
+    totalGrantPool: 'National Merit Citation & Certificate',
+    totalSlots: 1000,
+    bookedSlots: 780,
+    durationMinutes: 40,
+    questionsCount: 40,
+    targetClass: 'Senior Secondary (Class 11th - 12th)',
+    targetExam: 'Senior Secondary Foundation',
+    targetSubject: 'Physics & Chemistry Core',
+    categorySection: 'WEEKLY',
+    streamType: 'FOUNDATION',
+    startDateTime: '2026-09-13T12:00',
+    scheduleText: 'Scheduled Sunday at 12:00 PM IST',
+    rules: [
+      "Application fee exempted under institutional academic merit sponsorship.",
+      "Sectional diagnostic analytical report and verified solution schemes issued post-assessment.",
+      "Full-screen lock enforced throughout the examination window."
+    ],
     syllabus: [
-      { subject: 'Comprehensive General Studies Paper-1', questions: 40 },
-      { subject: 'Logical Reasoning & Analytical Aptitude', questions: 20 },
+      { subject: 'Classical Mechanics & Dynamics', questions: 20, topics: 'Conservation laws, Rotational dynamics, Gravitation, Simple harmonic motion' },
+      { subject: 'Chemical Structure & Bonding', questions: 20, topics: 'Hybridization, Molecular Orbital Theory, Thermodynamic principles' }
     ],
-    rewardMatrix: [
-      { rank: 'Rank 1', grant: '₹12,000 Direct Fellowship', perk: 'Delhi Office Honor + Gold Citation' },
-      { rank: 'Rank 2 – 3', grant: '₹5,000 Academic Grant', perk: 'Silver Merit Medal + Verification Record' },
-      { rank: 'Rank 4 – 10', grant: '₹2,000 Book & Prep Grant', perk: 'Certificate of Academic Distinction' },
-      { rank: 'Rank 11 – 25', grant: '₹600 Preparation Voucher', perk: 'National Percentile Honor Roll' },
-    ],
+    status: 'UPCOMING',
+    createdAt: null
   },
   {
-    id: 'monthly-mega',
-    name: 'Monthly Mega Fellowship',
-    nameHi: 'मासिक मेगा ओलंपियाड',
+    id: 'abh-oly-monthly-advanced',
+    title: 'Monthly All-India Advanced Academic Fellowship Examination',
+    titleHi: 'मासिक अखिल भारतीय उच्च अध्ययन छात्रवृत्ति परीक्षा',
+    descriptionEn: 'Comprehensive multi-disciplinary assessment evaluating integrated conceptual problem-solving, advanced logic, and analytical synthesis across disciplines.',
     fee: 199,
-    totalGrantPool: '₹1,00,000',
+    totalGrantPool: '₹1,00,000 Study Fellowship Allocation',
     totalSlots: 600,
-    bookedSlots: 412,
+    bookedSlots: 410,
     durationMinutes: 90,
-    questionsCount: 100,
-    markingScheme: '+2.00 Correct | -0.66 Negative',
-    scheduleText: 'Last Tuesday of the Month (10:00 AM IST)',
-    targetCategory: 'All-India General Studies Paper-1 & 2',
+    questionsCount: 90,
+    targetClass: 'Higher Competitive & University Level',
+    targetExam: 'Integrated Graduate Assessment',
+    targetSubject: 'Comprehensive Core Studies',
+    categorySection: 'MONTHLY',
+    streamType: 'UPSC_PSC',
+    startDateTime: '2026-09-29T10:00',
+    scheduleText: 'Last Tuesday of the Month at 10:00 AM IST',
+    rules: [
+      "Strict timed environment with dual-stage verification protocols.",
+      "Merit rank 1 allocated ₹35,000 Research Fellowship post successful Viva Voce defense.",
+      "Disqualified attempts automatically cascade to subsequent qualifying candidates achieving >=75% baseline cutoff."
+    ],
     syllabus: [
-      { subject: 'Complete GS Core (Polity, History, Geo, Eco, Science)', questions: 70 },
-      { subject: 'Quantitative CSAT & Critical Decision Making', questions: 30 },
+      { subject: 'Section A: Analytical Foundations', questions: 30, topics: 'Structural governance, Macroeconomic policy, Environmental science' },
+      { subject: 'Section B: Quantitative & Logical Aptitude', questions: 30, topics: 'Statistical inference, Critical reasoning, Analytical problem solving' },
+      { subject: 'Section C: Contemporary Developments', questions: 30, topics: 'Science & technology policy, International institutional frameworks' }
     ],
-    rewardMatrix: [
-      { rank: 'Rank 1', grant: '₹35,000 Research Fellowship', perk: 'Physical Delhi Office Honor + Trophy' },
-      { rank: 'Rank 2 – 3', grant: '₹15,000 Academic Fellowship', perk: 'Official Felicitation + TDS Certificate' },
-      { rank: 'Rank 4 – 10', grant: '₹4,000 Educational Grant', perk: 'Certificate of National Distinction' },
-      { rank: 'Rank 11 – 50', grant: '₹1,000 Prep Assistance', perk: 'Institutional Honor Roll Listing' },
-    ],
-  },
-  {
-    id: 'subject-deepdive',
-    name: 'Subject Specialist Championship',
-    nameHi: 'विषय विशेषज्ञ चैंपियनशिप',
-    fee: 249,
-    totalGrantPool: '₹1,50,000',
-    totalSlots: 700,
-    bookedSlots: 485,
-    durationMinutes: 90,
-    questionsCount: 100,
-    markingScheme: '+2.00 Correct | -0.66 Negative',
-    scheduleText: 'Bi-Monthly Dedicated Stream Window',
-    targetCategory: 'Optional / Higher Science & Humanities',
-    syllabus: [
-      { subject: 'Organic, Inorganic & Physical Chemistry / Paper II', questions: 60 },
-      { subject: 'Reaction Mechanisms & Spectroscopy Problem Solving', questions: 40 },
-    ],
-    rewardMatrix: [
-      { rank: 'Rank 1', grant: '₹50,000 Specialization Fellowship', perk: 'In-Person Institutional Award + Memento' },
-      { rank: 'Rank 2 – 5', grant: '₹15,000 Research Assistance', perk: 'TDS Certified Bank Transfer' },
-      { rank: 'Rank 6 – 20', grant: '₹3,500 Advanced Study Grant', perk: 'Certificate of Scientific Excellence' },
-      { rank: 'Rank 21 – 50', grant: '₹1,000 Resource Fellowship', perk: 'Merit List Publication' },
-    ],
-  },
-  {
-    id: 'quarterly-national',
-    name: 'Quarterly National Talent Search',
-    nameHi: 'त्रैमासिक राष्ट्रीय मेधा खोज',
-    fee: 499,
-    totalGrantPool: '₹3,00,000',
-    totalSlots: 800,
-    bookedSlots: 540,
-    durationMinutes: 120,
-    questionsCount: 120,
-    markingScheme: '+2.00 Correct | -0.66 Negative',
-    scheduleText: 'Quarterly Synchronized National Arena',
-    targetCategory: 'National Aspirant Fellowship Cohort',
-    syllabus: [
-      { subject: 'Complete GS (Polity, History, Geo, Environment, Sci-Tech)', questions: 80 },
-      { subject: 'Advanced Critical CSAT & Comprehension', questions: 40 },
-    ],
-    rewardMatrix: [
-      { rank: 'Rank 1', grant: '₹1,00,000 Grand Fellowship', perk: 'Delhi HQ Honor + Year-Round Sponsorship' },
-      { rank: 'Rank 2 – 5', grant: '₹25,000 Academic Fellowship', perk: 'National Trophy + Formal Video Feature' },
-      { rank: 'Rank 6 – 25', grant: '₹5,000 Subject Fellowship', perk: 'Certificate of National Standing' },
-      { rank: 'Rank 26 – 100', grant: '₹1,500 Preparation Assistance', perk: 'Abhyaas Fellowship Roll' },
-    ],
-  },
-  {
-    id: 'super-grand-yearly',
-    name: 'Super Grand Independence/Republic Cup',
-    nameHi: 'महा-ओलंपियाड राष्ट्रीय छात्रवृत्ति',
-    fee: 1999,
-    totalGrantPool: '₹25,00,000',
-    totalSlots: 1500,
-    bookedSlots: 920,
-    durationMinutes: 150,
-    questionsCount: 150,
-    markingScheme: '+2.00 Correct | -0.66 Negative',
-    scheduleText: '15th August & 26th January Synchronized Mega Arena',
-    targetCategory: 'All-India Grand Educational Grant Arena',
-    syllabus: [
-      { subject: 'Full General Studies Civil Services Standard', questions: 100 },
-      { subject: 'Advanced Quantitative Aptitude & Analytical Reasoning', questions: 50 },
-    ],
-    rewardMatrix: [
-      { rank: 'Rank 1', grant: '₹10,00,000 Lifetime Study Grant', perk: 'Grand Delhi Convocation + Full Media Feature' },
-      { rank: 'Rank 2 – 3', grant: '₹3,00,000 Research Fellowship', perk: 'National Gold Medallion + Legal Certificate' },
-      { rank: 'Rank 4 – 10', grant: '₹50,000 Educational Grant', perk: 'TDS Verified Disbursal + Silver Plaque' },
-      { rank: 'Rank 11 – 50', grant: '₹15,000 Preparation Assistance', perk: 'Direct Verified Bank Disbursal' },
-      { rank: 'Rank 51 – 150', grant: '₹5,000 Merit Fellowship', perk: 'Merit Honor Certificate' },
-    ],
-  },
+    status: 'UPCOMING',
+    createdAt: null
+  }
 ];
 
-export default function OlympiadPage() {
-  const [selectedTierId, setSelectedTierId] = useState('weekly-starter');
+export default function DignifiedOlympiadSuite() {
+  const [tournaments, setTournaments] = useState<OlympiadTournament[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Academic Filters
+  const [selectedCadence, setSelectedCadence] = useState<string>('ALL');
+  const [selectedStream, setSelectedStream] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Modals & Application
+  const [activeTournament, setActiveTournament] = useState<OlympiadTournament | null>(null);
   const [showBlueprintModal, setShowBlueprintModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Countdown timer simulation for next Sunday 10:00 AM
-  const [timeLeft, setTimeLeft] = useState({ hours: 42, minutes: 18, seconds: 45 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Form Fields
+  // Application Form
   const [candidateName, setCandidateName] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [candidatePhone, setCandidatePhone] = useState('');
-  const [targetExam, setTargetExam] = useState('UPSC Civil Services (Prelims)');
   const [acceptIntegrityCode, setAcceptIntegrityCode] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Confirmed Admit Card State
-  const [confirmedRegistration, setConfirmedRegistration] = useState<{
+  const [confirmedAdmit, setConfirmedAdmit] = useState<{
     rollNo: string;
     candidateName: string;
-    tierTitle: string;
+    tournamentTitle: string;
     examSlot: string;
     amount: number;
-    paymentMethod: string;
   } | null>(null);
 
-  const activeTier = OLYMPIAD_TIERS.find((t) => t.id === selectedTierId) || OLYMPIAD_TIERS[0];
-  const fillPercentage = Math.round((activeTier.bookedSlots / activeTier.totalSlots) * 100);
-  const isThresholdMet = fillPercentage >= 50;
+  useEffect(() => {
+    async function loadAcademicTournaments() {
+      try {
+        const liveList = await getAllOlympiads();
+        if (liveList && liveList.length > 0) {
+          setTournaments(liveList);
+        } else {
+          setTournaments(FALLBACK_ACADEMIC_OLYMPIADS);
+        }
+      } catch (err) {
+        console.error("Error loading Olympiad timetable:", err);
+        setTournaments(FALLBACK_ACADEMIC_OLYMPIADS);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAcademicTournaments();
+  }, []);
 
-  const handleEnrollmentSubmit = async (e: React.FormEvent) => {
+  // Academic Filter Engine
+  const filteredTournaments = useMemo(() => {
+    return tournaments.filter(t => {
+      // 1. Frequency / Cadence Filter
+      if (selectedCadence !== 'ALL') {
+        const sec = (t.categorySection || '').toUpperCase();
+        if (selectedCadence === 'WEEKLY' && sec !== 'WEEKLY') return false;
+        if (selectedCadence === 'MONTHLY' && sec !== 'MONTHLY') return false;
+        if (selectedCadence === 'QUARTERLY' && sec !== 'QUARTERLY') return false;
+        if (selectedCadence === 'HALF_YEARLY' && sec !== 'HALF_YEARLY') return false;
+        if (selectedCadence === 'YEARLY' && sec !== 'YEARLY') return false;
+        if (selectedCadence === 'GRAND' && sec !== 'GRAND') return false;
+        if (selectedCadence === 'SPECIAL' && !['SPECIAL', 'MANUAL', 'CUSTOM'].includes(sec)) return false;
+      }
+
+      // 2. Academic Stream Filter
+      if (selectedStream !== 'ALL') {
+        const str = (t.streamType || '').toUpperCase();
+        if (str !== selectedStream) return false;
+      }
+
+      // 3. Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = (t.title || '').toLowerCase().includes(q);
+        const matchesSubject = (t.targetSubject || '').toLowerCase().includes(q);
+        const matchesExam = (t.targetExam || '').toLowerCase().includes(q);
+        if (!matchesTitle && !matchesSubject && !matchesExam) return false;
+      }
+
+      return true;
+    });
+  }, [tournaments, selectedCadence, selectedStream, searchQuery]);
+
+  const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeTournament) return;
     if (!candidateName.trim() || !candidateEmail.trim() || candidatePhone.trim().length < 10) {
-      alert('कृपया मान्य Name, Email और 10-अंकों का Mobile Number दर्ज करें।');
-      return;
+      return alert("Please enter valid legal name, active email, and 10-digit mobile number.");
     }
     if (!acceptIntegrityCode) {
-      alert('कृपया Mandatory Viva Verification एवं Academic Integrity Code स्वीकार करें।');
-      return;
+      return alert("Candidate must formally accept the Academic Ethics & Verification Code.");
     }
 
-    setLoading(true);
-
+    setIsSubmitting(true);
     try {
       const res = await createPaymentRecord({
         candidateName: candidateName.trim(),
         email: candidateEmail.trim().toLowerCase(),
         phone: candidatePhone.trim(),
-        olympiadTier: activeTier.name,
-        amount: activeTier.fee,
-        paymentMethod: 'Razorpay UPI/Card',
+        olympiadTier: activeTournament.title,
+        amount: activeTournament.fee,
+        paymentMethod: activeTournament.fee === 0 ? 'Exempted (Sponsored)' : 'Verified Online Payment',
       });
 
       if (res && res.success && res.rollNo) {
-        setConfirmedRegistration({
+        setConfirmedAdmit({
           rollNo: res.rollNo,
           candidateName: candidateName.trim(),
-          tierTitle: activeTier.name,
-          examSlot: activeTier.scheduleText,
-          amount: activeTier.fee,
-          paymentMethod: 'Online Verified',
+          tournamentTitle: activeTournament.title,
+          examSlot: activeTournament.scheduleText || (activeTournament.startDateTime ? new Date(activeTournament.startDateTime).toLocaleString('en-IN') : 'Scheduled Examination Slot'),
+          amount: activeTournament.fee,
         });
         setShowRegisterModal(false);
       } else {
-        alert('पंजीकरण सुरक्षित करने में समस्या आई। कृपया पुनः प्रयास करें।');
+        alert("Unable to generate examination admit card. Please retry.");
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      alert('सर्वर त्रुटि। कृपया पुनः प्रयास करें।');
+    } catch (err: any) {
+      alert("Application submission error: " + err.message);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 selection:bg-blue-600 selection:text-white pb-28 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-32 font-sans selection:bg-slate-900 selection:text-white">
       
-      {/* Top Banner Header */}
+      {/* OFFICIAL INSTITUTIONAL ETHICS CHARTER BANNER */}
+      <div className="bg-slate-900 text-slate-200 border-b border-slate-800 px-4 py-2.5 shadow-sm flex items-center justify-center gap-2 text-xs font-medium text-center">
+        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+        <span>
+          <strong className="text-white font-bold">ABHYAAS ACADEMIC ETHICS CHARTER:</strong> Unfair means, unauthorized collaboration, or impersonation leads to immediate disqualification and permanent identity blacklisting across the national verification roll.
+        </span>
+      </div>
+
+      {/* Header & Program Details */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-amber-50 text-amber-900 border border-amber-300/80 rounded-full text-[11px] font-black uppercase tracking-wider">
-                <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                <span>National Merit Assessment &amp; Fellowship Arena</span>
+            <div className="space-y-2.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[11px] font-bold uppercase tracking-wider">
+                <GraduationCap className="w-4 h-4 text-blue-700" />
+                <span>All-India Merit Assessment & Academic Fellowship Program</span>
               </div>
-              <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                All-India Scholarship Olympiads
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
+                All-India Academic Olympiads
               </h1>
-              <p className="text-xs sm:text-sm font-bold text-slate-500">
-                100% Pure Game of Skill • Merit Grant Disbursals • Mandatory 1-on-1 Viva Verification
+              <p className="text-xs sm:text-sm font-semibold text-slate-500">
+                Standardized Competitive Evaluation • Verified Research Grants • Mandatory Academic Viva Voce
               </p>
-              <p className="text-slate-600 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                Test your academic preparation against thousands of serious aspirants nationwide under strict anti-cheat proctoring. Secure national ranks, eliminate your educational financial burden, and earn verified study fellowships.
+              <p className="text-slate-600 text-xs sm:text-sm max-w-3xl leading-relaxed">
+                National level standardized academic examinations designed to assess conceptual mastery across competitive and foundational disciplines. Top merit rankers qualify for research fellowships and educational study grants administered post verification.
               </p>
             </div>
 
-            {/* Countdown & Trust Matrix */}
+            {/* Official Statistics Card */}
             <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
-              <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 text-center min-w-[170px] shadow-sm">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Next Arena Starts In</p>
-                <div className="flex items-center justify-center gap-1.5 font-mono text-lg font-black mt-1 text-white">
-                  <span>{String(timeLeft.hours).padStart(2, '0')}h</span>
-                  <span>:</span>
-                  <span>{String(timeLeft.minutes).padStart(2, '0')}m</span>
-                  <span>:</span>
-                  <span className="text-amber-400">{String(timeLeft.seconds).padStart(2, '0')}s</span>
-                </div>
-                <p className="text-[10px] text-emerald-400 font-bold mt-1">● Sunday Synchronized Slot</p>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center min-w-[170px]">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Examinations</p>
+                <p className="text-2xl font-black text-slate-900 mt-0.5">{tournaments.length}</p>
+                <p className="text-[10px] text-emerald-600 font-bold mt-0.5">● National Examination Schedule</p>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center min-w-[160px] shadow-xs">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Grants Awarded</p>
-                <p className="text-lg font-black text-slate-900 mt-1">₹12.5 Lakhs+</p>
-                <p className="text-[10px] text-blue-600 font-bold mt-1">Direct Bank / TDS Cleared</p>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center min-w-[170px]">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sanctioned Fellowships</p>
+                <p className="text-xl font-black text-slate-900 mt-0.5">Merit Grants</p>
+                <p className="text-[10px] text-blue-600 font-bold mt-0.5">Direct Verified Bank Disbursal</p>
               </div>
             </div>
           </div>
 
-          {/* Tier Selection Pills */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-[11px] font-black uppercase text-slate-400 mb-3 flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-amber-500" /> Choose Assessment Tier &amp; Grant Pool
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              {OLYMPIAD_TIERS.map((tier) => {
-                const isSelected = tier.id === selectedTierId;
+          {/* Academic Schedule Filter Tabs */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            {/* Cadence Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200">
+              {[
+                { id: 'ALL', label: 'All Examinations' },
+                { id: 'WEEKLY', label: 'Weekly Assessments' },
+                { id: 'MONTHLY', label: 'Monthly Fellowship Series' },
+                { id: 'QUARTERLY', label: 'Quarterly Talent Search' },
+                { id: 'HALF_YEARLY', label: 'Half-Yearly Assessments' },
+                { id: 'YEARLY', label: 'Annual Grand Fellowship' },
+                { id: 'GRAND', label: 'National Day Convocation' },
+                { id: 'SPECIAL', label: 'Special Subject Drills' },
+              ].map(cadence => {
+                const isSelected = selectedCadence === cadence.id;
                 return (
                   <button
-                    key={tier.id}
-                    onClick={() => setSelectedTierId(tier.id)}
-                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20 ring-1 ring-blue-600'
-                        : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
+                    key={cadence.id}
+                    onClick={() => setSelectedCadence(cadence.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer ${
+                      isSelected 
+                        ? 'bg-slate-900 border-slate-900 text-white shadow-sm' 
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                          ₹{tier.fee}
-                        </span>
-                        <Trophy className={`w-3.5 h-3.5 ${isSelected ? 'text-amber-300' : 'text-amber-500'}`} />
-                      </div>
-                      <h3 className="font-extrabold text-xs line-clamp-1">{tier.name}</h3>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-slate-100/20">
-                      <p className={`text-[11px] font-black ${isSelected ? 'text-white' : 'text-blue-600'}`}>
-                        {tier.totalGrantPool}
-                      </p>
-                    </div>
+                    {cadence.label}
                   </button>
                 );
               })}
             </div>
+
+            {/* Academic Stream Selector & Live Search */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={selectedStream}
+                  onChange={e => setSelectedStream(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer py-1"
+                >
+                  <option value="ALL">All Academic Streams</option>
+                  <option value="UPSC_PSC">Civil Services (UPSC CSE & State PSC)</option>
+                  <option value="ENGINEERING">Engineering Sciences (IIT-JEE / B.Tech)</option>
+                  <option value="MEDICAL">Medical Sciences (NEET / MBBS)</option>
+                  <option value="SSC_BANKING">Government Recruitment (SSC / Banking)</option>
+                  <option value="LAW">Legal Jurisprudence (CLAT & Judicial)</option>
+                  <option value="FOUNDATION">Senior Secondary Foundation (11th - 12th)</option>
+                  <option value="GENERAL">General Scholastic Aptitude</option>
+                </select>
+              </div>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search subject, discipline..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full sm:w-56 h-9 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800 transition"
+                />
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
 
-      {/* Main Container */}
+      {/* Main Examination Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         
-        {/* Confirmed Admit Card Banner (If just registered) */}
-        {confirmedRegistration && (
-          <div className="max-w-3xl mx-auto bg-white border-2 border-emerald-500 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 animate-in fade-in duration-200">
-            <div className="text-center space-y-1.5 border-b border-slate-100 pb-4">
+        {/* Provisional Admit Card Confirmation Banner */}
+        {confirmedAdmit && (
+          <div className="max-w-3xl mx-auto bg-white border-2 border-emerald-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 animate-in fade-in duration-200">
+            <div className="text-center space-y-1 border-b border-slate-100 pb-4">
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto border border-emerald-200">
-                <CheckCircle2 className="w-7 h-7" />
+                <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h2 className="text-lg font-black text-slate-900">Official Admit Card &amp; Seat Confirmed!</h2>
+              <h2 className="text-xl font-black text-slate-900">Provisional Examination Admit Card Generated</h2>
               <p className="text-xs text-slate-500">
-                आपका डिजिटल परीक्षा प्रवेश पत्र (Roll Number) जारी कर दिया गया है।
+                Official candidate registration roll number confirmed. Preserve this card for examination login and Viva Voce verification.
               </p>
             </div>
 
-            <div className="bg-slate-900 text-white rounded-2xl p-5 space-y-4 border border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="bg-slate-900 text-white rounded-2xl p-5 space-y-3 border border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                 <div>
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">Candidate Roll Number</span>
-                  <p className="text-lg font-mono font-black text-white tracking-widest">{confirmedRegistration.rollNo}</p>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Candidate Roll Number</span>
+                  <p className="text-lg font-mono font-black text-emerald-400 tracking-widest">{confirmedAdmit.rollNo}</p>
                 </div>
-                <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold">
-                  VERIFIED ADMISSION
+                <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold uppercase">
+                  Confirmed Candidate
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Candidate:</span>
-                  <span className="font-bold text-white">{confirmedRegistration.candidateName}</span>
+                  <span className="text-slate-400 text-[11px] block">Candidate Name:</span>
+                  <span className="font-bold text-white">{confirmedAdmit.candidateName}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Tier:</span>
-                  <span className="font-bold text-white">{confirmedRegistration.tierTitle}</span>
+                  <span className="text-slate-400 text-[11px] block">Examination:</span>
+                  <span className="font-bold text-white">{confirmedAdmit.tournamentTitle}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Slot Time:</span>
-                  <span className="font-bold text-amber-400">{confirmedRegistration.examSlot}</span>
+                  <span className="text-slate-400 text-[11px] block">Examination Slot:</span>
+                  <span className="font-bold text-white">{confirmedAdmit.examSlot}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Fee Paid:</span>
-                  <span className="font-bold text-emerald-400">₹{confirmedRegistration.amount} ({confirmedRegistration.paymentMethod})</span>
+                  <span className="text-slate-400 text-[11px] block">Application Processing Status:</span>
+                  <span className="font-bold text-emerald-400">
+                    {confirmedAdmit.amount === 0 ? 'Exempted (Sponsored Entry)' : `₹${confirmedAdmit.amount} (Payment Cleared)`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -420,432 +398,308 @@ export default function OlympiadPage() {
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Print / Save Admit Card</span>
+                <span>Print / Save Admit Card (.PDF)</span>
               </button>
 
               <Link
-                href={`/quiz?mode=olympiad&roll=${encodeURIComponent(confirmedRegistration.rollNo)}`}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+                href={`/quiz?mode=olympiad&roll=${encodeURIComponent(confirmedAdmit.rollNo)}`}
+                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
               >
-                <span>Enter Test Arena</span>
+                <span>Proceed to Assessment Hall</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
         )}
 
-        {/* 50% Cohort Threshold Transparency Bar */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-blue-600" />
-                Cohort Threshold Transparency (50% Rule)
-              </span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                isThresholdMet ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-800 border border-amber-300'
-              }`}>
-                {isThresholdMet ? 'THRESHOLD MET • ARENA CONFIRMED' : 'AWAITING 50% THRESHOLD'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed font-medium">
-              To preserve academic statistical validity, a tournament requires minimum 50% capacity. If not achieved 2 hours before slot time, <strong>100% of registration fees are automatically refunded</strong> to source accounts.
+        {/* Examination List */}
+        {loading ? (
+          <div className="text-center py-24 space-y-3">
+            <Loader2 className="w-9 h-9 text-slate-800 animate-spin mx-auto" />
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              Synchronizing National Examination Timetable...
             </p>
           </div>
-
-          <div className="sm:w-64 shrink-0 space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-            <div className="flex justify-between text-xs font-black">
-              <span className="text-slate-700">{activeTier.bookedSlots} / {activeTier.totalSlots} Slots</span>
-              <span className={fillPercentage >= 50 ? 'text-emerald-600' : 'text-amber-600'}>{fillPercentage}%</span>
-            </div>
-            <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 rounded-full ${
-                  fillPercentage >= 50 ? 'bg-emerald-500' : 'bg-amber-500'
-                }`}
-                style={{ width: `${Math.min(fillPercentage, 100)}%` }}
-              />
-            </div>
+        ) : filteredTournaments.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center space-y-3">
+            <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
+            <h3 className="font-bold text-base text-slate-800">No Examinations Scheduled</h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              No examination sessions match your current filter parameters. Adjust frequency or academic stream selectors above.
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTournaments.map(t => {
+              const isFeeExempt = Number(t.fee) === 0;
 
-        {/* Two-Column Grid */}
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Column: Details, Rules & Reward Matrix (Span 8) */}
-          <div className="lg:col-span-8 space-y-6">
-            
-            {/* Active Tier Overview */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <span className="text-[10px] font-black px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-md uppercase tracking-wide">
-                    {activeTier.targetCategory}
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-2">
-                    {activeTier.name} ({activeTier.nameHi})
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 font-medium">
-                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{activeTier.scheduleText}</span>
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowBlueprintModal(true)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition self-start sm:self-auto"
+              return (
+                <div 
+                  key={t.id}
+                  className="bg-white border border-slate-200 hover:border-slate-400 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-5 transition"
                 >
-                  <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                  <span>View Syllabus Blueprint</span>
-                </button>
-              </div>
+                  <div className="space-y-4">
+                    
+                    {/* Official Notification Header */}
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Notification Ref: ABH/2026/{t.id.slice(-6).toUpperCase()}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded mt-1 inline-block">
+                          {t.categorySection || 'ASSESSMENT'} • {t.streamType || 'DISCIPLINE'}
+                        </span>
+                      </div>
 
-              {/* Specs Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Questions</p>
-                  <p className="text-sm font-black text-slate-900 mt-0.5">{activeTier.questionsCount} MCQs</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Duration</p>
-                  <p className="text-sm font-black text-slate-900 mt-0.5">{activeTier.durationMinutes} Mins</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Marking Rule</p>
-                  <p className="text-xs font-black text-slate-900 mt-0.5">+2.00 / -0.66</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Proctoring</p>
-                  <p className="text-sm font-black text-blue-600 mt-0.5">Strict Screen-Lock</p>
-                </div>
-              </div>
-            </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Application Fee</span>
+                        <span className={`text-xs font-black ${isFeeExempt ? 'text-emerald-700' : 'text-slate-900'}`}>
+                          {isFeeExempt ? 'Nil (Sponsored)' : `₹${t.fee}`}
+                        </span>
+                      </div>
+                    </div>
 
-            {/* Grant & Fellowship Matrix Table */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-amber-500" />
-                    Guaranteed Open Fellowship Matrix
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Allocated directly to verified student bank accounts post mandatory viva verification.
-                  </p>
+                    {/* Examination Title & Academic Summary */}
+                    <div>
+                      <h3 className="font-bold text-base text-slate-900 leading-snug">
+                        {t.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                        {t.descriptionEn || 'National level academic evaluation bench-marked against official syllabus standards.'}
+                      </p>
+                    </div>
+
+                    {/* Examination Logistics Card */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Window:
+                        </span>
+                        <strong className="text-slate-900 font-bold">
+                          {t.startDateTime ? new Date(t.startDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : (t.scheduleText || 'Sunday Slot')}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Clock className="w-3.5 h-3.5 text-slate-500" /> Scheme:
+                        </span>
+                        <strong className="text-slate-900 font-bold">
+                          {t.questionsCount || 50} Questions • {t.durationMinutes || 45} Mins
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-600 pt-1.5 border-t border-slate-200">
+                        <span className="font-medium text-slate-500">Sanctioned Fellowship:</span>
+                        <strong className="text-slate-900 font-bold">
+                          {t.totalGrantPool || 'Academic Merit Roll'}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Operational Notice */}
+                    <div className="text-[10px] text-slate-500 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/80 leading-relaxed">
+                      <strong>Admissions Status:</strong> Registration open. Subject to academic baseline cutoff (&ge;75%) and mandatory 1-on-1 Viva Voce verification prior to award.
+                    </div>
+
+                  </div>
+
+                  {/* Application Actions */}
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <button
+                      onClick={() => { setActiveTournament(t); setShowRegisterModal(true); }}
+                      className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>{isFeeExempt ? 'Submit Candidate Application (Exempted)' : `Submit Candidate Application (Fee: ₹${t.fee})`}</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTournament(t); setShowBlueprintModal(true); }}
+                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>View Examination Scheme, Syllabus & Code</span>
+                    </button>
+                  </div>
                 </div>
-                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 w-fit">
-                  Gross Pool: {activeTier.totalGrantPool}
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
-                      <th className="py-3 px-3 rounded-l-lg">All-India Rank</th>
-                      <th className="py-3 px-3">Merit Grant Amount</th>
-                      <th className="py-3 px-3 rounded-r-lg">Institutional Academic Perks</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {activeTier.rewardMatrix.map((row, idx) => (
-                      <tr key={idx} className={idx === 0 ? 'bg-amber-50/40' : 'hover:bg-slate-50/60'}>
-                        <td className="py-3.5 px-3 font-bold text-slate-900 flex items-center gap-1.5">
-                          {idx === 0 && <span className="w-2 h-2 rounded-full bg-amber-500" />}
-                          {row.rank}
-                        </td>
-                        <td className="py-3.5 px-3 font-black text-blue-600 text-xs sm:text-sm">
-                          {row.grant}
-                        </td>
-                        <td className="py-3.5 px-3 text-slate-600 font-medium">
-                          {row.perk}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Anti-Cheating & 1-on-1 Viva Waterfall Charter */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 sm:p-7 space-y-4 shadow-sm">
-              <div className="flex items-center gap-2.5 text-amber-400 font-black text-sm">
-                <Video className="w-5 h-5" />
-                <span>The Mandatory 1-on-1 Viva Verification Waterfall</span>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4 text-xs text-slate-300 leading-relaxed font-medium">
-                <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 space-y-1.5">
-                  <h4 className="font-bold text-white flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    Objective Video Viva (3/5 Pass Rule)
-                  </h4>
-                  <p className="text-slate-400 text-[11px]">
-                    Within 24 hours of provisional rank declaration, top candidates and grant recipients attend a live 10-minute recorded Google Meet viva. Candidates must correctly answer at least 3 out of 5 conceptual questions drawn from the exam syllabus.
-                  </p>
-                </div>
-
-                <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 space-y-1.5">
-                  <h4 className="font-bold text-white flex items-center gap-1.5">
-                    <ShieldAlert className="w-4 h-4 text-rose-400" />
-                    Cascading &amp; 75% Baseline Cutoff
-                  </h4>
-                  <p className="text-slate-400 text-[11px]">
-                    If a provisional ranker fails the viva or is caught using secondary devices, they are immediately disqualified. The grant cascades down to the next eligible rank holder who secured at least 75% in the written exam.
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-700/60 leading-relaxed">
-                *High Grants (&gt;₹10,000): Candidates are invited to the Abhyaas office in Delhi for formal in-person felicitation, photo-identity verification, and grant check presentation. Applicable TDS is deducted under Section 194B/194BA with formal certificates issued.
-              </p>
-            </div>
+              );
+            })}
           </div>
-
-          {/* Right Column: Slot Registration Box (Span 4) */}
-          <div className="lg:col-span-4 space-y-6">
-            
-            {/* Booking Card */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-5">
-              <div className="border-b border-slate-100 pb-4">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Assessment Slot Processing Fee</span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl font-black text-slate-900">₹{activeTier.fee}</span>
-                  <span className="text-xs text-slate-400 font-bold">per candidate</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Covers synchronized proctoring, live evaluation, and verified AI diagnostic report.
-                </p>
-              </div>
-
-              <div className="space-y-3 text-xs text-slate-600 font-medium">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Synchronized All-India live window</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Full-Screen lock &amp; DevTools prevention</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>100% automated refund if &lt;50% seats filled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Direct Fellowship Disbursal post-Viva</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() => setShowRegisterModal(true)}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl transition shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Zap className="w-4 h-4" />
-                  <span>Book Examination Slot (₹{activeTier.fee})</span>
-                </button>
-
-                <Link
-                  href="/practice"
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
-                >
-                  <span>Practice Free Drills First</span>
-                </Link>
-              </div>
-
-              <p className="text-[10px] text-slate-400 text-center leading-tight">
-                Protected under Article 19(1)(g) Game of Skill doctrine. 256-bit SSL encrypted payment checkout.
-              </p>
-            </div>
-
-            {/* Circular Content Model Notice */}
-            <div className="bg-blue-50/60 border border-blue-200 rounded-3xl p-5 space-y-2 text-xs">
-              <h4 className="font-black text-blue-950 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                Circular Content Guarantee
-              </h4>
-              <p className="text-blue-800 text-[11px] leading-relaxed">
-                The 50 questions in this Olympiad are drawn from our secret Quarantined Vault. As soon as the competition window closes, these questions are permanently pushed into the <strong>100% Free Practice Bank</strong> for the entire nation.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
+        )}
 
       </div>
 
-      {/* MODAL 1: REGISTRATION & ADMIT CARD FORM */}
-      {showRegisterModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      {/* MODAL 1: FORMAL CANDIDATE APPLICATION FORM */}
+      {showRegisterModal && activeTournament && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded uppercase">
-                  Candidate Slot Booking
+                <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                  Official Candidate Registration
                 </span>
-                <h3 className="font-black text-base text-slate-900 mt-1">
-                  {activeTier.name} (Processing Fee: ₹{activeTier.fee})
+                <h3 className="font-bold text-base text-slate-900 mt-0.5">
+                  {activeTournament.title}
                 </h3>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Application Processing Fee: {Number(activeTournament.fee) === 0 ? 'Nil (Merit Sponsored)' : `₹${activeTournament.fee}`}
+                </p>
               </div>
-              <button
-                onClick={() => setShowRegisterModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition"
-              >
+              <button onClick={() => setShowRegisterModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleEnrollmentSubmit} className="space-y-4">
+            <form onSubmit={handleApplicationSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Full Legal Name (as on Government Photo ID)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Full Legal Name (as on Government Photo ID)*</label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="e.g. Rahul Sharma"
+                    placeholder="Candidate Legal Name"
                     value={candidateName}
-                    onChange={(e) => setCandidateName(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600 font-medium"
+                    onChange={e => setCandidateName(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-slate-900 font-medium"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Email ID (for Official Admit Card &amp; Scorecard)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Examination Admit Card & Scorecard)*</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
-                    placeholder="e.g. rahul.sharma@gmail.com"
+                    placeholder="candidate@university.edu / candidate@gmail.com"
                     value={candidateEmail}
-                    onChange={(e) => setCandidateEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600 font-medium"
+                    onChange={e => setCandidateEmail(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-slate-900 font-medium"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number (for SMS Roll No &amp; Alerts)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS & Dispatch Alerts)*</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
-                    placeholder="e.g. 9876543210"
+                    placeholder="10-digit mobile number"
                     value={candidatePhone}
-                    onChange={(e) => setCandidatePhone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-600 font-medium"
+                    onChange={e => setCandidatePhone(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-slate-900 font-medium"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Primary Target Examination Track</label>
-                <select
-                  value={targetExam}
-                  onChange={(e) => setTargetExam(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-blue-600 cursor-pointer bg-slate-50"
-                >
-                  <option value="UPSC Civil Services (Prelims)">UPSC Civil Services (IAS / IPS)</option>
-                  <option value="State PSC (UPPSC / BPSC / MPPCS)">State PSC (UPPSC / BPSC / MPPCS)</option>
-                  <option value="Higher Chemistry / Science Olympiad">Higher Chemistry / Science Olympiad</option>
-                  <option value="Class 11-12 Foundation">Class 11-12 Senior Foundation</option>
-                </select>
-              </div>
-
-              <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-[11px] text-slate-700">
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={acceptIntegrityCode}
-                    onChange={(e) => setAcceptIntegrityCode(e.target.checked)}
-                    className="mt-0.5 text-blue-600 rounded cursor-pointer"
+                    onChange={e => setAcceptIntegrityCode(e.target.checked)}
+                    className="mt-0.5 rounded cursor-pointer"
                   />
-                  <span className="text-[11px] text-amber-950 font-medium leading-tight">
-                    I agree to the <strong>Academic Integrity Code</strong>, acknowledge that grants are subject to clearing the <strong>1-on-1 Video Viva Verification</strong> with ≥75% written cutoff, and verify that my identity details are accurate.
+                  <span>
+                    I affirm adherence to the <strong>Abhyaas Academic Ethics Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
                   </span>
                 </label>
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                 <span>
-                  {loading ? 'Confirming Admission...' : `Confirm Slot & Pay Processing Fee • ₹${activeTier.fee}`}
+                  {Number(activeTournament.fee) === 0 
+                    ? 'Confirm Application (Fee Exempted)' 
+                    : `Confirm Application & Process Examination Fee (₹${activeTournament.fee})`}
                 </span>
               </button>
 
-              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Encrypted 256-Bit SSL Checkout • Automatic Refund if &lt;50% Seats Filled</span>
-              </div>
+              <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                Examination fees are non-refundable once the test session initiates. Automatic 100% refund initiated if an examination cohort threshold is unfulfilled.
+              </p>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 2: SYLLABUS BLUEPRINT */}
-      {showBlueprintModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      {/* MODAL 2: EXAMINATION SCHEME, SYLLABUS & ETHICS CODE */}
+      {showBlueprintModal && activeTournament && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded uppercase">
-                  Examination Blueprint
+                <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                  Examination Scheme & Regulations
                 </span>
-                <h3 className="font-black text-base text-slate-900 mt-1">{activeTier.name}</h3>
+                <h3 className="font-bold text-base text-slate-900 mt-0.5">{activeTournament.title}</h3>
               </div>
-              <button
-                onClick={() => setShowBlueprintModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition"
-              >
+              <button onClick={() => setShowBlueprintModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Subject-Wise Syllabus Modules */}
             <div className="space-y-3">
-              <p className="text-xs text-slate-600 font-medium">
-                Official subject-wise question distribution for this assessment:
-              </p>
-              <div className="space-y-2">
-                {activeTier.syllabus.map((item, i) => (
-                  <div key={i} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-800">{item.subject}</span>
-                    <span className="font-black text-blue-600 bg-white px-2.5 py-1 rounded-md border border-slate-200">
-                      {item.questions} Qs
+              <h4 className="font-bold text-xs uppercase text-slate-800 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-blue-700" /> Prescribed Examination Syllabus
+              </h4>
+              {activeTournament.syllabus && activeTournament.syllabus.length > 0 ? (
+                activeTournament.syllabus.map((s, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-slate-900">{s.subject}</span>
+                      {s.topics && <p className="text-[11px] text-slate-500 mt-0.5">{s.topics}</p>}
+                    </div>
+                    <span className="font-bold text-slate-700 bg-white px-2.5 py-1 rounded-md border border-slate-200">
+                      {s.questions} Questions
                     </span>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-500">
+                  Standard curriculum syllabus covering core competitive foundations for this discipline.
+                </div>
+              )}
             </div>
 
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1 font-medium">
-              <p className="font-black">Standard Marking Scheme:</p>
-              <p className="text-[11px] leading-relaxed">
-                +2.00 marks for correct answers. -0.66 marks deducted for incorrect attempts. 0 marks for unattempted questions. Top rankers must clear the viva with 3/5 correct answers to claim the grant.
-              </p>
+            {/* Examination Conduct Regulations */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs text-slate-800">
+              <h4 className="font-bold uppercase text-slate-900 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Examination Conduct & Verification Protocols:
+              </h4>
+              <ul className="space-y-1.5 text-[11px] text-slate-600 leading-relaxed">
+                {activeTournament.rules && activeTournament.rules.length > 0 ? (
+                  activeTournament.rules.map((r, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <span className="text-slate-400">•</span>
+                      <span>{r}</span>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li>• Independent Pacing: Fixed time-per-question limits without backtracking to prevent unauthorized relay.</li>
+                    <li>• Environment Integrity: Candidate screen-switch limit of 2 warnings prior to automatic script submission.</li>
+                    <li>• Viva Voce Defense: Top merit candidates defend analytical solutions before academic faculty prior to study grant award.</li>
+                  </>
+                )}
+              </ul>
             </div>
 
-            <button
-              onClick={() => setShowBlueprintModal(false)}
-              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
-            >
-              Close Blueprint
+            <button onClick={() => setShowBlueprintModal(false)} className="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl cursor-pointer hover:bg-slate-800 transition">
+              Close Examination Regulations
             </button>
           </div>
         </div>
