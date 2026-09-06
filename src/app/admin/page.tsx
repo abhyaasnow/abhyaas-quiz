@@ -8,7 +8,8 @@ import {
   FolderTree, BookOpen, FileSpreadsheet, Upload, Download, RefreshCw,
   Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
   RotateCcw, ShieldAlert, Copy, Atom, UploadCloud, FileText, ExternalLink,
-  Trophy, Users, Video, Award, CheckCircle2, Calendar, Clock, AlertOctagon
+  Trophy, Users, Video, Award, CheckCircle2, Calendar, Clock, AlertOctagon,
+  Sparkles
 } from 'lucide-react';
 
 import { 
@@ -21,6 +22,8 @@ import {
   TaxonomyNode, TaxonomyLevel, QuestionData, QuestionSegment,
   OlympiadTournament, OlympiadParticipant, Timestamp
 } from '@/lib/db';
+
+import MathRenderer from '@/components/MathRenderer';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 
@@ -613,14 +616,14 @@ export default function AbhyaasMasterTower() {
       topic: finalTopic || 'General',
       segment: qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
-      questionEn: formatScientific(qStatementEn.trim()),
-      questionHi: formatScientific(qStatementHi.trim() || qStatementEn.trim()),
-      optionsEn: qOptionsEn.map(o => formatScientific(o)),
-      optionsHi: qOptionsHi.map(o => formatScientific(o)),
+      questionEn: qStatementEn.trim(),
+      questionHi: qStatementHi.trim() || qStatementEn.trim(),
+      optionsEn: qOptionsEn.map(o => o.trim()),
+      optionsHi: qOptionsHi.map(o => o.trim()),
       optionsDiagrams: qOptionsDiagrams,
       correctOption: qCorrectOpt,
-      explanationEn: formatScientific(qExplanationEn.trim()),
-      explanationHi: formatScientific(qExplanationHi.trim()),
+      explanationEn: qExplanationEn.trim(),
+      explanationHi: qExplanationHi.trim(),
       diagramUrl: qDiagramUrl.trim(),
       attachmentType: parsedAtt.type,
       isArchived: false,
@@ -812,7 +815,7 @@ export default function AbhyaasMasterTower() {
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 1: QUESTION BANK & PRACTICE VAULT (UPGRADED WITH MULTI-SELECT BULK ARCHIVE) */}
+        {/* TAB 1: QUESTION BANK & PRACTICE VAULT (UPGRADED WITH HIGH-PRECISION KATEX RENDERING) */}
         {/* ========================================================================= */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
@@ -824,7 +827,7 @@ export default function AbhyaasMasterTower() {
                     Active Question Bank & Practice Vault
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Manage conceptual practice drills, PYQs, and quarantined Olympiad questions with scientific rendering.
+                    Enterprise mathematical and scientific rendering engine active (KaTeX, Diagrams, Maps, Multi-lingual).
                   </p>
                 </div>
 
@@ -1012,13 +1015,13 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       <div>
-                        <p className="font-bold text-sm text-slate-900 leading-relaxed">
-                          {formatScientific(q.questionEn)}
-                        </p>
+                        <div className="font-bold text-sm text-slate-900 leading-relaxed">
+                          <MathRenderer text={q.questionEn} />
+                        </div>
                         {q.questionHi && (
-                          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                            {formatScientific(q.questionHi)}
-                          </p>
+                          <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                            <MathRenderer text={q.questionHi} />
+                          </div>
                         )}
                       </div>
 
@@ -1075,7 +1078,9 @@ export default function AbhyaasMasterTower() {
                                 }`}>
                                   {String.fromCharCode(65 + i)}
                                 </span>
-                                <span className="truncate">{formatScientific(opt)}</span>
+                                <div className="truncate">
+                                  <MathRenderer text={opt} />
+                                </div>
                               </div>
 
                               {optAtt.type === 'IMAGE' && optAtt.directUrl && (
@@ -1095,7 +1100,8 @@ export default function AbhyaasMasterTower() {
 
                       {(q.explanationEn || q.explanationHi) && (
                         <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
-                          <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
+                          <strong className="font-black">💡 Solution:</strong>{' '}
+                          <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
                         </div>
                       )}
                     </div>
@@ -1463,8 +1469,14 @@ export default function AbhyaasMasterTower() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-slate-800 line-through opacity-80">{formatScientific(q.questionEn)}</p>
-                    {q.questionHi && <p className="text-xs text-slate-500">{formatScientific(q.questionHi)}</p>}
+                    <div className="text-sm font-bold text-slate-800 line-through opacity-80">
+                      <MathRenderer text={q.questionEn} />
+                    </div>
+                    {q.questionHi && (
+                      <div className="text-xs text-slate-500">
+                        <MathRenderer text={q.questionHi} />
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -1766,7 +1778,9 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: SINGLE QUESTION STUDIO (PRESERVED 100%) */}
+      {/* ========================================================================= */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO (UPGRADED WITH LIVE WYSIWYG MATH PREVIEW) */}
+      {/* ========================================================================= */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1877,7 +1891,7 @@ export default function AbhyaasMasterTower() {
                   {qExam === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
@@ -1899,7 +1913,7 @@ export default function AbhyaasMasterTower() {
                   {qSubject === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
@@ -1921,7 +1935,7 @@ export default function AbhyaasMasterTower() {
                   {qTopic === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
                     />
                   )}
                 </div>
@@ -1971,10 +1985,21 @@ export default function AbhyaasMasterTower() {
                     rows={2}
                     value={qStatementEn}
                     onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                    placeholder="Enter English question statement..."
+                    placeholder="Enter English question statement (Supports pure text or $LaTeX$)..."
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
                     required
                   />
+                  {/* LIVE MATH & SCIENTIFIC PREVIEW */}
+                  {qStatementEn.trim() && (
+                    <div className="mt-2 p-3 bg-white border border-blue-200 rounded-xl shadow-xs">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Live Rendered Preview:
+                      </p>
+                      <div className="text-xs font-bold text-slate-900">
+                        <MathRenderer text={qStatementEn} />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1988,6 +2013,17 @@ export default function AbhyaasMasterTower() {
                     placeholder="हिंदी अनुवाद दर्ज करें..."
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500"
                   />
+                  {/* LIVE MATH & SCIENTIFIC PREVIEW (HINDI) */}
+                  {qStatementHi.trim() && (
+                    <div className="mt-2 p-3 bg-white border border-blue-200 rounded-xl shadow-xs">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Live Hindi Preview:
+                      </p>
+                      <div className="text-xs font-bold text-slate-900">
+                        <MathRenderer text={qStatementHi} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2070,6 +2106,14 @@ export default function AbhyaasMasterTower() {
                         />
                       </div>
 
+                      {/* LIVE OPTION PREVIEW */}
+                      {qOptionsEn[i].trim() && (
+                        <div className="pl-6 flex items-center gap-2 text-xs font-bold text-slate-800">
+                          <span className="text-[10px] text-blue-600 font-black uppercase">Preview:</span>
+                          <MathRenderer text={qOptionsEn[i]} />
+                        </div>
+                      )}
+
                       <div className="pl-6 flex flex-wrap items-center gap-2">
                         <input
                           type="file"
@@ -2127,6 +2171,11 @@ export default function AbhyaasMasterTower() {
                     placeholder="Solution..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
                   />
+                  {qExplanationEn.trim() && (
+                    <div className="mt-1 p-2 bg-white border border-blue-100 rounded-lg text-xs font-semibold text-slate-800">
+                      <MathRenderer text={qExplanationEn} />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">उत्तर का स्पष्टीकरण (Hindi)</label>
@@ -2137,6 +2186,11 @@ export default function AbhyaasMasterTower() {
                     placeholder="विस्तृत व्याख्या..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
                   />
+                  {qExplanationHi.trim() && (
+                    <div className="mt-1 p-2 bg-white border border-blue-100 rounded-lg text-xs font-semibold text-slate-800">
+                      <MathRenderer text={qExplanationHi} />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2200,14 +2254,14 @@ export default function AbhyaasMasterTower() {
                       class: row[1] || 'Civil Services / Competitive',
                       topic: row[4] || 'General',
                       pyqYear: row[5] || '2024',
-                      questionEn: formatScientific(row[6] || ''),
-                      questionHi: formatScientific(row[7] || row[6] || ''),
-                      optionsEn: [formatScientific(row[8] || ''), formatScientific(row[9] || ''), formatScientific(row[10] || ''), formatScientific(row[11] || '')],
-                      optionsHi: [formatScientific(row[12] || row[8] || ''), formatScientific(row[13] || row[9] || ''), formatScientific(row[14] || row[10] || ''), formatScientific(row[15] || row[11] || '')],
+                      questionEn: row[6] || '',
+                      questionHi: row[7] || row[6] || '',
+                      optionsEn: [row[8] || '', row[9] || '', row[10] || '', row[11] || ''],
+                      optionsHi: [row[12] || row[8] || '', row[13] || row[9] || '', row[14] || row[10] || '', row[15] || row[11] || ''],
                       optionsDiagrams: ['', '', '', ''],
                       correctOption: (parseInt(row[16]) - 1) >= 0 ? parseInt(row[16]) - 1 : 0,
-                      explanationEn: formatScientific(row[17] || ''),
-                      explanationHi: formatScientific(row[18] || ''),
+                      explanationEn: row[17] || '',
+                      explanationHi: row[18] || '',
                       diagramUrl: row[19] || '',
                       isArchived: false,
                       status: 'ACTIVE',
