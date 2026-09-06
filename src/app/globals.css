@@ -1,3 +1,6 @@
+@import 'katex/dist/katex.min.css';
+
+
 @import "tailwindcss";
 
 :root {
