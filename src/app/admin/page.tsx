@@ -117,17 +117,18 @@ export default function AbhyaasMasterTower() {
   const [loginPassword, setLoginPassword] = useState('');
 
   // 4 Primary Navigation Tabs
-  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('olympiad');
+  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('questions');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [olympiadsList, setOlympiadsList] = useState<OlympiadTournament[]>([]);
   const [participantsList, setParticipantsList] = useState<OlympiadParticipant[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Olympiad Bulk Selection State
+  // Bulk Selection States
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State with Full Manual Taxonomy Control
+  // Olympiad Creation Modal State
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -291,6 +292,35 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
+  // Question Bulk Selection Handlers
+  const handleToggleSelectAllQuestions = () => {
+    if (selectedQuestionIds.length === filteredActiveQuestions.length) {
+      setSelectedQuestionIds([]);
+    } else {
+      setSelectedQuestionIds(filteredActiveQuestions.map(q => q.id));
+    }
+  };
+
+  const handleToggleSelectQuestion = (id: string) => {
+    setSelectedQuestionIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkMoveQuestionsToRecycleBin = async () => {
+    if (selectedQuestionIds.length === 0) return;
+    if (!confirm(`Move ${selectedQuestionIds.length} selected question(s) to Recycle Bin?`)) return;
+
+    try {
+      await Promise.all(selectedQuestionIds.map(id => archiveQuestion(id)));
+      setQuestionsList(prev => prev.map(q => selectedQuestionIds.includes(q.id) ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
+      setSelectedQuestionIds([]);
+      alert("Selected questions moved to Recycle Bin!");
+    } catch (err: any) {
+      alert("Error archiving questions: " + err.message);
+    }
+  };
+
   // Syllabus handler
   const handleAddSyllabusItem = () => {
     if (!newSubjName.trim()) return alert("Enter Subject Name");
@@ -359,7 +389,7 @@ export default function AbhyaasMasterTower() {
     if (!finalExam) return alert("Please select or enter the Target Examination.");
     if (!finalSubject) return alert("Please select or enter the Target Subject.");
 
-    // If admin typed new manual entities, save them to Taxonomy so the frontend filters see them
+    // Auto-register any custom entities to Taxonomy
     if (newOlyClass === 'OTHER' && finalClass) {
       const node: TaxonomyNode = { id: `tax-${Date.now()}-c`, level: 'CLASS', nameEn: finalClass };
       saveTaxonomyNode(node);
@@ -619,6 +649,7 @@ export default function AbhyaasMasterTower() {
     try {
       await archiveQuestion(id);
       setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
+      setSelectedQuestionIds(prev => prev.filter(item => item !== id));
     } catch (err: any) {
       alert("Error archiving question: " + err.message);
     }
@@ -700,8 +731,9 @@ export default function AbhyaasMasterTower() {
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   const archivedQuestions = questionsList.filter(q => q.isArchived);
 
+  // Filtered active questions for Tab 1
   const filteredActiveQuestions = activeQuestions.filter(q => {
-    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
+    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter)) || cleanStr(q.topicName || q.topic).includes(cleanStr(searchFilter));
     const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
     const matchesClass = filterClass === 'ALL' || q.className === filterClass || q.class === filterClass;
     const matchesExam = filterExam === 'ALL' || q.examName === filterExam || q.category === filterExam;
@@ -744,16 +776,16 @@ export default function AbhyaasMasterTower() {
         <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex flex-wrap gap-2">
           <button
             onClick={() => setAdminTab('questions')}
-            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
               adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> 1. Question Bank & Vault ({activeQuestions.length})
+            <BookOpen className="w-4 h-4" /> 1. Question Bank & Practice Vault ({activeQuestions.length})
           </button>
 
           <button
             onClick={() => setAdminTab('olympiad')}
-            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
               adminTab === 'olympiad' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -762,7 +794,7 @@ export default function AbhyaasMasterTower() {
 
           <button
             onClick={() => setAdminTab('hierarchy')}
-            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
               adminTab === 'hierarchy' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -771,7 +803,7 @@ export default function AbhyaasMasterTower() {
 
           <button
             onClick={() => setAdminTab('recycle_bin')}
-            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3 px-4 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
               adminTab === 'recycle_bin' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -780,7 +812,7 @@ export default function AbhyaasMasterTower() {
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 1: QUESTION BANK & VAULT (PRESERVED 100%) */}
+        {/* TAB 1: QUESTION BANK & PRACTICE VAULT (UPGRADED WITH MULTI-SELECT BULK ARCHIVE) */}
         {/* ========================================================================= */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
@@ -789,27 +821,29 @@ export default function AbhyaasMasterTower() {
                 <div>
                   <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-blue-600" />
-                    Active Question Vault
+                    Active Question Bank & Practice Vault
                   </h2>
-                  <p className="text-xs text-slate-500">Preserved questions with automatic chemical subscripts, formulas, and diagrams.</p>
+                  <p className="text-xs text-slate-500">
+                    Manage conceptual practice drills, PYQs, and quarantined Olympiad questions with scientific rendering.
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={openCreateQuestionModal}
-                    className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                    className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Single Question Studio
                   </button>
                   <button
                     onClick={() => setIsBulkModalOpen(true)}
-                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
                     <FileSpreadsheet className="w-4 h-4" /> Bulk Upload / Excel Paste
                   </button>
                   <button
                     onClick={() => setIsAutoPushModalOpen(true)}
-                    className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                    className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
                     <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ
                   </button>
@@ -823,8 +857,8 @@ export default function AbhyaasMasterTower() {
                     {(['ALL', 'PRACTICE', 'PYQ', 'OLYMPIAD'] as const).map(seg => (
                       <button
                         key={seg}
-                        onClick={() => setSegmentFilter(seg)}
-                        className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
+                        onClick={() => { setSegmentFilter(seg); setSelectedQuestionIds([]); }}
+                        className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer ${
                           segmentFilter === seg ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
                         }`}
                       >
@@ -838,8 +872,8 @@ export default function AbhyaasMasterTower() {
 
                   <select
                     value={filterClass}
-                    onChange={e => setFilterClass(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                    onChange={e => { setFilterClass(e.target.value); setSelectedQuestionIds([]); }}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none cursor-pointer"
                   >
                     <option value="ALL">All Classes</option>
                     {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
@@ -847,8 +881,8 @@ export default function AbhyaasMasterTower() {
 
                   <select
                     value={filterExam}
-                    onChange={e => setFilterExam(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                    onChange={e => { setFilterExam(e.target.value); setSelectedQuestionIds([]); }}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none cursor-pointer"
                   >
                     <option value="ALL">All Examinations</option>
                     {taxonomyList.filter(t => t.level === 'EXAM').map(e => (
@@ -858,8 +892,8 @@ export default function AbhyaasMasterTower() {
 
                   <select
                     value={filterSubject}
-                    onChange={e => setFilterSubject(e.target.value)}
-                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                    onChange={e => { setFilterSubject(e.target.value); setSelectedQuestionIds([]); }}
+                    className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none cursor-pointer"
                   >
                     <option value="ALL">All Subjects</option>
                     {taxonomyList.filter(t => t.level === 'SUBJECT').map(s => (
@@ -868,17 +902,47 @@ export default function AbhyaasMasterTower() {
                   </select>
 
                   <div className="relative flex-grow min-w-[200px]">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="Search questions or terms..."
+                      placeholder="Search question, chapter or keywords..."
                       value={searchFilter}
                       onChange={e => setSearchFilter(e.target.value)}
-                      className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                      className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800"
                     />
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Questions Bulk Selection Toolbar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-100 p-3 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filteredActiveQuestions.length > 0 && selectedQuestionIds.length === filteredActiveQuestions.length}
+                    onChange={handleToggleSelectAllQuestions}
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span>Select All Filtered ({filteredActiveQuestions.length})</span>
+                </label>
+                {selectedQuestionIds.length > 0 && (
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
+                    {selectedQuestionIds.length} Selected
+                  </span>
+                )}
+              </div>
+
+              {selectedQuestionIds.length > 0 && (
+                <button
+                  onClick={handleBulkMoveQuestionsToRecycleBin}
+                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Move Selected to Recycle Bin ({selectedQuestionIds.length})</span>
+                </button>
+              )}
             </div>
 
             {/* Questions Stream */}
@@ -892,13 +956,24 @@ export default function AbhyaasMasterTower() {
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
                   const att = parseAttachment(q.diagramUrl);
+                  const isSelected = selectedQuestionIds.includes(q.id);
+
                   return (
                     <div
                       key={q.id || idx}
-                      className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3"
+                      className={`bg-white border p-5 rounded-2xl shadow-sm transition space-y-3 relative ${
+                        isSelected ? 'border-blue-600 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-blue-300'
+                      }`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectQuestion(q.id)}
+                            className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                          />
+
                           <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                             q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                             q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
@@ -921,14 +996,14 @@ export default function AbhyaasMasterTower() {
                         <div className="flex items-center gap-1 self-end sm:self-center">
                           <button
                             onClick={() => openEditQuestionModal(q)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
                             title="Edit Question"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
-                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Move to Recycle Bin"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1033,7 +1108,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE (MULTI-SELECT & BULK DELETE) */}
+        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE (PRESERVED 100%) */}
         {/* ========================================================================= */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1073,7 +1148,7 @@ export default function AbhyaasMasterTower() {
                     <span>Select All ({olympiadsList.length})</span>
                   </label>
                   {selectedOlyIds.length > 0 && (
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
                       {selectedOlyIds.length} Selected
                     </span>
                   )}
@@ -1140,7 +1215,6 @@ export default function AbhyaasMasterTower() {
                           <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
                         </div>
 
-                        {/* 50% Threshold Progress Bar */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[11px] font-black">
                             <span className="text-slate-600">{oly.bookedSlots || 0} / {oly.totalSlots || 500} Slots</span>
@@ -1238,7 +1312,7 @@ export default function AbhyaasMasterTower() {
                     setActiveLevel(lvl.id as TaxonomyLevel); 
                     setPresetChoice(''); setManualNameEn(''); setManualNameHi(''); setSelectedParentId(''); 
                   }}
-                  className={`py-3.5 px-4 rounded-2xl text-xs font-black transition flex flex-col items-center gap-1 ${
+                  className={`py-3.5 px-4 rounded-2xl text-xs font-black transition flex flex-col items-center gap-1 cursor-pointer ${
                     activeLevel === lvl.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -1401,7 +1475,7 @@ export default function AbhyaasMasterTower() {
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: CREATE CUSTOM OLYMPIAD (FULL MANUAL CONTROLS) */}
+      {/* MODAL 1: CREATE CUSTOM OLYMPIAD (PRESERVED 100%) */}
       {/* ========================================================================= */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -1420,7 +1494,6 @@ export default function AbhyaasMasterTower() {
 
             <form onSubmit={handleCreateOlympiadSubmit} className="space-y-4 text-xs font-medium">
               
-              {/* Title & Schedule Cadence (With Custom Manual Option) */}
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
@@ -1462,14 +1535,12 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* 4-Tier Taxonomy: Class & Exam (With Full Manual Overrides) */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <span className="text-[11px] font-black uppercase text-slate-700 flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-blue-600" /> Target Academic Hierarchy
                 </span>
                 
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {/* Class */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">1. Target Class / Standard*</label>
                     <select
@@ -1494,7 +1565,6 @@ export default function AbhyaasMasterTower() {
                     )}
                   </div>
 
-                  {/* Exam */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">2. Target Examination*</label>
                     <select
@@ -1519,7 +1589,6 @@ export default function AbhyaasMasterTower() {
                     )}
                   </div>
 
-                  {/* Subject */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">3. Target Subject*</label>
                     <select
@@ -1544,7 +1613,6 @@ export default function AbhyaasMasterTower() {
                     )}
                   </div>
 
-                  {/* Topic */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">4. Target Topic / Chapter</label>
                     <select
@@ -1569,7 +1637,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Manual Entry Fee & Fellowship Pool */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Manual Fee (₹)*</label>
@@ -1618,7 +1685,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Real Calendar & Clock Timestamp Picker (Up to 2099) */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-blue-600" />
@@ -1635,7 +1701,6 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
-              {/* Description Box */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Examination Description / Overview</label>
                 <textarea
@@ -1647,7 +1712,6 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
-              {/* Detailed Syllabus Builder */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
                 <div className="space-y-2">
@@ -1669,7 +1733,6 @@ export default function AbhyaasMasterTower() {
                 <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
               </div>
 
-              {/* Editable Security Rules */}
               <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
                 <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
@@ -1814,7 +1877,7 @@ export default function AbhyaasMasterTower() {
                   {qExam === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
@@ -1836,7 +1899,7 @@ export default function AbhyaasMasterTower() {
                   {qSubject === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
@@ -1858,7 +1921,7 @@ export default function AbhyaasMasterTower() {
                   {qTopic === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none"
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
                     />
                   )}
                 </div>
