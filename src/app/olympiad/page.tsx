@@ -3,126 +3,205 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Award, Calendar, Clock, CheckCircle2, ShieldCheck,
+  Calendar, Clock, CheckCircle2, ShieldCheck,
   BookOpen, Download, Loader2, User, Mail, Phone,
   ArrowRight, X, AlertOctagon, Filter, Search,
-  Layers, FileText, Check, GraduationCap
+  FileText, GraduationCap, ChevronRight, Tag,
+  Layers, Sparkles, Plus, Compass
 } from 'lucide-react';
 import { getAllOlympiads, createPaymentRecord, OlympiadTournament } from '@/lib/db';
 
-const FALLBACK_ACADEMIC_OLYMPIADS: OlympiadTournament[] = [
+// Fallback seed tournaments if database is fresh
+const SEED_TOURNAMENTS: OlympiadTournament[] = [
   {
     id: 'abh-oly-upsc-prelims',
-    title: 'All-India General Studies Evaluation & Fellowship Assessment',
-    titleHi: 'अखिल भारतीय सामान्य अध्ययन मूल्यांकन एवं शोध छात्रवृत्ति परीक्षा',
-    descriptionEn: 'Rigorous national evaluation bench-marked against UPSC Civil Services Preliminary Examination standards. Covers Indian Polity, Modern History, and Macroeconomic Policy.',
+    title: 'All-India UPSC General Studies Preliminary Evaluation',
+    titleHi: 'अखिल भारतीय यूपीएससी सामान्य अध्ययन प्रारंभिक मूल्यांकन',
+    descriptionEn: 'Rigorous national assessment aligned with UPSC CSE Preliminary standards. Tests conceptual depth across Indian Polity, Modern History, and Macroeconomic trends.',
     fee: 49,
     totalGrantPool: '₹15,000 Study Fellowship',
     totalSlots: 500,
     bookedSlots: 362,
     durationMinutes: 45,
     questionsCount: 50,
-    targetClass: 'Civil Services & State PSC Aspirants',
-    targetExam: 'UPSC Civil Services (Prelims)',
-    targetSubject: 'General Studies Paper I',
+    targetClass: 'Civil Services & Graduate Aspirants',
+    targetExam: 'UPSC Civil Services',
+    targetSubject: 'Indian Polity & Governance',
     categorySection: 'WEEKLY',
     streamType: 'UPSC_PSC',
     startDateTime: '2026-09-13T10:00',
-    scheduleText: 'Scheduled Sunday at 10:00 AM IST',
+    scheduleText: 'Sunday at 10:00 AM IST',
     rules: [
-      "Strict Per-Question Timer (50 seconds per question, No Backtracking) to ensure independent analytical readiness.",
-      "Full-Screen Examination Lock: Navigating away from the evaluation environment prompts an immediate penalty; 2 warnings results in permanent auto-submission.",
-      "Integrity & Camera Telemetry: Candidate environment telemetry is recorded for post-examination audit.",
-      "Mandatory 1-on-1 Academic Viva: Provisional top merit rankers must clear a 10-minute conceptual viva (minimum 60% passing threshold) before fellowship sanction.",
-      "Academic Baseline Cutoff: A minimum written score of 75% marks is mandatory to qualify for research fellowship disbursals.",
-      "Disqualification & Ethics Policy: Impersonation, proxy assistance, or generative AI usage results in immediate cancellation and permanent identity blacklisting."
+      "Strict Per-Question Timer (50 seconds per MCQ, No Backtracking).",
+      "Full-Screen Lock: Exiting full-screen twice triggers automatic script submission.",
+      "Front camera and environment telemetry logged for integrity verification.",
+      "Top merit candidates must defend their solutions in a 1-on-1 Academic Viva (minimum 60% passing score).",
+      "Minimum written baseline cutoff of 75% marks required for study grant sanction."
     ],
     syllabus: [
-      { subject: 'Indian Polity & Constitutional Governance', questions: 20, topics: 'Preamble, Fundamental Rights, Directive Principles, Parliamentary Procedures' },
-      { subject: 'Modern Indian History & National Movement', questions: 15, topics: 'Socio-religious reforms, 1857 to 1947, Constitutional evolution' },
-      { subject: 'Indian Economy & Fiscal Dynamics', questions: 15, topics: 'Macroeconomic indicators, Monetary Policy, Union Budget, Inflation targets' }
+      { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament, Judiciary' },
+      { subject: 'Modern Indian History', questions: 15, topics: '1857 Revolt to 1947, Constitutional Reforms' },
+      { subject: 'Indian Economy & Macroeconomics', questions: 15, topics: 'Banking, Fiscal Deficit, Monetary Policy, Inflation' }
     ],
     status: 'UPCOMING',
     createdAt: null
   },
   {
-    id: 'abh-oly-stem-foundation',
-    title: 'National Senior Secondary Foundation Diagnostic Assessment',
-    titleHi: 'राष्ट्रीय उच्चतर माध्यमिक बुनियादी मूल्यांकन परीक्षा',
-    descriptionEn: 'National benchmark examination designed to evaluate core conceptual rigor in advanced physical sciences, structural chemistry, and quantitative calculus.',
+    id: 'abh-oly-jee-physics',
+    title: 'National Advanced Mechanics & Electrodynamics Olympiad',
+    titleHi: 'राष्ट्रीय उच्च भौतिकी एवं यांत्रिकी ओलंपियाड',
+    descriptionEn: 'Championship level assessment covering rotational dynamics, electrostatic potential, and classical mechanics for engineering aspirants.',
+    fee: 99,
+    totalGrantPool: '₹25,000 Study Fellowship',
+    totalSlots: 500,
+    bookedSlots: 290,
+    durationMinutes: 60,
+    questionsCount: 60,
+    targetClass: 'Class 11th - 12th',
+    targetExam: 'IIT-JEE (Advanced / Mains)',
+    targetSubject: 'Physics & Mechanics',
+    categorySection: 'WEEKLY',
+    streamType: 'ENGINEERING',
+    startDateTime: '2026-09-13T14:00',
+    scheduleText: 'Sunday at 02:00 PM IST',
+    rules: [
+      "Per-question time-lock enforced.",
+      "Screen switching restricted with 2 warnings maximum.",
+      "Subject experts conduct recorded Viva Voce prior to study grant award."
+    ],
+    syllabus: [
+      { subject: 'Rotational Motion & Gravitation', questions: 30, topics: 'Moment of Inertia, Torque, Planetary Motion' },
+      { subject: 'Electrostatics & Current Electricity', questions: 30, topics: 'Gauss Law, Capacitance, Kirchhoff Circuit Laws' }
+    ],
+    status: 'UPCOMING',
+    createdAt: null
+  },
+  {
+    id: 'abh-oly-foundation-stem',
+    title: 'National Junior Science & Mathematics Foundation Drill',
+    titleHi: 'राष्ट्रीय जूनियर विज्ञान एवं गणित बुनियादी परीक्षा',
+    descriptionEn: 'Open diagnostic examination for high school learners to assess core fundamentals in algebra, biology, and chemical change.',
     fee: 0,
-    totalGrantPool: 'National Merit Citation & Certificate',
+    totalGrantPool: 'National Merit Certificate & Honor Roll',
     totalSlots: 1000,
-    bookedSlots: 780,
-    durationMinutes: 40,
-    questionsCount: 40,
-    targetClass: 'Senior Secondary (Class 11th - 12th)',
+    bookedSlots: 740,
+    durationMinutes: 30,
+    questionsCount: 30,
+    targetClass: 'Class 9th - 10th',
     targetExam: 'Senior Secondary Foundation',
-    targetSubject: 'Physics & Chemistry Core',
+    targetSubject: 'Mathematics & General Science',
     categorySection: 'WEEKLY',
     streamType: 'FOUNDATION',
-    startDateTime: '2026-09-13T12:00',
-    scheduleText: 'Scheduled Sunday at 12:00 PM IST',
+    startDateTime: '2026-09-13T16:00',
+    scheduleText: 'Sunday at 04:00 PM IST',
     rules: [
       "Application fee exempted under institutional academic merit sponsorship.",
-      "Sectional diagnostic analytical report and verified solution schemes issued post-assessment.",
-      "Full-screen lock enforced throughout the examination window."
+      "Detailed diagnostic scorecard and solution key provided immediately.",
+      "Full-screen lock active during assessment."
     ],
     syllabus: [
-      { subject: 'Classical Mechanics & Dynamics', questions: 20, topics: 'Conservation laws, Rotational dynamics, Gravitation, Simple harmonic motion' },
-      { subject: 'Chemical Structure & Bonding', questions: 20, topics: 'Hybridization, Molecular Orbital Theory, Thermodynamic principles' }
+      { subject: 'Algebra & Number Systems', questions: 15, topics: 'Polynomials, Linear Equations, Real Numbers' },
+      { subject: 'Chemical Reactions & Life Processes', questions: 15, topics: 'Oxidation, Cellular Respiration, Acids & Bases' }
     ],
     status: 'UPCOMING',
     createdAt: null
   },
   {
-    id: 'abh-oly-monthly-advanced',
-    title: 'Monthly All-India Advanced Academic Fellowship Examination',
-    titleHi: 'मासिक अखिल भारतीय उच्च अध्ययन छात्रवृत्ति परीक्षा',
-    descriptionEn: 'Comprehensive multi-disciplinary assessment evaluating integrated conceptual problem-solving, advanced logic, and analytical synthesis across disciplines.',
-    fee: 199,
-    totalGrantPool: '₹1,00,000 Study Fellowship Allocation',
+    id: 'abh-oly-monthly-mega-ssc',
+    title: 'All-India Monthly Quantitative Aptitude & CSAT Logic Arena',
+    titleHi: 'मासिक अखिल भारतीय संख्यात्मक अभिरुचि एवं सीसैट टेस्ट',
+    descriptionEn: 'High-speed national evaluation testing data interpretation, critical decision making, and quantitative aptitude.',
+    fee: 99,
+    totalGrantPool: '₹40,000 Study Fellowship',
     totalSlots: 600,
     bookedSlots: 410,
-    durationMinutes: 90,
-    questionsCount: 90,
-    targetClass: 'Higher Competitive & University Level',
-    targetExam: 'Integrated Graduate Assessment',
-    targetSubject: 'Comprehensive Core Studies',
+    durationMinutes: 60,
+    questionsCount: 75,
+    targetClass: 'Civil Services & Graduate Aspirants',
+    targetExam: 'SSC CGL & Banking',
+    targetSubject: 'Quantitative Aptitude & CSAT',
     categorySection: 'MONTHLY',
-    streamType: 'UPSC_PSC',
+    streamType: 'SSC_BANKING',
     startDateTime: '2026-09-29T10:00',
-    scheduleText: 'Last Tuesday of the Month at 10:00 AM IST',
+    scheduleText: 'Last Tuesday of Month at 10:00 AM IST',
     rules: [
-      "Strict timed environment with dual-stage verification protocols.",
-      "Merit rank 1 allocated ₹35,000 Research Fellowship post successful Viva Voce defense.",
-      "Disqualified attempts automatically cascade to subsequent qualifying candidates achieving >=75% baseline cutoff."
+      "Timed examination session with zero backtrack policy.",
+      "Screen telemetry verification mandatory.",
+      "Viva Voce verification conducted within 24 hours of provisional rank declaration."
     ],
     syllabus: [
-      { subject: 'Section A: Analytical Foundations', questions: 30, topics: 'Structural governance, Macroeconomic policy, Environmental science' },
-      { subject: 'Section B: Quantitative & Logical Aptitude', questions: 30, topics: 'Statistical inference, Critical reasoning, Analytical problem solving' },
-      { subject: 'Section C: Contemporary Developments', questions: 30, topics: 'Science & technology policy, International institutional frameworks' }
+      { subject: 'Quantitative Aptitude', questions: 40, topics: 'Arithmetic, Percentages, Ratio-Proportion, Data Interpretation' },
+      { subject: 'Analytical & Critical Reasoning', questions: 35, topics: 'Syllogisms, Seating Arrangement, Logical Deductions' }
     ],
     status: 'UPCOMING',
     createdAt: null
   }
 ];
 
-export default function DignifiedOlympiadSuite() {
+// Presets for the 4 primary taxonomy dimensions
+const TAXONOMY_PRESETS = {
+  EXAM: [
+    'UPSC Civil Services',
+    'State PSC (UPPSC / BPSC / MPPCS)',
+    'IIT-JEE (Advanced / Mains)',
+    'NEET-UG (Medical)',
+    'SSC CGL & Banking',
+    'CLAT & Judicial Services',
+    'Senior Secondary Foundation',
+    'Navodaya & Sainik Entrance'
+  ],
+  CLASS: [
+    'Class 6th - 8th (Middle School)',
+    'Class 9th - 10th (Secondary)',
+    'Class 11th - 12th (Senior Secondary)',
+    'Civil Services & Graduate Aspirants',
+    'Engineering & Technology (B.Tech / JEE)',
+    'Medical & Dental (MBBS / NEET)'
+  ],
+  SUBJECT: [
+    'Indian Polity & Governance',
+    'Modern Indian History',
+    'Indian Economy & Macroeconomics',
+    'Physical & Human Geography',
+    'Physics & Mechanics',
+    'Chemistry (Organic & Physical)',
+    'Mathematics & Quantitative Calculus',
+    'Quantitative Aptitude & CSAT',
+    'Biology & Life Sciences',
+    'English Language & Comprehension'
+  ],
+  TOPIC: [
+    'Preamble & Fundamental Rights',
+    'Modern History: 1857 to 1947',
+    'Macroeconomic Policy & Budget',
+    'Rotational Dynamics & Gravity',
+    'Chemical Bonding & Hybridization',
+    'Differential Equations & Vectors',
+    'Data Interpretation & Reasoning',
+    'Cellular Biology & Genetics'
+  ]
+};
+
+export default function CascadingOlympiadSuite() {
   const [tournaments, setTournaments] = useState<OlympiadTournament[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Academic Filters
+  // LEVEL 1: Frequency / Cadence
   const [selectedCadence, setSelectedCadence] = useState<string>('ALL');
-  const [selectedStream, setSelectedStream] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Modals & Application
+  // LEVEL 2: Primary Taxonomy Dimension
+  const [selectedDimension, setSelectedDimension] = useState<'ALL' | 'EXAM' | 'CLASS' | 'SUBJECT' | 'TOPIC' | 'MANUAL'>('ALL');
+
+  // LEVEL 3: Sub-Category Selection (or Manual Filter String)
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
+  const [manualCustomInput, setManualCustomInput] = useState<string>('');
+
+  // Modals & Application States
   const [activeTournament, setActiveTournament] = useState<OlympiadTournament | null>(null);
   const [showBlueprintModal, setShowBlueprintModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Application Form
+  // Candidate Registration Fields
   const [candidateName, setCandidateName] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [candidatePhone, setCandidatePhone] = useState('');
@@ -139,28 +218,55 @@ export default function DignifiedOlympiadSuite() {
   } | null>(null);
 
   useEffect(() => {
-    async function loadAcademicTournaments() {
+    async function loadLiveTournaments() {
       try {
         const liveList = await getAllOlympiads();
         if (liveList && liveList.length > 0) {
           setTournaments(liveList);
         } else {
-          setTournaments(FALLBACK_ACADEMIC_OLYMPIADS);
+          setTournaments(SEED_TOURNAMENTS);
         }
       } catch (err) {
-        console.error("Error loading Olympiad timetable:", err);
-        setTournaments(FALLBACK_ACADEMIC_OLYMPIADS);
+        console.error("Error fetching Olympiads:", err);
+        setTournaments(SEED_TOURNAMENTS);
       } finally {
         setLoading(false);
       }
     }
-    loadAcademicTournaments();
+    loadLiveTournaments();
   }, []);
 
-  // Academic Filter Engine
+  // Compute dynamic sub-categories based on Level 2 Selection + live data
+  const subCategoryPills = useMemo(() => {
+    if (selectedDimension === 'ALL') return [];
+
+    if (selectedDimension === 'MANUAL') return [];
+
+    const presetList = TAXONOMY_PRESETS[selectedDimension] || [];
+    
+    // Auto-extract live unique names from current tournaments to ensure admin-created custom items always appear
+    const liveValues = new Set<string>();
+    tournaments.forEach(t => {
+      if (selectedDimension === 'EXAM' && t.targetExam) liveValues.add(t.targetExam);
+      if (selectedDimension === 'CLASS' && t.targetClass) liveValues.add(t.targetClass);
+      if (selectedDimension === 'SUBJECT' && t.targetSubject) liveValues.add(t.targetSubject);
+      if (selectedDimension === 'TOPIC' && t.topicName) liveValues.add(t.topicName);
+      if (t.syllabus && Array.isArray(t.syllabus)) {
+        t.syllabus.forEach(s => {
+          if (selectedDimension === 'SUBJECT' && s.subject) liveValues.add(s.subject);
+          if (selectedDimension === 'TOPIC' && s.topics) liveValues.add(s.topics);
+        });
+      }
+    });
+
+    const combined = Array.from(new Set([...presetList, ...Array.from(liveValues)])).filter(Boolean);
+    return combined;
+  }, [selectedDimension, tournaments]);
+
+  // LEVEL 4: Filter Tournaments based on all active cascading layers
   const filteredTournaments = useMemo(() => {
     return tournaments.filter(t => {
-      // 1. Frequency / Cadence Filter
+      // 1. Check Cadence Filter
       if (selectedCadence !== 'ALL') {
         const sec = (t.categorySection || '').toUpperCase();
         if (selectedCadence === 'WEEKLY' && sec !== 'WEEKLY') return false;
@@ -172,24 +278,40 @@ export default function DignifiedOlympiadSuite() {
         if (selectedCadence === 'SPECIAL' && !['SPECIAL', 'MANUAL', 'CUSTOM'].includes(sec)) return false;
       }
 
-      // 2. Academic Stream Filter
-      if (selectedStream !== 'ALL') {
-        const str = (t.streamType || '').toUpperCase();
-        if (str !== selectedStream) return false;
-      }
+      // 2. Check Dimension & Sub-Category Filter
+      if (selectedDimension !== 'ALL') {
+        if (selectedDimension === 'MANUAL') {
+          if (manualCustomInput.trim()) {
+            const query = manualCustomInput.toLowerCase();
+            const matchesTitle = (t.title || '').toLowerCase().includes(query);
+            const matchesSubject = (t.targetSubject || '').toLowerCase().includes(query);
+            const matchesExam = (t.targetExam || '').toLowerCase().includes(query);
+            const matchesClass = (t.targetClass || '').toLowerCase().includes(query);
+            if (!matchesTitle && !matchesSubject && !matchesExam && !matchesClass) return false;
+          }
+        } else if (selectedSubCategory !== 'ALL') {
+          const subTarget = selectedSubCategory.toLowerCase();
+          let matched = false;
 
-      // 3. Search Query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = (t.title || '').toLowerCase().includes(q);
-        const matchesSubject = (t.targetSubject || '').toLowerCase().includes(q);
-        const matchesExam = (t.targetExam || '').toLowerCase().includes(q);
-        if (!matchesTitle && !matchesSubject && !matchesExam) return false;
+          if (selectedDimension === 'EXAM') {
+            matched = (t.targetExam || '').toLowerCase().includes(subTarget) || (t.title || '').toLowerCase().includes(subTarget);
+          } else if (selectedDimension === 'CLASS') {
+            matched = (t.targetClass || '').toLowerCase().includes(subTarget);
+          } else if (selectedDimension === 'SUBJECT') {
+            matched = (t.targetSubject || '').toLowerCase().includes(subTarget) || 
+                      (t.syllabus && t.syllabus.some(s => s.subject.toLowerCase().includes(subTarget)));
+          } else if (selectedDimension === 'TOPIC') {
+            matched = (t.topicName || '').toLowerCase().includes(subTarget) || 
+                      (t.syllabus && t.syllabus.some(s => (s.topics || '').toLowerCase().includes(subTarget)));
+          }
+
+          if (!matched) return false;
+        }
       }
 
       return true;
     });
-  }, [tournaments, selectedCadence, selectedStream, searchQuery]);
+  }, [tournaments, selectedCadence, selectedDimension, selectedSubCategory, manualCustomInput]);
 
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,7 +320,7 @@ export default function DignifiedOlympiadSuite() {
       return alert("Please enter valid legal name, active email, and 10-digit mobile number.");
     }
     if (!acceptIntegrityCode) {
-      return alert("Candidate must formally accept the Academic Ethics & Verification Code.");
+      return alert("Candidate must accept the Academic Ethics & Verification Code.");
     }
 
     setIsSubmitting(true);
@@ -209,7 +331,7 @@ export default function DignifiedOlympiadSuite() {
         phone: candidatePhone.trim(),
         olympiadTier: activeTournament.title,
         amount: activeTournament.fee,
-        paymentMethod: activeTournament.fee === 0 ? 'Exempted (Sponsored)' : 'Verified Online Payment',
+        paymentMethod: activeTournament.fee === 0 ? 'Exempted Entry Pass' : 'Online Verified',
       });
 
       if (res && res.success && res.rollNo) {
@@ -217,12 +339,12 @@ export default function DignifiedOlympiadSuite() {
           rollNo: res.rollNo,
           candidateName: candidateName.trim(),
           tournamentTitle: activeTournament.title,
-          examSlot: activeTournament.scheduleText || (activeTournament.startDateTime ? new Date(activeTournament.startDateTime).toLocaleString('en-IN') : 'Scheduled Examination Slot'),
+          examSlot: activeTournament.scheduleText || (activeTournament.startDateTime ? new Date(activeTournament.startDateTime).toLocaleString('en-IN') : 'Scheduled Slot'),
           amount: activeTournament.fee,
         });
         setShowRegisterModal(false);
       } else {
-        alert("Unable to generate examination admit card. Please retry.");
+        alert("Failed to confirm registration. Please retry.");
       }
     } catch (err: any) {
       alert("Application submission error: " + err.message);
@@ -234,64 +356,62 @@ export default function DignifiedOlympiadSuite() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-32 font-sans selection:bg-slate-900 selection:text-white">
       
-      {/* OFFICIAL INSTITUTIONAL ETHICS CHARTER BANNER */}
+      {/* 1. Official Institutional Ethics Charter Banner */}
       <div className="bg-slate-900 text-slate-200 border-b border-slate-800 px-4 py-2.5 shadow-sm flex items-center justify-center gap-2 text-xs font-medium text-center">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
-          <strong className="text-white font-bold">ABHYAAS ACADEMIC ETHICS CHARTER:</strong> Unfair means, unauthorized collaboration, or impersonation leads to immediate disqualification and permanent identity blacklisting across the national verification roll.
+          <strong className="text-white font-bold">ABHYAAS ACADEMIC INTEGRITY CODE:</strong> Secondary device or generative AI relay use leads to immediate disqualification and permanent identity blacklisting across the national verification roll.
         </span>
       </div>
 
-      {/* Header & Program Details */}
+      {/* 2. Top Header & Title */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+          
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[11px] font-bold uppercase tracking-wider">
                 <GraduationCap className="w-4 h-4 text-blue-700" />
-                <span>All-India Merit Assessment & Academic Fellowship Program</span>
+                <span>All-India Merit Assessment & Academic Fellowship Timetable</span>
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
                 All-India Academic Olympiads
               </h1>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
-                Standardized Competitive Evaluation • Verified Research Grants • Mandatory Academic Viva Voce
-              </p>
-              <p className="text-slate-600 text-xs sm:text-sm max-w-3xl leading-relaxed">
-                National level standardized academic examinations designed to assess conceptual mastery across competitive and foundational disciplines. Top merit rankers qualify for research fellowships and educational study grants administered post verification.
+                Standardized Competitive Evaluation • Verified Research Grants • Mandatory 1-on-1 Viva Voce
               </p>
             </div>
 
-            {/* Official Statistics Card */}
-            <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center min-w-[170px]">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Examinations</p>
-                <p className="text-2xl font-black text-slate-900 mt-0.5">{tournaments.length}</p>
-                <p className="text-[10px] text-emerald-600 font-bold mt-0.5">● National Examination Schedule</p>
+            {/* Quick Summary Pill */}
+            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl shrink-0">
+              <div className="text-center px-3 border-r border-slate-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Sessions</p>
+                <p className="text-xl font-black text-slate-900">{tournaments.length}</p>
               </div>
-
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center min-w-[170px]">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sanctioned Fellowships</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">Merit Grants</p>
-                <p className="text-[10px] text-blue-600 font-bold mt-0.5">Direct Verified Bank Disbursal</p>
+              <div className="text-center px-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Filters</p>
+                <p className="text-xl font-black text-blue-600">{filteredTournaments.length}</p>
               </div>
             </div>
           </div>
 
-          {/* Academic Schedule Filter Tabs */}
-          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            
-            {/* Cadence Tabs */}
+          {/* ========================================================================= */}
+          {/* LEVEL 1: FREQUENCY / CADENCE SELECTOR */}
+          {/* ========================================================================= */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-blue-600" /> 1. Select Frequency / Schedule Cadence
+            </span>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200">
               {[
-                { id: 'ALL', label: 'All Examinations' },
-                { id: 'WEEKLY', label: 'Weekly Assessments' },
-                { id: 'MONTHLY', label: 'Monthly Fellowship Series' },
-                { id: 'QUARTERLY', label: 'Quarterly Talent Search' },
+                { id: 'ALL', label: 'All Schedules' },
+                { id: 'WEEKLY', label: 'Weekly Sprints (Sundays)' },
+                { id: 'MONTHLY', label: 'Monthly Megas' },
+                { id: 'QUARTERLY', label: 'Quarterly Talent (3-Month)' },
                 { id: 'HALF_YEARLY', label: 'Half-Yearly Assessments' },
                 { id: 'YEARLY', label: 'Annual Grand Fellowship' },
-                { id: 'GRAND', label: 'National Day Convocation' },
-                { id: 'SPECIAL', label: 'Special Subject Drills' },
+                { id: 'GRAND', label: 'National Convocation (15 Aug / 26 Jan)' },
+                { id: 'SPECIAL', label: 'Special / Custom Invitations' },
               ].map(cadence => {
                 const isSelected = selectedCadence === cadence.id;
                 return (
@@ -309,47 +429,138 @@ export default function DignifiedOlympiadSuite() {
                 );
               })}
             </div>
-
-            {/* Academic Stream Selector & Live Search */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
-                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <select
-                  value={selectedStream}
-                  onChange={e => setSelectedStream(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer py-1"
-                >
-                  <option value="ALL">All Academic Streams</option>
-                  <option value="UPSC_PSC">Civil Services (UPSC CSE & State PSC)</option>
-                  <option value="ENGINEERING">Engineering Sciences (IIT-JEE / B.Tech)</option>
-                  <option value="MEDICAL">Medical Sciences (NEET / MBBS)</option>
-                  <option value="SSC_BANKING">Government Recruitment (SSC / Banking)</option>
-                  <option value="LAW">Legal Jurisprudence (CLAT & Judicial)</option>
-                  <option value="FOUNDATION">Senior Secondary Foundation (11th - 12th)</option>
-                  <option value="GENERAL">General Scholastic Aptitude</option>
-                </select>
-              </div>
-
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search subject, discipline..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full sm:w-56 h-9 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800 transition"
-                />
-              </div>
-            </div>
-
           </div>
+
+          {/* ========================================================================= */}
+          {/* LEVEL 2: PRIMARY TAXONOMY DIMENSIONS (EXAMS, CLASSES, SUBJECTS, TOPICS) */}
+          {/* ========================================================================= */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-blue-600" /> 2. Filter by Academic Dimension
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+              {[
+                { id: 'ALL', label: 'All Dimensions', desc: 'Complete catalog' },
+                { id: 'EXAM', label: 'Examinations', desc: 'UPSC, JEE, NEET, SSC...' },
+                { id: 'CLASS', label: 'Classes / Grades', desc: '6-8, 9-10, 11-12, Graduate' },
+                { id: 'SUBJECT', label: 'Subjects', desc: 'Polity, Physics, Maths...' },
+                { id: 'TOPIC', label: 'Topics & Chapters', desc: 'Preamble, Mechanics...' },
+                { id: 'MANUAL', label: 'Manual Search', desc: 'Type custom category' }
+              ].map(dim => {
+                const isSelected = selectedDimension === dim.id;
+                return (
+                  <button
+                    key={dim.id}
+                    onClick={() => {
+                      setSelectedDimension(dim.id as any);
+                      setSelectedSubCategory('ALL');
+                    }}
+                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
+                        : 'bg-slate-50 hover:bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <p className="font-extrabold text-xs">{dim.label}</p>
+                    <p className={`text-[10px] mt-0.5 font-medium ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                      {dim.desc}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* LEVEL 3: DYNAMIC SUB-CATEGORY PILLS (APPEARS ON CLICKING LEVEL 2) */}
+          {/* ========================================================================= */}
+          {selectedDimension !== 'ALL' && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-blue-600" />
+                  3. Select {selectedDimension === 'EXAM' ? 'Target Examination' :
+                             selectedDimension === 'CLASS' ? 'Target Class / Grade' :
+                             selectedDimension === 'SUBJECT' ? 'Target Subject Discipline' :
+                             selectedDimension === 'TOPIC' ? 'Key Topic / Chapter' : 'Custom Filter'}
+                </span>
+                {selectedSubCategory !== 'ALL' && (
+                  <button
+                    onClick={() => setSelectedSubCategory('ALL')}
+                    className="text-[11px] font-bold text-blue-600 hover:underline"
+                  >
+                    Reset to All
+                  </button>
+                )}
+              </div>
+
+              {selectedDimension === 'MANUAL' ? (
+                /* Manual Custom Type Input */
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Type custom exam, subject or category (e.g. Organic, UPPSC, Class 10)..."
+                      value={manualCustomInput}
+                      onChange={e => setManualCustomInput(e.target.value)}
+                      className="w-full h-11 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  {manualCustomInput && (
+                    <button
+                      onClick={() => setManualCustomInput('')}
+                      className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Subcategory Pills Grid */
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedSubCategory('ALL')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                      selectedSubCategory === 'ALL'
+                        ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    All ({subCategoryPills.length})
+                  </button>
+
+                  {subCategoryPills.map(sub => {
+                    const isSelected = selectedSubCategory === sub;
+                    return (
+                      <button
+                        key={sub}
+                        onClick={() => setSelectedSubCategory(sub)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>{sub}</span>
+                        {isSelected && <Check className="w-3 h-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* Main Examination Grid */}
+      {/* ========================================================================= */}
+      {/* LEVEL 4: OLYMPIAD RESULTS CARDS */}
+      {/* ========================================================================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         
-        {/* Provisional Admit Card Confirmation Banner */}
+        {/* Confirmed Admit Card View (If Just Registered) */}
         {confirmedAdmit && (
           <div className="max-w-3xl mx-auto bg-white border-2 border-emerald-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 animate-in fade-in duration-200">
             <div className="text-center space-y-1 border-b border-slate-100 pb-4">
@@ -387,7 +598,7 @@ export default function DignifiedOlympiadSuite() {
                   <span className="font-bold text-white">{confirmedAdmit.examSlot}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Application Processing Status:</span>
+                  <span className="text-slate-400 text-[11px] block">Application Fee:</span>
                   <span className="font-bold text-emerald-400">
                     {confirmedAdmit.amount === 0 ? 'Exempted (Sponsored Entry)' : `₹${confirmedAdmit.amount} (Payment Cleared)`}
                   </span>
@@ -415,7 +626,19 @@ export default function DignifiedOlympiadSuite() {
           </div>
         )}
 
-        {/* Examination List */}
+        {/* Results Header */}
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div>
+            <h2 className="text-base font-black text-slate-900">
+              Matching Examination Sessions ({filteredTournaments.length})
+            </h2>
+            <p className="text-xs text-slate-500">
+              Standardized sessions matching your selected cadence and discipline criteria.
+            </p>
+          </div>
+        </div>
+
+        {/* Tournaments Grid */}
         {loading ? (
           <div className="text-center py-24 space-y-3">
             <Loader2 className="w-9 h-9 text-slate-800 animate-spin mx-auto" />
@@ -425,10 +648,10 @@ export default function DignifiedOlympiadSuite() {
           </div>
         ) : filteredTournaments.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center space-y-3">
-            <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
-            <h3 className="font-bold text-base text-slate-800">No Examinations Scheduled</h3>
+            <Compass className="w-12 h-12 text-slate-300 mx-auto" />
+            <h3 className="font-bold text-base text-slate-800">No Examinations Found for this Combination</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              No examination sessions match your current filter parameters. Adjust frequency or academic stream selectors above.
+              Try switching your frequency selection to &quot;All Schedules&quot; or resetting the category filter to view other available assessments.
             </p>
           </div>
         ) : (
@@ -447,11 +670,16 @@ export default function DignifiedOlympiadSuite() {
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Notification Ref: ABH/2026/{t.id.slice(-6).toUpperCase()}
+                          Ref: ABH/2026/{t.id.slice(-6).toUpperCase()}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded mt-1 inline-block">
-                          {t.categorySection || 'ASSESSMENT'} • {t.streamType || 'DISCIPLINE'}
-                        </span>
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                            {t.categorySection || 'ASSESSMENT'}
+                          </span>
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                            {t.targetClass || 'OPEN'}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="text-right">
@@ -462,21 +690,21 @@ export default function DignifiedOlympiadSuite() {
                       </div>
                     </div>
 
-                    {/* Examination Title & Academic Summary */}
+                    {/* Examination Title & Details */}
                     <div>
                       <h3 className="font-bold text-base text-slate-900 leading-snug">
                         {t.title}
                       </h3>
                       <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                        {t.descriptionEn || 'National level academic evaluation bench-marked against official syllabus standards.'}
+                        {t.descriptionEn || 'Standardized evaluation assessing core syllabus competencies and analytical reasoning.'}
                       </p>
                     </div>
 
-                    {/* Examination Logistics Card */}
+                    {/* Logistics Card */}
                     <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Window:
+                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Date:
                         </span>
                         <strong className="text-slate-900 font-bold">
                           {t.startDateTime ? new Date(t.startDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : (t.scheduleText || 'Sunday Slot')}
@@ -500,14 +728,14 @@ export default function DignifiedOlympiadSuite() {
                       </div>
                     </div>
 
-                    {/* Operational Notice */}
+                    {/* Status Notice */}
                     <div className="text-[10px] text-slate-500 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/80 leading-relaxed">
-                      <strong>Admissions Status:</strong> Registration open. Subject to academic baseline cutoff (&ge;75%) and mandatory 1-on-1 Viva Voce verification prior to award.
+                      <strong>Candidate Notice:</strong> Registration open. Study grants require qualifying score (&ge;75%) followed by mandatory 1-on-1 Viva Voce defense.
                     </div>
 
                   </div>
 
-                  {/* Application Actions */}
+                  {/* Actions */}
                   <div className="pt-3 border-t border-slate-100 space-y-2">
                     <button
                       onClick={() => { setActiveTournament(t); setShowRegisterModal(true); }}
@@ -533,7 +761,7 @@ export default function DignifiedOlympiadSuite() {
 
       </div>
 
-      {/* MODAL 1: FORMAL CANDIDATE APPLICATION FORM */}
+      {/* MODAL 1: CANDIDATE APPLICATION FORM */}
       {showRegisterModal && activeTournament && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 animate-in fade-in zoom-in-95">
@@ -571,7 +799,7 @@ export default function DignifiedOlympiadSuite() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Examination Admit Card & Scorecard)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Admit Card & Scorecard)*</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -586,7 +814,7 @@ export default function DignifiedOlympiadSuite() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS & Dispatch Alerts)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS Alerts)*</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -609,7 +837,7 @@ export default function DignifiedOlympiadSuite() {
                     className="mt-0.5 rounded cursor-pointer"
                   />
                   <span>
-                    I affirm adherence to the <strong>Abhyaas Academic Ethics Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
+                    I affirm adherence to the <strong>Abhyaas Academic Integrity Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
                   </span>
                 </label>
               </div>
@@ -635,7 +863,7 @@ export default function DignifiedOlympiadSuite() {
         </div>
       )}
 
-      {/* MODAL 2: EXAMINATION SCHEME, SYLLABUS & ETHICS CODE */}
+      {/* MODAL 2: EXAMINATION SCHEME & SYLLABUS */}
       {showBlueprintModal && activeTournament && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -675,7 +903,7 @@ export default function DignifiedOlympiadSuite() {
               )}
             </div>
 
-            {/* Examination Conduct Regulations */}
+            {/* Regulations */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs text-slate-800">
               <h4 className="font-bold uppercase text-slate-900 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" /> Examination Conduct & Verification Protocols:
