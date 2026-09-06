@@ -124,6 +124,9 @@ export default function AbhyaasMasterTower() {
   const [participantsList, setParticipantsList] = useState<OlympiadParticipant[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Olympiad Bulk Selection State
+  const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
+
   // Olympiad Creation Modal State with Full Manual Taxonomy Control
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
@@ -310,7 +313,36 @@ export default function AbhyaasMasterTower() {
     setNewOlyRules(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Save Olympiad with Manual Overrides
+  // Olympiad Bulk Selection Handlers
+  const handleToggleSelectAllOlys = () => {
+    if (selectedOlyIds.length === olympiadsList.length) {
+      setSelectedOlyIds([]);
+    } else {
+      setSelectedOlyIds(olympiadsList.map(o => o.id));
+    }
+  };
+
+  const handleToggleSelectOly = (id: string) => {
+    setSelectedOlyIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDeleteOlympiads = async () => {
+    if (selectedOlyIds.length === 0) return;
+    if (!confirm(`Delete ${selectedOlyIds.length} selected Olympiad tournament(s) permanently from database?`)) return;
+
+    try {
+      await Promise.all(selectedOlyIds.map(id => deleteOlympiadTournament(id)));
+      setOlympiadsList(prev => prev.filter(o => !selectedOlyIds.includes(o.id)));
+      setSelectedOlyIds([]);
+      alert("Selected Olympiads deleted successfully!");
+    } catch (err: any) {
+      alert("Error deleting Olympiads: " + err.message);
+    }
+  };
+
+  // Save Olympiad with Manual Overrides and Taxonomy Registration
   const handleCreateOlympiadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOlyTitle.trim()) return alert("Enter Tournament Title");
@@ -326,6 +358,28 @@ export default function AbhyaasMasterTower() {
     if (!finalClass) return alert("Please select or enter the Target Class.");
     if (!finalExam) return alert("Please select or enter the Target Examination.");
     if (!finalSubject) return alert("Please select or enter the Target Subject.");
+
+    // If admin typed new manual entities, save them to Taxonomy so the frontend filters see them
+    if (newOlyClass === 'OTHER' && finalClass) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-c`, level: 'CLASS', nameEn: finalClass };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
+    }
+    if (newOlyExam === 'OTHER' && finalExam) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-e`, level: 'EXAM', nameEn: finalExam };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
+    }
+    if (newOlySubject === 'OTHER' && finalSubject) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-s`, level: 'SUBJECT', nameEn: finalSubject };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
+    }
+    if (newOlyTopic === 'OTHER' && finalTopic) {
+      const node: TaxonomyNode = { id: `tax-${Date.now()}-t`, level: 'TOPIC', nameEn: finalTopic };
+      saveTaxonomyNode(node);
+      setTaxonomyList(prev => [node, ...prev]);
+    }
 
     const newOly: OlympiadTournament = {
       id: `oly-${Date.now()}`,
@@ -979,7 +1033,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE (UPGRADED WITH FULL MANUAL TAXONOMY) */}
+        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE (MULTI-SELECT & BULK DELETE) */}
         {/* ========================================================================= */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1005,9 +1059,36 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
-            {/* Tournaments Grid */}
+            {/* Tournaments Grid Header with Multi-Select Controls */}
             <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">All Active & Upcoming Olympiads ({olympiadsList.length})</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-100 p-3 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs font-black text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={olympiadsList.length > 0 && selectedOlyIds.length === olympiadsList.length}
+                      onChange={handleToggleSelectAllOlys}
+                      className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                    />
+                    <span>Select All ({olympiadsList.length})</span>
+                  </label>
+                  {selectedOlyIds.length > 0 && (
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                      {selectedOlyIds.length} Selected
+                    </span>
+                  )}
+                </div>
+
+                {selectedOlyIds.length > 0 && (
+                  <button
+                    onClick={handleBulkDeleteOlympiads}
+                    className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Selected ({selectedOlyIds.length})</span>
+                  </button>
+                )}
+              </div>
               
               {olympiadsList.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
@@ -1020,27 +1101,41 @@ export default function AbhyaasMasterTower() {
                   {olympiadsList.map(oly => {
                     const fillPercent = Math.round(((oly.bookedSlots || 0) / (oly.totalSlots || 500)) * 100);
                     const isThresholdMet = fillPercent >= 50;
+                    const isSelected = selectedOlyIds.includes(oly.id);
 
                     return (
-                      <div key={oly.id} className="bg-white border border-slate-200 hover:border-amber-400 p-5 rounded-3xl shadow-xs space-y-4 transition">
+                      <div 
+                        key={oly.id} 
+                        className={`bg-white border p-5 rounded-3xl shadow-xs space-y-4 transition relative ${
+                          isSelected ? 'border-blue-600 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-amber-400'
+                        }`}
+                      >
                         <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
-                          <div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                                Fee: ₹{oly.fee}
-                              </span>
-                              <span className="text-[10px] font-black px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
-                                {oly.categorySection}
-                              </span>
-                              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                                {oly.targetExam}
-                              </span>
+                          <div className="flex items-start gap-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelectOly(oly.id)}
+                              className="w-4 h-4 rounded text-blue-600 cursor-pointer mt-1"
+                            />
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                                  Fee: ₹{oly.fee}
+                                </span>
+                                <span className="text-[10px] font-black px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
+                                  {oly.categorySection}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                                  {oly.targetExam}
+                                </span>
+                              </div>
+                              <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
+                              <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                                <Calendar className="w-3 h-3 text-blue-600" />
+                                {oly.startDateTime ? new Date(oly.startDateTime).toLocaleString('en-IN') : oly.scheduleText}
+                              </p>
                             </div>
-                            <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
-                            <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                              <Calendar className="w-3 h-3 text-blue-600" />
-                              {oly.startDateTime ? new Date(oly.startDateTime).toLocaleString('en-IN') : oly.scheduleText}
-                            </p>
                           </div>
                           <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
                         </div>
@@ -1069,6 +1164,7 @@ export default function AbhyaasMasterTower() {
                               if (confirm(`Delete Olympiad "${oly.title}"?`)) {
                                 await deleteOlympiadTournament(oly.id);
                                 setOlympiadsList(prev => prev.filter(item => item.id !== oly.id));
+                                setSelectedOlyIds(prev => prev.filter(id => id !== oly.id));
                               }
                             }}
                             className="text-rose-500 hover:text-rose-700 font-bold cursor-pointer"
@@ -1924,7 +2020,7 @@ export default function AbhyaasMasterTower() {
                           onClick={() => currentRef.current?.click()}
                           className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition cursor-pointer"
                         >
-                          <UploadCloud className="w-3 h-3 text-blue-600" /> Optional Opt {String.fromCharCode(65 + i)} Diagram
+                          <UploadCloud className="w-3.5 h-3.5 text-blue-600" /> Optional Opt {String.fromCharCode(65 + i)} Diagram
                         </button>
 
                         <input
@@ -2007,7 +2103,7 @@ export default function AbhyaasMasterTower() {
                 <p className="text-xs text-slate-500">Upload questions via Excel paste or CSV file.</p>
               </div>
               <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
