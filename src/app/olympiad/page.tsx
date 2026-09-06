@@ -8,7 +8,10 @@ import {
   ArrowRight, X, Filter, Search, GraduationCap,
   Check, Layers, ChevronRight, FolderOpen, Tag, FileText
 } from 'lucide-react';
-import { getAllOlympiads, createPaymentRecord, OlympiadTournament } from '@/lib/db';
+import { 
+  getAllOlympiads, getTaxonomyNodes, createPaymentRecord, 
+  OlympiadTournament, TaxonomyNode 
+} from '@/lib/db';
 
 const SEED_TOURNAMENTS: OlympiadTournament[] = [
   {
@@ -136,68 +139,29 @@ const SEED_TOURNAMENTS: OlympiadTournament[] = [
   }
 ];
 
-const TAXONOMY_MAP = {
-  EXAM: [
-    'UPSC Civil Services',
-    'State PSC (UPPSC / BPSC / MPPCS)',
-    'IIT-JEE (Advanced / Mains)',
-    'NEET-UG (Medical)',
-    'SSC CGL & Banking',
-    'CLAT & Judicial Services',
-    'Senior Secondary Foundation',
-    'Navodaya & Sainik Entrance'
-  ],
-  CLASS: [
-    'Class 6th - 8th (Middle School)',
-    'Class 9th - 10th (Secondary)',
-    'Class 11th - 12th (Senior Secondary)',
-    'Civil Services & Graduate Aspirants',
-    'Engineering & Technology (B.Tech / JEE)',
-    'Medical & Dental (MBBS / NEET)'
-  ],
-  SUBJECT: [
-    'Indian Polity & Governance',
-    'Modern Indian History',
-    'Indian Economy & Macroeconomics',
-    'Physical & Human Geography',
-    'Physics & Mechanics',
-    'Chemistry (Organic & Physical)',
-    'Mathematics & Quantitative Calculus',
-    'Quantitative Aptitude & CSAT',
-    'Biology & Life Sciences'
-  ],
-  TOPIC: [
-    'Preamble & Fundamental Rights',
-    'Modern History: 1857 to 1947',
-    'Macroeconomic Policy & Budget',
-    'Rotational Dynamics & Gravity',
-    'Chemical Bonding & Hybridization',
-    'Differential Equations & Vectors',
-    'Data Interpretation & Reasoning',
-    'Cellular Biology & Genetics'
-  ]
-};
-
 export default function CascadingOlympiadSuite() {
   const [tournaments, setTournaments] = useState<OlympiadTournament[]>([]);
+  const [taxonomyNodes, setTaxonomyNodes] = useState<TaxonomyNode[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // STEP 1: Cadence
+  // LEVEL 1: Cadence
   const [selectedCadence, setSelectedCadence] = useState<string>('ALL');
 
-  // STEP 2: Main Category Dimension
-  const [selectedDimension, setSelectedDimension] = useState<'ALL' | 'EXAM' | 'CLASS' | 'SUBJECT' | 'TOPIC' | 'MANUAL'>('ALL');
+  // LEVEL 2: Academic Dimension
+  const [selectedDimension, setSelectedDimension] = useState<'ALL' | 'EXAM' | 'CLASS' | 'SUBJECT' | 'TOPIC'>('ALL');
 
-  // STEP 3: Sub-category / manual search text
+  // LEVEL 3: Sub-Category (Auto-populated from backend)
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
-  const [manualQuery, setManualQuery] = useState<string>('');
+
+  // Search Filter
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modals & Application
   const [activeTournament, setActiveTournament] = useState<OlympiadTournament | null>(null);
   const [showBlueprintModal, setShowBlueprintModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Candidate Registration Fields
+  // Form Fields
   const [candidateName, setCandidateName] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [candidatePhone, setCandidatePhone] = useState('');
@@ -214,96 +178,131 @@ export default function CascadingOlympiadSuite() {
   } | null>(null);
 
   useEffect(() => {
-    async function loadLiveTournaments() {
+    async function loadLiveSystemData() {
       try {
-        const liveList = await getAllOlympiads();
-        if (liveList && liveList.length > 0) {
-          setTournaments(liveList);
+        const [liveTournaments, liveTaxonomy] = await Promise.all([
+          getAllOlympiads(),
+          getTaxonomyNodes()
+        ]);
+
+        if (liveTournaments && liveTournaments.length > 0) {
+          setTournaments(liveTournaments);
         } else {
           setTournaments(SEED_TOURNAMENTS);
         }
+
+        setTaxonomyNodes(liveTaxonomy || []);
       } catch (err) {
-        console.error("Error fetching Olympiads:", err);
+        console.error("Error fetching Olympiad system data:", err);
         setTournaments(SEED_TOURNAMENTS);
       } finally {
         setLoading(false);
       }
     }
-    loadLiveTournaments();
+    loadLiveSystemData();
   }, []);
 
-  // Sub-categories list based on Step 2 selection + dynamic values from tournaments
-  const subCategoryOptions = useMemo(() => {
-    if (selectedDimension === 'ALL' || selectedDimension === 'MANUAL') return [];
+  // 1. Dynamic Cadences (Pulls both default + any custom cadence created by Admin)
+  const availableCadences = useMemo(() => {
+    const defaultCadences = [
+      { id: 'ALL', label: 'All Schedules' },
+      { id: 'WEEKLY', label: 'Weekly Sprints (Sundays)' },
+      { id: 'MONTHLY', label: 'Monthly Megas' },
+      { id: 'QUARTERLY', label: 'Quarterly Talent (3-Mo)' },
+      { id: 'HALF_YEARLY', label: 'Half-Yearly' },
+      { id: 'YEARLY', label: 'Annual Grand Fellowship' },
+      { id: 'GRAND', label: 'National Days (15 Aug / 26 Jan)' },
+    ];
 
-    const presets = TAXONOMY_MAP[selectedDimension] || [];
-    const fromTournaments = new Set<string>();
-
+    const customFromDB = new Set<string>();
     tournaments.forEach(t => {
-      if (selectedDimension === 'EXAM' && t.targetExam) fromTournaments.add(t.targetExam);
-      if (selectedDimension === 'CLASS' && t.targetClass) fromTournaments.add(t.targetClass);
-      if (selectedDimension === 'SUBJECT' && t.targetSubject) fromTournaments.add(t.targetSubject);
-      if (selectedDimension === 'TOPIC' && t.topicName) fromTournaments.add(t.topicName);
+      const sec = t.categorySection;
+      if (sec && !defaultCadences.some(d => d.id === sec)) {
+        customFromDB.add(sec);
+      }
+    });
+
+    const customItems = Array.from(customFromDB).map(c => ({
+      id: c,
+      label: c.replace('_', ' ')
+    }));
+
+    return [...defaultCadences, ...customItems];
+  }, [tournaments]);
+
+  // 2. Dynamic Sub-Categories (Pulls from taxonomy tree + active tournament definitions)
+  const subCategoryOptions = useMemo(() => {
+    if (selectedDimension === 'ALL') return [];
+
+    const itemsSet = new Set<string>();
+
+    // From Database Taxonomy
+    taxonomyNodes.forEach(node => {
+      if (selectedDimension === 'EXAM' && node.level === 'EXAM') itemsSet.add(node.nameEn);
+      if (selectedDimension === 'CLASS' && (node.level === 'CLASS' || node.level === 'DOMAIN')) itemsSet.add(node.nameEn);
+      if (selectedDimension === 'SUBJECT' && node.level === 'SUBJECT') itemsSet.add(node.nameEn);
+      if (selectedDimension === 'TOPIC' && node.level === 'TOPIC') itemsSet.add(node.nameEn);
+    });
+
+    // From Active Tournaments (Created in Admin)
+    tournaments.forEach(t => {
+      if (selectedDimension === 'EXAM' && t.targetExam) itemsSet.add(t.targetExam);
+      if (selectedDimension === 'CLASS' && t.targetClass) itemsSet.add(t.targetClass);
+      if (selectedDimension === 'SUBJECT' && t.targetSubject) itemsSet.add(t.targetSubject);
+      if (selectedDimension === 'TOPIC' && t.topicName) itemsSet.add(t.topicName);
       if (t.syllabus && Array.isArray(t.syllabus)) {
         t.syllabus.forEach(s => {
-          if (selectedDimension === 'SUBJECT' && s.subject) fromTournaments.add(s.subject);
-          if (selectedDimension === 'TOPIC' && s.topics) fromTournaments.add(s.topics);
+          if (selectedDimension === 'SUBJECT' && s.subject) itemsSet.add(s.subject);
+          if (selectedDimension === 'TOPIC' && s.topics) itemsSet.add(s.topics);
         });
       }
     });
 
-    return Array.from(new Set([...presets, ...Array.from(fromTournaments)])).filter(Boolean);
-  }, [selectedDimension, tournaments]);
+    return Array.from(itemsSet).filter(Boolean);
+  }, [selectedDimension, taxonomyNodes, tournaments]);
 
-  // Filtered Tournaments based on Steps 1, 2, and 3
+  // 3. Filtered Tournaments
   const filteredTournaments = useMemo(() => {
     return tournaments.filter(t => {
-      // 1. Cadence match
+      // Cadence filter
       if (selectedCadence !== 'ALL') {
         const sec = (t.categorySection || '').toUpperCase();
-        if (selectedCadence === 'WEEKLY' && sec !== 'WEEKLY') return false;
-        if (selectedCadence === 'MONTHLY' && sec !== 'MONTHLY') return false;
-        if (selectedCadence === 'QUARTERLY' && sec !== 'QUARTERLY') return false;
-        if (selectedCadence === 'HALF_YEARLY' && sec !== 'HALF_YEARLY') return false;
-        if (selectedCadence === 'YEARLY' && sec !== 'YEARLY') return false;
-        if (selectedCadence === 'GRAND' && sec !== 'GRAND') return false;
-        if (selectedCadence === 'SPECIAL' && !['SPECIAL', 'MANUAL', 'CUSTOM'].includes(sec)) return false;
+        if (sec !== selectedCadence.toUpperCase()) return false;
       }
 
-      // 2. Dimension & Subcategory match
-      if (selectedDimension !== 'ALL') {
-        if (selectedDimension === 'MANUAL') {
-          if (manualQuery.trim()) {
-            const query = manualQuery.toLowerCase();
-            const matchesTitle = (t.title || '').toLowerCase().includes(query);
-            const matchesSubject = (t.targetSubject || '').toLowerCase().includes(query);
-            const matchesExam = (t.targetExam || '').toLowerCase().includes(query);
-            const matchesClass = (t.targetClass || '').toLowerCase().includes(query);
-            if (!matchesTitle && !matchesSubject && !matchesExam && !matchesClass) return false;
-          }
-        } else if (selectedSubCategory !== 'ALL') {
-          const target = selectedSubCategory.toLowerCase();
-          let matched = false;
+      // Dimension & Sub-Category filter
+      if (selectedDimension !== 'ALL' && selectedSubCategory !== 'ALL') {
+        const target = selectedSubCategory.toLowerCase();
+        let matched = false;
 
-          if (selectedDimension === 'EXAM') {
-            matched = (t.targetExam || '').toLowerCase().includes(target) || (t.title || '').toLowerCase().includes(target);
-          } else if (selectedDimension === 'CLASS') {
-            matched = (t.targetClass || '').toLowerCase().includes(target);
-          } else if (selectedDimension === 'SUBJECT') {
-            matched = (t.targetSubject || '').toLowerCase().includes(target) || 
-                      (t.syllabus && t.syllabus.some(s => s.subject.toLowerCase().includes(target)));
-          } else if (selectedDimension === 'TOPIC') {
-            matched = (t.topicName || '').toLowerCase().includes(target) || 
-                      (t.syllabus && t.syllabus.some(s => (s.topics || '').toLowerCase().includes(target)));
-          }
-
-          if (!matched) return false;
+        if (selectedDimension === 'EXAM') {
+          matched = (t.targetExam || '').toLowerCase().includes(target) || (t.title || '').toLowerCase().includes(target);
+        } else if (selectedDimension === 'CLASS') {
+          matched = (t.targetClass || '').toLowerCase().includes(target);
+        } else if (selectedDimension === 'SUBJECT') {
+          matched = (t.targetSubject || '').toLowerCase().includes(target) || 
+                    (t.syllabus && t.syllabus.some(s => s.subject.toLowerCase().includes(target)));
+        } else if (selectedDimension === 'TOPIC') {
+          matched = (t.topicName || '').toLowerCase().includes(target) || 
+                    (t.syllabus && t.syllabus.some(s => (s.topics || '').toLowerCase().includes(target)));
         }
+
+        if (!matched) return false;
+      }
+
+      // Search Query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesTitle = (t.title || '').toLowerCase().includes(query);
+        const matchesSubject = (t.targetSubject || '').toLowerCase().includes(query);
+        const matchesExam = (t.targetExam || '').toLowerCase().includes(query);
+        const matchesClass = (t.targetClass || '').toLowerCase().includes(query);
+        if (!matchesTitle && !matchesSubject && !matchesExam && !matchesClass) return false;
       }
 
       return true;
     });
-  }, [tournaments, selectedCadence, selectedDimension, selectedSubCategory, manualQuery]);
+  }, [tournaments, selectedCadence, selectedDimension, selectedSubCategory, searchQuery]);
 
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,7 +347,7 @@ export default function CascadingOlympiadSuite() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-32 font-sans selection:bg-slate-900 selection:text-white">
       
-      {/* Integrity Notice */}
+      {/* Official Ethics Notice */}
       <div className="bg-slate-900 text-slate-200 border-b border-slate-800 px-4 py-2.5 shadow-sm flex items-center justify-center gap-2 text-xs font-medium text-center">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
@@ -386,7 +385,9 @@ export default function CascadingOlympiadSuite() {
             </div>
           </div>
 
-          {/* STEP 1: CADENCE / FREQUENCY BAR */}
+          {/* ========================================================================= */}
+          {/* LEVEL 1: CADENCE / FREQUENCY SELECTOR */}
+          {/* ========================================================================= */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
@@ -398,22 +399,13 @@ export default function CascadingOlympiadSuite() {
                   onClick={() => setSelectedCadence('ALL')}
                   className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                 >
-                  Reset Schedule
+                  Reset Cadence
                 </button>
               )}
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200">
-              {[
-                { id: 'ALL', label: 'All Schedules' },
-                { id: 'WEEKLY', label: 'Weekly Sprints (Sundays)' },
-                { id: 'MONTHLY', label: 'Monthly Megas' },
-                { id: 'QUARTERLY', label: 'Quarterly Talent (3-Mo)' },
-                { id: 'HALF_YEARLY', label: 'Half-Yearly' },
-                { id: 'YEARLY', label: 'Annual Grand Fellowship' },
-                { id: 'GRAND', label: 'National Days (15 Aug / 26 Jan)' },
-                { id: 'SPECIAL', label: 'Special / Custom Invitations' },
-              ].map(c => {
+              {availableCadences.map(c => {
                 const isSelected = selectedCadence === c.id;
                 return (
                   <button
@@ -432,7 +424,9 @@ export default function CascadingOlympiadSuite() {
             </div>
           </div>
 
-          {/* STEP 2: PRIMARY CATEGORY SELECTION */}
+          {/* ========================================================================= */}
+          {/* LEVEL 2: ACADEMIC DIMENSIONS (EXAMS, CLASSES, SUBJECTS, TOPICS) */}
+          {/* ========================================================================= */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
@@ -452,14 +446,13 @@ export default function CascadingOlympiadSuite() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               {[
                 { id: 'ALL', label: 'All Categories', desc: 'Browse all exams' },
                 { id: 'EXAM', label: 'Examinations', desc: 'UPSC, SSC, JEE, NEET...' },
                 { id: 'CLASS', label: 'Classes & Grades', desc: 'Class 6–8, 9–10, 11–12...' },
                 { id: 'SUBJECT', label: 'Subjects', desc: 'Polity, Physics, Maths...' },
-                { id: 'TOPIC', label: 'Topics & Chapters', desc: 'Preamble, Mechanics...' },
-                { id: 'MANUAL', label: 'Manual Custom Search', desc: 'Type your own keyword' },
+                { id: 'TOPIC', label: 'Topics & Chapters', desc: 'Preamble, Mechanics...' }
               ].map(dim => {
                 const isSelected = selectedDimension === dim.id;
                 return (
@@ -485,17 +478,18 @@ export default function CascadingOlympiadSuite() {
             </div>
           </div>
 
-          {/* STEP 3: DYNAMIC SUB-CATEGORY ITEMS */}
+          {/* ========================================================================= */}
+          {/* LEVEL 3: DYNAMIC SUB-CATEGORIES (PULLED FROM BACKEND) */}
+          {/* ========================================================================= */}
           {selectedDimension !== 'ALL' && (
             <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">3</span>
                   <span>
-                    Select Specific {selectedDimension === 'EXAM' ? 'Examination' :
-                                     selectedDimension === 'CLASS' ? 'Class / Standard' :
-                                     selectedDimension === 'SUBJECT' ? 'Subject Discipline' :
-                                     selectedDimension === 'TOPIC' ? 'Topic / Chapter' : 'Filter'}
+                    Select {selectedDimension === 'EXAM' ? 'Target Examination' :
+                           selectedDimension === 'CLASS' ? 'Target Class / Standard' :
+                           selectedDimension === 'SUBJECT' ? 'Subject Discipline' : 'Topic / Chapter'}
                   </span>
                 </span>
                 {selectedSubCategory !== 'ALL' && (
@@ -508,66 +502,45 @@ export default function CascadingOlympiadSuite() {
                 )}
               </div>
 
-              {selectedDimension === 'MANUAL' ? (
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Type any exam, class, subject or custom tag (e.g. UPSC, Physics, Class 10)..."
-                      value={manualQuery}
-                      onChange={e => setManualQuery(e.target.value)}
-                      className="w-full h-11 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-600 focus:bg-white"
-                    />
-                  </div>
-                  {manualQuery && (
-                    <button
-                      onClick={() => setManualQuery('')}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setSelectedSubCategory('ALL')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                      selectedSubCategory === 'ALL'
-                        ? 'bg-slate-900 border-slate-900 text-white'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    All Available ({subCategoryOptions.length})
-                  </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedSubCategory('ALL')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    selectedSubCategory === 'ALL'
+                      ? 'bg-slate-900 border-slate-900 text-white'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  All Available ({subCategoryOptions.length})
+                </button>
 
-                  {subCategoryOptions.map(sub => {
-                    const isSelected = selectedSubCategory === sub;
-                    return (
-                      <button
-                        key={sub}
-                        onClick={() => setSelectedSubCategory(sub)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{sub}</span>
-                        {isSelected && <Check className="w-3 h-3" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                {subCategoryOptions.map(sub => {
+                  const isSelected = selectedSubCategory === sub;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => setSelectedSubCategory(sub)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{sub}</span>
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
         </div>
       </div>
 
-      {/* STEP 4: TOURNAMENT LISTING GRID */}
+      {/* ========================================================================= */}
+      {/* LEVEL 4: TOURNAMENT LISTING GRID */}
+      {/* ========================================================================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         
         {/* Confirmed Admit Card View */}
@@ -636,15 +609,26 @@ export default function CascadingOlympiadSuite() {
           </div>
         )}
 
-        {/* Section Heading */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+        {/* Section Heading & Live Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
           <div>
             <h2 className="text-base font-black text-slate-900">
               Matching Examination Sessions ({filteredTournaments.length})
             </h2>
             <p className="text-xs text-slate-500">
-              Showing active assessments filtered by your selected cadence and category hierarchy.
+              Showing active assessments filtered by your selected schedule and category hierarchy.
             </p>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by title or subject..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800 transition"
+            />
           </div>
         </div>
 
@@ -714,7 +698,7 @@ export default function CascadingOlympiadSuite() {
                     <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Date:
+                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Window:
                         </span>
                         <strong className="text-slate-900 font-bold">
                           {t.startDateTime ? new Date(t.startDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : (t.scheduleText || 'Sunday Slot')}
@@ -723,7 +707,7 @@ export default function CascadingOlympiadSuite() {
 
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" /> Scheme:
+                          <Clock className="w-3.5 h-3.5 text-slate-500" /> Structure:
                         </span>
                         <strong className="text-slate-900 font-bold">
                           {t.questionsCount || 50} Questions • {t.durationMinutes || 45} Mins
@@ -809,7 +793,7 @@ export default function CascadingOlympiadSuite() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Admit Card & Scorecard)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Examination Admit Card & Scorecard)*</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -824,7 +808,7 @@ export default function CascadingOlympiadSuite() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS Alerts)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS & Dispatch Alerts)*</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -847,7 +831,7 @@ export default function CascadingOlympiadSuite() {
                     className="mt-0.5 rounded cursor-pointer"
                   />
                   <span>
-                    I affirm adherence to the <strong>Abhyaas Academic Integrity Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
+                    I affirm adherence to the <strong>Abhyaas Academic Ethics Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
                   </span>
                 </label>
               </div>
@@ -873,7 +857,7 @@ export default function CascadingOlympiadSuite() {
         </div>
       )}
 
-      {/* MODAL 2: EXAMINATION SCHEME & SYLLABUS */}
+      {/* MODAL 2: EXAMINATION SCHEME, SYLLABUS & ETHICS CODE */}
       {showBlueprintModal && activeTournament && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
