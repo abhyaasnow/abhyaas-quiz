@@ -6,8 +6,7 @@ import {
   Calendar, Clock, CheckCircle2, ShieldCheck,
   BookOpen, Download, Loader2, User, Mail, Phone,
   ArrowRight, X, Filter, Search, GraduationCap,
-  Check, Layers, ChevronRight, Sparkles, AlertCircle,
-  FolderOpen, Tag
+  Check, Layers, ChevronRight, FolderOpen, Tag, FileText
 } from 'lucide-react';
 import { getAllOlympiads, createPaymentRecord, OlympiadTournament } from '@/lib/db';
 
@@ -387,9 +386,7 @@ export default function CascadingOlympiadSuite() {
             </div>
           </div>
 
-          {/* ========================================================================= */}
           {/* STEP 1: CADENCE / FREQUENCY BAR */}
-          {/* ========================================================================= */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
@@ -399,7 +396,7 @@ export default function CascadingOlympiadSuite() {
               {selectedCadence !== 'ALL' && (
                 <button
                   onClick={() => setSelectedCadence('ALL')}
-                  className="text-xs text-blue-600 hover:underline font-bold"
+                  className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                 >
                   Reset Schedule
                 </button>
@@ -435,9 +432,7 @@ export default function CascadingOlympiadSuite() {
             </div>
           </div>
 
-          {/* ========================================================================= */}
-          {/* STEP 2: PRIMARY CATEGORY SELECTION (CARDS) */}
-          {/* ========================================================================= */}
+          {/* STEP 2: PRIMARY CATEGORY SELECTION */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
@@ -450,7 +445,7 @@ export default function CascadingOlympiadSuite() {
                     setSelectedDimension('ALL');
                     setSelectedSubCategory('ALL');
                   }}
-                  className="text-xs text-blue-600 hover:underline font-bold"
+                  className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                 >
                   View All Categories
                 </button>
@@ -490,9 +485,7 @@ export default function CascadingOlympiadSuite() {
             </div>
           </div>
 
-          {/* ========================================================================= */}
-          {/* STEP 3: DYNAMIC SUB-CATEGORY ITEMS (EXPANDS UPON CLICKING STEP 2) */}
-          {/* ========================================================================= */}
+          {/* STEP 3: DYNAMIC SUB-CATEGORY ITEMS */}
           {selectedDimension !== 'ALL' && (
             <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
@@ -508,7 +501,7 @@ export default function CascadingOlympiadSuite() {
                 {selectedSubCategory !== 'ALL' && (
                   <button
                     onClick={() => setSelectedSubCategory('ALL')}
-                    className="text-xs text-blue-600 hover:underline font-bold"
+                    className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                   >
                     Clear Filter
                   </button>
@@ -530,7 +523,7 @@ export default function CascadingOlympiadSuite() {
                   {manualQuery && (
                     <button
                       onClick={() => setManualQuery('')}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl"
+                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
                     >
                       Clear
                     </button>
@@ -574,12 +567,10 @@ export default function CascadingOlympiadSuite() {
         </div>
       </div>
 
-      {/* ========================================================================= */}
       {/* STEP 4: TOURNAMENT LISTING GRID */}
-      {/* ========================================================================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         
-        {/* Confirmed Admit Card View (Post-Enrollment) */}
+        {/* Confirmed Admit Card View */}
         {confirmedAdmit && (
           <div className="max-w-3xl mx-auto bg-white border-2 border-emerald-600 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 animate-in fade-in duration-200">
             <div className="text-center space-y-1 border-b border-slate-100 pb-4">
@@ -723,7 +714,7 @@ export default function CascadingOlympiadSuite() {
                     <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Window:
+                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Date:
                         </span>
                         <strong className="text-slate-900 font-bold">
                           {t.startDateTime ? new Date(t.startDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : (t.scheduleText || 'Sunday Slot')}
@@ -732,7 +723,7 @@ export default function CascadingOlympiadSuite() {
 
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" /> Structure:
+                          <Clock className="w-3.5 h-3.5 text-slate-500" /> Scheme:
                         </span>
                         <strong className="text-slate-900 font-bold">
                           {t.questionsCount || 50} Questions • {t.durationMinutes || 45} Mins
@@ -818,7 +809,7 @@ export default function CascadingOlympiadSuite() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Examination Admit Card & Scorecard)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Official Email Address (for Admit Card & Scorecard)*</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -833,7 +824,7 @@ export default function CascadingOlympiadSuite() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS & Dispatch Alerts)*</label>
+                <label className="block font-bold text-slate-700 mb-1">Mobile Contact Number (for Roll Number SMS Alerts)*</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -856,7 +847,7 @@ export default function CascadingOlympiadSuite() {
                     className="mt-0.5 rounded cursor-pointer"
                   />
                   <span>
-                    I affirm adherence to the <strong>Abhyaas Academic Ethics Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
+                    I affirm adherence to the <strong>Abhyaas Academic Integrity Charter</strong>. I understand that evaluations employ strict per-question timing and screen integrity checks (2-warning limit), and that academic research fellowships are strictly contingent upon qualifying the mandatory <strong>1-on-1 Viva Voce defense (minimum 60% viva cutoff)</strong> with baseline score &ge;75%.
                   </span>
                 </label>
               </div>
@@ -882,7 +873,7 @@ export default function CascadingOlympiadSuite() {
         </div>
       )}
 
-      {/* MODAL 2: BLUEPRINT & REGULATIONS */}
+      {/* MODAL 2: EXAMINATION SCHEME & SYLLABUS */}
       {showBlueprintModal && activeTournament && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -922,7 +913,7 @@ export default function CascadingOlympiadSuite() {
               )}
             </div>
 
-            {/* Examination Conduct Regulations */}
+            {/* Regulations */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs text-slate-800">
               <h4 className="font-bold uppercase text-slate-900 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" /> Examination Conduct & Verification Protocols:
