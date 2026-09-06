@@ -117,14 +117,14 @@ export default function AbhyaasMasterTower() {
   const [loginPassword, setLoginPassword] = useState('');
 
   // 4 Primary Navigation Tabs
-  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('questions');
+  const [adminTab, setAdminTab] = useState<'questions' | 'olympiad' | 'hierarchy' | 'recycle_bin'>('olympiad');
   const [taxonomyList, setTaxonomyList] = useState<TaxonomyNode[]>([]);
   const [questionsList, setQuestionsList] = useState<QuestionData[]>([]);
   const [olympiadsList, setOlympiadsList] = useState<OlympiadTournament[]>([]);
   const [participantsList, setParticipantsList] = useState<OlympiadParticipant[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Olympiad Creation Modal State
+  // Olympiad Creation Modal State with Full Manual Taxonomy Control
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -133,8 +133,24 @@ export default function AbhyaasMasterTower() {
   const [newOlySlots, setNewOlySlots] = useState<number>(500);
   const [newOlyDuration, setNewOlyDuration] = useState<number>(45);
   const [newOlyQuestions, setNewOlyQuestions] = useState<number>(50);
-  const [newOlySection, setNewOlySection] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'GRAND' | 'SPECIAL'>('WEEKLY');
-  const [newOlyStream, setNewOlyStream] = useState<'UPSC_PSC' | 'ENGINEERING' | 'MEDICAL' | 'SSC_BANKING' | 'LAW' | 'FOUNDATION' | 'GENERAL'>('UPSC_PSC');
+  
+  // Section & Stream with Manual Options
+  const [newOlySection, setNewOlySection] = useState<string>('WEEKLY');
+  const [newOlySectionCustom, setNewOlySectionCustom] = useState<string>('');
+  
+  // 4-Tier Taxonomy fields with Manual Overrides
+  const [newOlyClass, setNewOlyClass] = useState<string>('');
+  const [newOlyClassCustom, setNewOlyClassCustom] = useState<string>('');
+  
+  const [newOlyExam, setNewOlyExam] = useState<string>('');
+  const [newOlyExamCustom, setNewOlyExamCustom] = useState<string>('');
+  
+  const [newOlySubject, setNewOlySubject] = useState<string>('');
+  const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
+
+  const [newOlyTopic, setNewOlyTopic] = useState<string>('');
+  const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
+
   const [newOlyDateTime, setNewOlyDateTime] = useState('2026-09-13T10:00');
   const [newOlyRules, setNewOlyRules] = useState<string[]>(DEFAULT_RULES);
   const [newRuleInput, setNewRuleInput] = useState('');
@@ -149,14 +165,14 @@ export default function AbhyaasMasterTower() {
   const [newSubjQs, setNewSubjQs] = useState(10);
   const [newSubjTopics, setNewSubjTopics] = useState('');
 
-  // Hierarchy Form State
+  // Hierarchy Form State (Tab 3)
   const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('CLASS');
   const [presetChoice, setPresetChoice] = useState<string>('');
   const [manualNameEn, setManualNameEn] = useState('');
   const [manualNameHi, setManualNameHi] = useState('');
   const [selectedParentId, setSelectedParentId] = useState('');
 
-  // Question Studio State
+  // Question Studio State (Tab 1)
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -166,7 +182,7 @@ export default function AbhyaasMasterTower() {
   const [pasteData, setPasteData] = useState('');
   const [copiedSample, setCopiedSample] = useState(false);
 
-  // Filters
+  // Filters (Tab 1)
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
@@ -175,7 +191,7 @@ export default function AbhyaasMasterTower() {
 
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
-  // 4-Tier Cascading Question Form
+  // 4-Tier Cascading Question Form (Tab 1)
   const [qClass, setQClass] = useState('');
   const [qClassCustom, setQClassCustom] = useState('');
   const [qExam, setQExam] = useState('');
@@ -248,6 +264,7 @@ export default function AbhyaasMasterTower() {
 
       const classes = (taxNodes || []).filter(t => t.level === 'CLASS');
       if (classes.length > 0 && !qClass) setQClass(classes[0].nameEn);
+      if (classes.length > 0 && !newOlyClass) setNewOlyClass(classes[0].nameEn);
     } catch (err) {
       console.error(err);
     } finally {
@@ -293,27 +310,39 @@ export default function AbhyaasMasterTower() {
     setNewOlyRules(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Save Olympiad
+  // Save Olympiad with Manual Overrides
   const handleCreateOlympiadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOlyTitle.trim()) return alert("Enter Tournament Title");
     if (!newOlyDateTime) return alert("Select start date and time");
 
+    const finalSection = newOlySection === 'CUSTOM' ? newOlySectionCustom.trim() : newOlySection;
+    const finalClass = newOlyClass === 'OTHER' ? newOlyClassCustom.trim() : newOlyClass;
+    const finalExam = newOlyExam === 'OTHER' ? newOlyExamCustom.trim() : newOlyExam;
+    const finalSubject = newOlySubject === 'OTHER' ? newOlySubjectCustom.trim() : newOlySubject;
+    const finalTopic = newOlyTopic === 'OTHER' ? newOlyTopicCustom.trim() : newOlyTopic;
+
+    if (!finalSection) return alert("Please specify the Schedule / Section.");
+    if (!finalClass) return alert("Please select or enter the Target Class.");
+    if (!finalExam) return alert("Please select or enter the Target Examination.");
+    if (!finalSubject) return alert("Please select or enter the Target Subject.");
+
     const newOly: OlympiadTournament = {
       id: `oly-${Date.now()}`,
       title: newOlyTitle.trim(),
-      descriptionEn: newOlyDesc.trim() || 'All-India National Scholarship Olympiad assessment arena.',
+      descriptionEn: newOlyDesc.trim() || 'Standardized All-India academic scholarship evaluation.',
       fee: Number(newOlyFee) >= 0 ? Number(newOlyFee) : 49,
       totalGrantPool: newOlyGrantPool.trim() || '₹15,000',
       totalSlots: Number(newOlySlots) || 500,
       bookedSlots: 0,
       durationMinutes: Number(newOlyDuration) || 45,
       questionsCount: Number(newOlyQuestions) || 50,
-      categorySection: newOlySection,
-      streamType: newOlyStream,
-      targetClass: 'Civil Services & Competitive',
-      targetExam: newOlyStream.replace('_', ' '),
-      targetSubject: 'Multi-Subject Assessment',
+      categorySection: finalSection.toUpperCase() as any,
+      streamType: 'UPSC_PSC',
+      targetClass: finalClass,
+      targetExam: finalExam,
+      targetSubject: finalSubject,
+      topicName: finalTopic || 'Comprehensive',
       startDateTime: newOlyDateTime,
       scheduleText: new Date(newOlyDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
       rules: newOlyRules,
@@ -328,7 +357,7 @@ export default function AbhyaasMasterTower() {
       setIsOlympiadModalOpen(false);
       setNewOlyTitle('');
       setNewOlyDesc('');
-      alert("🎉 Olympiad Tournament Created! It is now live on the /olympiad page.");
+      alert("🎉 Olympiad Tournament Created! It is now live on the /olympiad frontend.");
     } catch (err: any) {
       alert("Error creating tournament: " + err.message);
     }
@@ -606,9 +635,16 @@ export default function AbhyaasMasterTower() {
   const currentSubjectNode = availableSubjects.find(s => s.nameEn === qSubject);
   const availableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!currentSubjectNode || t.parentId === currentSubjectNode.id));
 
+  // Olympiad Modal cascading helpers
+  const olyClassNode = classes.find(c => c.nameEn === newOlyClass);
+  const olyAvailableExams = taxonomyList.filter(t => t.level === 'EXAM' && (!olyClassNode || t.parentId === olyClassNode.id));
+  const olyExamNode = olyAvailableExams.find(e => e.nameEn === newOlyExam);
+  const olyAvailableSubjects = taxonomyList.filter(t => t.level === 'SUBJECT' && (!olyExamNode || t.parentId === olyExamNode.id));
+  const olySubjectNode = olyAvailableSubjects.find(s => s.nameEn === newOlySubject);
+  const olyAvailableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!olySubjectNode || t.parentId === olySubjectNode.id));
+
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   const archivedQuestions = questionsList.filter(q => q.isArchived);
-  const quarantinedOlympiadQs = questionsList.filter(q => q.segment === 'OLYMPIAD' && !q.isArchived);
 
   const filteredActiveQuestions = activeQuestions.filter(q => {
     const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter));
@@ -646,12 +682,6 @@ export default function AbhyaasMasterTower() {
           </div>
         </div>
       </header>
-
-      {/* Global Blacklist & Anti-Cheating Warning Banner */}
-      <div className="bg-rose-600 text-white px-4 py-2.5 shadow-md flex items-center justify-center gap-2 text-xs font-black text-center">
-        <AlertOctagon className="w-4 h-4 shrink-0 animate-pulse" />
-        <span>ZERO-TOLERANCE SECURITY NOTICE: Screen switching (2 warnings limit) or proxy relay triggers permanent blacklisting of candidate Name, Mobile, UPI ID, and Government KYC Verification across Abhyaas.</span>
-      </div>
 
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
@@ -696,7 +726,7 @@ export default function AbhyaasMasterTower() {
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 1: QUESTION BANK & VAULT */}
+        {/* TAB 1: QUESTION BANK & VAULT (PRESERVED 100%) */}
         {/* ========================================================================= */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
@@ -852,7 +882,6 @@ export default function AbhyaasMasterTower() {
                         </div>
                       </div>
 
-                      {/* Question Statement */}
                       <div>
                         <p className="font-bold text-sm text-slate-900 leading-relaxed">
                           {formatScientific(q.questionEn)}
@@ -864,7 +893,6 @@ export default function AbhyaasMasterTower() {
                         )}
                       </div>
 
-                      {/* Question Media */}
                       {att.type !== 'NONE' && (
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
                           {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
@@ -898,7 +926,6 @@ export default function AbhyaasMasterTower() {
                         </div>
                       )}
 
-                      {/* Options */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
                         {q.optionsEn?.map((opt, i) => {
                           const optDiag = q.optionsDiagrams?.[i] || '';
@@ -937,7 +964,6 @@ export default function AbhyaasMasterTower() {
                         })}
                       </div>
 
-                      {/* Explanation */}
                       {(q.explanationEn || q.explanationHi) && (
                         <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
                           <strong className="font-black">💡 Solution:</strong> {formatScientific(q.explanationEn || q.explanationHi || '')}
@@ -953,7 +979,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: OLYMPIAD ARENA & VIVA QUEUE */}
+        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE (UPGRADED WITH FULL MANUAL TAXONOMY) */}
         {/* ========================================================================= */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
@@ -966,13 +992,13 @@ export default function AbhyaasMasterTower() {
                   <span className="text-xs font-bold text-slate-500">{olympiadsList.length} Tournaments Live in DB</span>
                 </div>
                 <h2 className="text-xl font-black text-slate-900 mt-1">Olympiad Arena Studio & Viva Verification</h2>
-                <p className="text-xs text-slate-500">Configure manual fees, exact calendar/clock timestamps up to 2099, custom syllabi, and editable anti-cheat rules.</p>
+                <p className="text-xs text-slate-500">Configure manual fees, dynamic categories, detailed syllabi, and anti-cheat rules.</p>
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsOlympiadModalOpen(true)}
-                  className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                  className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Create Custom Tournament
                 </button>
@@ -999,12 +1025,15 @@ export default function AbhyaasMasterTower() {
                       <div key={oly.id} className="bg-white border border-slate-200 hover:border-amber-400 p-5 rounded-3xl shadow-xs space-y-4 transition">
                         <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
                           <div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
                                 Fee: ₹{oly.fee}
                               </span>
                               <span className="text-[10px] font-black px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
                                 {oly.categorySection}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                                {oly.targetExam}
                               </span>
                             </div>
                             <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
@@ -1042,7 +1071,7 @@ export default function AbhyaasMasterTower() {
                                 setOlympiadsList(prev => prev.filter(item => item.id !== oly.id));
                               }
                             }}
-                            className="text-rose-500 hover:text-rose-700 font-bold"
+                            className="text-rose-500 hover:text-rose-700 font-bold cursor-pointer"
                           >
                             Delete
                           </button>
@@ -1082,8 +1111,8 @@ export default function AbhyaasMasterTower() {
                           <td className="py-3 px-3 font-black text-blue-600">{p.writtenScore}%</td>
                           <td className="py-3 px-3 font-bold">{p.vivaStatus}</td>
                           <td className="py-3 px-3 text-right">
-                            <button onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded mr-2">Pass</button>
-                            <button onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 text-white font-bold text-[10px] rounded">Fail</button>
+                            <button onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded mr-2 cursor-pointer">Pass</button>
+                            <button onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 text-white font-bold text-[10px] rounded cursor-pointer">Fail</button>
                           </td>
                         </tr>
                       ))}
@@ -1096,7 +1125,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: CATEGORY & HIERARCHY TREE */}
+        {/* TAB 3: CATEGORY & HIERARCHY TREE (PRESERVED 100%) */}
         {/* ========================================================================= */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1178,7 +1207,7 @@ export default function AbhyaasMasterTower() {
                   </div>
                 )}
 
-                <button type="submit" className="px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                <button type="submit" className="px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
                   <Plus className="w-4 h-4" /> Save {activeLevel} Node to Tree
                 </button>
               </form>
@@ -1200,7 +1229,7 @@ export default function AbhyaasMasterTower() {
                           </span>
                         )}
                       </div>
-                      <button onClick={() => handleDeleteTaxonomy(item.id, item.nameEn)} className="text-rose-400 hover:text-rose-600 p-2 rounded-xl">
+                      <button onClick={() => handleDeleteTaxonomy(item.id, item.nameEn)} className="text-rose-400 hover:text-rose-600 p-2 rounded-xl cursor-pointer">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -1212,7 +1241,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: RECYCLE BIN */}
+        {/* TAB 4: RECYCLE BIN (PRESERVED 100%) */}
         {/* ========================================================================= */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1230,7 +1259,7 @@ export default function AbhyaasMasterTower() {
               {archivedQuestions.length > 0 && (
                 <button
                   onClick={handleWipeAllRecycleBin}
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 shrink-0"
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <ShieldAlert className="w-4 h-4" /> Empty Entire Recycle Bin
                 </button>
@@ -1252,13 +1281,13 @@ export default function AbhyaasMasterTower() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleRestoreFromRecycleBin(q.id)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1 transition"
+                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1 transition cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" /> Restore to Bank
                         </button>
                         <button
                           onClick={() => handlePermanentDelete(q)}
-                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs"
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Delete Forever
                         </button>
@@ -1275,7 +1304,9 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* ==================== MODAL 1: CREATE CUSTOM OLYMPIAD ==================== */}
+      {/* ========================================================================= */}
+      {/* MODAL 1: CREATE CUSTOM OLYMPIAD (FULL MANUAL CONTROLS) */}
+      {/* ========================================================================= */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1286,14 +1317,14 @@ export default function AbhyaasMasterTower() {
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-1">Create Standardized Olympiad</h3>
               </div>
-              <button onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateOlympiadSubmit} className="space-y-4 text-xs font-medium">
               
-              {/* Title & Section */}
+              {/* Title & Schedule Cadence (With Custom Manual Option) */}
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
@@ -1302,45 +1333,147 @@ export default function AbhyaasMasterTower() {
                     placeholder="e.g. All-India Sunday Prelims Arena"
                     value={newOlyTitle}
                     onChange={e => setNewOlyTitle(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 font-semibold"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Section / Frequency Category*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Schedule Cadence / Frequency*</label>
                   <select
                     value={newOlySection}
-                    onChange={e => setNewOlySection(e.target.value as any)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    onChange={e => setNewOlySection(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                   >
-                    <option value="WEEKLY">Weekly Sprint (Sundays)</option>
+                    <option value="WEEKLY">Weekly Sprints (Sundays)</option>
                     <option value="MONTHLY">Monthly Mega Assessment</option>
                     <option value="QUARTERLY">Quarterly Talent Search (3-Month)</option>
-                    <option value="GRAND">Super Grand Cup (15 Aug / 26 Jan)</option>
-                    <option value="SPECIAL">Special Subject Invitational</option>
+                    <option value="HALF_YEARLY">Half-Yearly Assessment</option>
+                    <option value="YEARLY">Annual Grand Fellowship</option>
+                    <option value="GRAND">National Convocation (15 Aug / 26 Jan)</option>
+                    <option value="SPECIAL">Special Invitational</option>
+                    <option value="CUSTOM" className="font-black text-blue-600">✍️ + Type Custom Section...</option>
                   </select>
+                  {newOlySection === 'CUSTOM' && (
+                    <input
+                      type="text"
+                      placeholder="Type custom frequency (e.g. Bi-Weekly, Flash Cup)"
+                      value={newOlySectionCustom}
+                      onChange={e => setNewOlySectionCustom(e.target.value)}
+                      className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                      required
+                    />
+                  )}
                 </div>
               </div>
 
-              {/* Stream / Exam Category */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Examination Stream*</label>
-                <select
-                  value={newOlyStream}
-                  onChange={e => setNewOlyStream(e.target.value as any)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                >
-                  <option value="UPSC_PSC">Civil Services (UPSC CSE & State PSC)</option>
-                  <option value="ENGINEERING">Engineering & Technology (IIT-JEE / B.Tech)</option>
-                  <option value="MEDICAL">Medical & Life Sciences (NEET / MBBS)</option>
-                  <option value="SSC_BANKING">Government Exams (SSC CGL & Banking)</option>
-                  <option value="LAW">Legal Studies (CLAT & Judicial Services)</option>
-                  <option value="FOUNDATION">Senior Secondary (Class 11th - 12th Foundation)</option>
-                  <option value="GENERAL">General All-India Knowledge</option>
-                </select>
+              {/* 4-Tier Taxonomy: Class & Exam (With Full Manual Overrides) */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <span className="text-[11px] font-black uppercase text-slate-700 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-blue-600" /> Target Academic Hierarchy
+                </span>
+                
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {/* Class */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">1. Target Class / Standard*</label>
+                    <select
+                      value={newOlyClass}
+                      onChange={e => setNewOlyClass(e.target.value)}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Choose Class --</option>
+                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Class...</option>
+                    </select>
+                    {newOlyClass === 'OTHER' && (
+                      <input
+                        type="text"
+                        placeholder="Type custom class (e.g. Class 8th, B.Sc Honours)"
+                        value={newOlyClassCustom}
+                        onChange={e => setNewOlyClassCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {/* Exam */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">2. Target Examination*</label>
+                    <select
+                      value={newOlyExam}
+                      onChange={e => setNewOlyExam(e.target.value)}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Choose Examination --</option>
+                      {olyAvailableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Exam...</option>
+                    </select>
+                    {newOlyExam === 'OTHER' && (
+                      <input
+                        type="text"
+                        placeholder="Type custom exam (e.g. NDA, UPPSC, BPSC)"
+                        value={newOlyExamCustom}
+                        onChange={e => setNewOlyExamCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {/* Subject */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">3. Target Subject*</label>
+                    <select
+                      value={newOlySubject}
+                      onChange={e => setNewOlySubject(e.target.value)}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Choose Subject --</option>
+                      {olyAvailableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Subject...</option>
+                    </select>
+                    {newOlySubject === 'OTHER' && (
+                      <input
+                        type="text"
+                        placeholder="Type custom subject (e.g. Constitutional Law, Botany)"
+                        value={newOlySubjectCustom}
+                        onChange={e => setNewOlySubjectCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {/* Topic */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">4. Target Topic / Chapter</label>
+                    <select
+                      value={newOlyTopic}
+                      onChange={e => setNewOlyTopic(e.target.value)}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Topic (Optional) --</option>
+                      {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
+                    </select>
+                    {newOlyTopic === 'OTHER' && (
+                      <input
+                        type="text"
+                        placeholder="Type custom topic (e.g. Fundamental Rights, Thermodynamics)"
+                        value={newOlyTopicCustom}
+                        onChange={e => setNewOlyTopicCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Manual Entry Fee & Gross Grant Pool */}
+              {/* Manual Entry Fee & Fellowship Pool */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Manual Fee (₹)*</label>
@@ -1350,12 +1483,13 @@ export default function AbhyaasMasterTower() {
                     placeholder="49"
                     value={newOlyFee}
                     onChange={e => setNewOlyFee(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-600"
                     required
                   />
+                  <p className="text-[10px] text-slate-400 mt-0.5">Enter 0 for Free Entry</p>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Grant Pool*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Fellowship Pool*</label>
                   <input
                     type="text"
                     placeholder="₹15,000"
@@ -1400,26 +1534,26 @@ export default function AbhyaasMasterTower() {
                   max="2099-12-31T23:59"
                   value={newOlyDateTime}
                   onChange={e => setNewOlyDateTime(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800"
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800 cursor-pointer"
                   required
                 />
               </div>
 
               {/* Description Box */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Tournament Detailed Overview / Description</label>
+                <label className="block font-bold text-slate-700 mb-1">Examination Description / Overview</label>
                 <textarea
                   rows={2}
-                  placeholder="Describe this Olympiad, target audience, and key highlights..."
+                  placeholder="Describe examination standards, syllabus coverage, and learning outcomes..."
                   value={newOlyDesc}
                   onChange={e => setNewOlyDesc(e.target.value)}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                 />
               </div>
 
-              {/* Syllabus Builder */}
+              {/* Detailed Syllabus Builder */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Topics</label>
+                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
                 <div className="space-y-2">
                   {newOlySyllabus.map((s, idx) => (
                     <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
@@ -1427,16 +1561,16 @@ export default function AbhyaasMasterTower() {
                         <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
                         {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
                       </div>
-                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold">×</button>
+                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
                     </div>
                   ))}
                 </div>
                 <div className="grid sm:grid-cols-3 gap-2 pt-2">
-                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs" />
-                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs" />
-                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs" />
+                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
                 </div>
-                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px]">+ Add Subject Module</button>
+                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
               </div>
 
               {/* Editable Security Rules */}
@@ -1446,7 +1580,7 @@ export default function AbhyaasMasterTower() {
                   {newOlyRules.map((rule, idx) => (
                     <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
                       <span>• {rule}</span>
-                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2">×</button>
+                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
                     </div>
                   ))}
                 </div>
@@ -1456,15 +1590,15 @@ export default function AbhyaasMasterTower() {
                     placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
                     value={newRuleInput}
                     onChange={e => setNewRuleInput(e.target.value)}
-                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs"
+                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
                   />
-                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs">+ Rule</button>
+                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs"
+                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
               >
                 <Trophy className="w-4 h-4" /> Save & Publish Olympiad Live
               </button>
@@ -1473,7 +1607,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ==================== MODAL 2: SINGLE QUESTION STUDIO ==================== */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO (PRESERVED 100%) */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1487,7 +1621,7 @@ export default function AbhyaasMasterTower() {
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full"
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1502,7 +1636,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Destination */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
                   Target Destination / Vault*
@@ -1517,7 +1650,7 @@ export default function AbhyaasMasterTower() {
                       type="button"
                       key={s.id}
                       onClick={() => setQSegment(s.id as QuestionSegment)}
-                      className={`p-3 rounded-xl border text-left transition ${
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                         qSegment === s.id 
                           ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
                           : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -1545,7 +1678,6 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* 4-Tier Hierarchy */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
@@ -1636,7 +1768,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Scientific Toolbar */}
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-black text-blue-900 flex items-center gap-1">
                   <Atom className="w-3.5 h-3.5 text-blue-600" />
@@ -1650,7 +1781,7 @@ export default function AbhyaasMasterTower() {
                       type="button"
                       key={sym}
                       onClick={() => insertSymbol(sym)}
-                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs"
+                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs cursor-pointer"
                     >
                       {sym}
                     </button>
@@ -1664,7 +1795,7 @@ export default function AbhyaasMasterTower() {
                       type="button"
                       key={sym}
                       onClick={() => insertSymbol(sym)}
-                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs"
+                      className="px-2 py-0.5 bg-white hover:bg-blue-600 hover:text-white border border-blue-300 rounded font-bold transition shadow-xs cursor-pointer"
                     >
                       {sym}
                     </button>
@@ -1672,7 +1803,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Question Statements */}
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1702,7 +1832,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Question Media Hub */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                   <div>
@@ -1722,7 +1851,7 @@ export default function AbhyaasMasterTower() {
                   <button
                     type="button"
                     onClick={() => fileAttachmentRef.current?.click()}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                   >
                     <UploadCloud className="w-3.5 h-3.5" /> Attach File from Device
                   </button>
@@ -1737,7 +1866,6 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
-              {/* Options Section */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
                 <div>
                   <label className="block text-xs font-black uppercase text-slate-700">
@@ -1783,7 +1911,6 @@ export default function AbhyaasMasterTower() {
                         />
                       </div>
 
-                      {/* Optional Diagram Slot */}
                       <div className="pl-6 flex flex-wrap items-center gap-2">
                         <input
                           type="file"
@@ -1795,7 +1922,7 @@ export default function AbhyaasMasterTower() {
                         <button
                           type="button"
                           onClick={() => currentRef.current?.click()}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition"
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition cursor-pointer"
                         >
                           <UploadCloud className="w-3 h-3 text-blue-600" /> Optional Opt {String.fromCharCode(65 + i)} Diagram
                         </button>
@@ -1819,7 +1946,7 @@ export default function AbhyaasMasterTower() {
                             <button
                               type="button"
                               onClick={() => { const d = [...qOptionsDiagrams]; d[i] = ''; setQOptionsDiagrams(d); }}
-                              className="text-rose-500 hover:text-rose-700 text-xs font-black ml-1"
+                              className="text-rose-500 hover:text-rose-700 text-xs font-black ml-1 cursor-pointer"
                             >
                               ×
                             </button>
@@ -1831,7 +1958,6 @@ export default function AbhyaasMasterTower() {
                 })}
               </div>
 
-              {/* Explanations */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Explanation (English)</label>
@@ -1857,7 +1983,7 @@ export default function AbhyaasMasterTower() {
 
               <button
                 type="submit"
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 {editingQuestionId ? 'Update Question' : 'Save Question to Vault'}
@@ -1868,7 +1994,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ==================== MODAL 3: BULK UPLOAD ==================== */}
+      {/* MODAL 3: BULK UPLOAD (PRESERVED 100%) */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
@@ -1880,8 +2006,8 @@ export default function AbhyaasMasterTower() {
                 </h3>
                 <p className="text-xs text-slate-500">Upload questions via Excel paste or CSV file.</p>
               </div>
-              <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
-                <X className="w-4 h-4" />
+              <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1936,7 +2062,7 @@ export default function AbhyaasMasterTower() {
                 setIsBulkModalOpen(false);
                 alert(`Imported ${count} questions!`);
               }}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer"
             >
               Import Pasted Rows
             </button>
@@ -1944,7 +2070,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ==================== MODAL 4: AUTO-PUSH PIPELINE ==================== */}
+      {/* MODAL 4: AUTO-PUSH PIPELINE (PRESERVED 100%) */}
       {isAutoPushModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
@@ -1953,7 +2079,7 @@ export default function AbhyaasMasterTower() {
                 <RefreshCw className="w-5 h-5 text-emerald-600" />
                 Auto-Push Olympiad ➔ PYQ/Practice
               </h3>
-              <button onClick={() => setIsAutoPushModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setIsAutoPushModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1986,7 +2112,7 @@ export default function AbhyaasMasterTower() {
                   <button
                     type="button"
                     onClick={() => setPushTargetSegment('PRACTICE')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition ${
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       pushTargetSegment === 'PRACTICE' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-700'
                     }`}
                   >
@@ -1995,7 +2121,7 @@ export default function AbhyaasMasterTower() {
                   <button
                     type="button"
                     onClick={() => setPushTargetSegment('PYQ')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition ${
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       pushTargetSegment === 'PYQ' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 border-slate-200 text-slate-700'
                     }`}
                   >
@@ -2032,7 +2158,7 @@ export default function AbhyaasMasterTower() {
                   alert("Error in auto-push pipeline: " + err.message);
                 }
               }}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" /> Execute Transfer Now
             </button>
