@@ -6,157 +6,31 @@ import {
   Calendar, Clock, CheckCircle2, ShieldCheck,
   BookOpen, Download, Loader2, User, Mail, Phone,
   ArrowRight, X, Filter, Search, GraduationCap,
-  Check, Layers, ChevronRight, FolderOpen, Tag, FileText
+  Check, Layers, FolderOpen, Tag, FileText, Compass
 } from 'lucide-react';
 import { 
   getAllOlympiads, getTaxonomyNodes, createPaymentRecord, 
   OlympiadTournament, TaxonomyNode 
 } from '@/lib/db';
 
-const SEED_TOURNAMENTS: OlympiadTournament[] = [
-  {
-    id: 'abh-oly-upsc-prelims',
-    title: 'All-India UPSC General Studies Preliminary Evaluation',
-    titleHi: 'अखिल भारतीय यूपीएससी सामान्य अध्ययन प्रारंभिक मूल्यांकन',
-    descriptionEn: 'Rigorous national assessment aligned with UPSC CSE Preliminary standards. Tests conceptual depth across Indian Polity, Modern History, and Macroeconomic policy.',
-    fee: 49,
-    totalGrantPool: '₹15,000 Study Fellowship',
-    totalSlots: 500,
-    bookedSlots: 362,
-    durationMinutes: 45,
-    questionsCount: 50,
-    targetClass: 'Civil Services & Graduate Aspirants',
-    targetExam: 'UPSC Civil Services',
-    targetSubject: 'Indian Polity & Governance',
-    categorySection: 'WEEKLY',
-    streamType: 'UPSC_PSC',
-    startDateTime: '2026-09-13T10:00',
-    scheduleText: 'Sunday at 10:00 AM IST',
-    rules: [
-      "Strict Per-Question Timer (50 seconds per MCQ, No Backtracking).",
-      "Full-Screen Lock: Exiting full-screen twice triggers automatic script submission.",
-      "Front camera and environment telemetry logged for integrity verification.",
-      "Top merit candidates must defend their solutions in a 1-on-1 Academic Viva (minimum 60% passing score).",
-      "Minimum written baseline cutoff of 75% marks required for study grant sanction."
-    ],
-    syllabus: [
-      { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament, Judiciary' },
-      { subject: 'Modern Indian History', questions: 15, topics: '1857 Revolt to 1947, Freedom Struggle' },
-      { subject: 'Indian Economy & Macroeconomics', questions: 15, topics: 'Banking, Fiscal Deficit, Monetary Policy, Inflation' }
-    ],
-    status: 'UPCOMING',
-    createdAt: null
-  },
-  {
-    id: 'abh-oly-jee-physics',
-    title: 'National Advanced Mechanics & Electrodynamics Olympiad',
-    titleHi: 'राष्ट्रीय उच्च भौतिकी एवं यांत्रिकी ओलंपियाड',
-    descriptionEn: 'Championship level assessment covering rotational dynamics, electrostatic potential, and classical mechanics for engineering aspirants.',
-    fee: 99,
-    totalGrantPool: '₹25,000 Study Fellowship',
-    totalSlots: 500,
-    bookedSlots: 290,
-    durationMinutes: 60,
-    questionsCount: 60,
-    targetClass: 'Class 11th - 12th',
-    targetExam: 'IIT-JEE (Advanced / Mains)',
-    targetSubject: 'Physics & Mechanics',
-    categorySection: 'WEEKLY',
-    streamType: 'ENGINEERING',
-    startDateTime: '2026-09-13T14:00',
-    scheduleText: 'Sunday at 02:00 PM IST',
-    rules: [
-      "Per-question time-lock enforced.",
-      "Screen switching restricted with 2 warnings maximum.",
-      "Subject experts conduct recorded Viva Voce prior to study grant award."
-    ],
-    syllabus: [
-      { subject: 'Rotational Motion & Gravitation', questions: 30, topics: 'Moment of Inertia, Torque, Planetary Motion' },
-      { subject: 'Electrostatics & Current Electricity', questions: 30, topics: 'Gauss Law, Capacitance, Circuit Laws' }
-    ],
-    status: 'UPCOMING',
-    createdAt: null
-  },
-  {
-    id: 'abh-oly-foundation-stem',
-    title: 'National Junior Science & Mathematics Foundation Drill',
-    titleHi: 'राष्ट्रीय जूनियर विज्ञान एवं गणित बुनियादी परीक्षा',
-    descriptionEn: 'Open diagnostic examination for high school learners to assess core fundamentals in algebra, biology, and chemical change.',
-    fee: 0,
-    totalGrantPool: 'National Merit Certificate & Honor Roll',
-    totalSlots: 1000,
-    bookedSlots: 740,
-    durationMinutes: 30,
-    questionsCount: 30,
-    targetClass: 'Class 9th - 10th',
-    targetExam: 'Senior Secondary Foundation',
-    targetSubject: 'Mathematics & General Science',
-    categorySection: 'WEEKLY',
-    streamType: 'FOUNDATION',
-    startDateTime: '2026-09-13T16:00',
-    scheduleText: 'Sunday at 04:00 PM IST',
-    rules: [
-      "Application fee exempted under institutional academic merit sponsorship.",
-      "Detailed diagnostic scorecard and solution key provided immediately.",
-      "Full-screen lock active during assessment."
-    ],
-    syllabus: [
-      { subject: 'Algebra & Number Systems', questions: 15, topics: 'Polynomials, Linear Equations, Real Numbers' },
-      { subject: 'Chemical Reactions & Life Processes', questions: 15, topics: 'Oxidation, Cellular Respiration, Acids & Bases' }
-    ],
-    status: 'UPCOMING',
-    createdAt: null
-  },
-  {
-    id: 'abh-oly-monthly-mega-ssc',
-    title: 'All-India Monthly Quantitative Aptitude & CSAT Logic Arena',
-    titleHi: 'मासिक अखिल भारतीय संख्यात्मक अभिरुचि एवं सीसैट टेस्ट',
-    descriptionEn: 'High-speed national evaluation testing data interpretation, critical decision making, and quantitative aptitude.',
-    fee: 99,
-    totalGrantPool: '₹40,000 Study Fellowship',
-    totalSlots: 600,
-    bookedSlots: 410,
-    durationMinutes: 60,
-    questionsCount: 75,
-    targetClass: 'Civil Services & Graduate Aspirants',
-    targetExam: 'SSC CGL & Banking',
-    targetSubject: 'Quantitative Aptitude & CSAT',
-    categorySection: 'MONTHLY',
-    streamType: 'SSC_BANKING',
-    startDateTime: '2026-09-29T10:00',
-    scheduleText: 'Last Tuesday of Month at 10:00 AM IST',
-    rules: [
-      "Timed examination session with zero backtrack policy.",
-      "Screen telemetry verification mandatory.",
-      "Viva Voce verification conducted within 24 hours of provisional rank declaration."
-    ],
-    syllabus: [
-      { subject: 'Quantitative Aptitude', questions: 40, topics: 'Arithmetic, Percentages, Ratio, Data Interpretation' },
-      { subject: 'Analytical & Critical Reasoning', questions: 35, topics: 'Syllogisms, Seating Arrangement, Logic' }
-    ],
-    status: 'UPCOMING',
-    createdAt: null
-  }
-];
-
 export default function CascadingOlympiadSuite() {
   const [tournaments, setTournaments] = useState<OlympiadTournament[]>([]);
   const [taxonomyNodes, setTaxonomyNodes] = useState<TaxonomyNode[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // LEVEL 1: Cadence
+  // LEVEL 1: Cadence / Frequency
   const [selectedCadence, setSelectedCadence] = useState<string>('ALL');
 
   // LEVEL 2: Academic Dimension
   const [selectedDimension, setSelectedDimension] = useState<'ALL' | 'EXAM' | 'CLASS' | 'SUBJECT' | 'TOPIC'>('ALL');
 
-  // LEVEL 3: Sub-Category (Auto-populated from backend)
+  // LEVEL 3: Sub-Category (Purely dynamic from database)
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
 
-  // Search Filter
+  // Live Search Input
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Modals & Application
+  // Modals & Application States
   const [activeTournament, setActiveTournament] = useState<OlympiadTournament | null>(null);
   const [showBlueprintModal, setShowBlueprintModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -185,16 +59,13 @@ export default function CascadingOlympiadSuite() {
           getTaxonomyNodes()
         ]);
 
-        if (liveTournaments && liveTournaments.length > 0) {
-          setTournaments(liveTournaments);
-        } else {
-          setTournaments(SEED_TOURNAMENTS);
-        }
-
+        // Zero hardcoded mock data: loads solely what exists in Firestore
+        setTournaments(liveTournaments || []);
         setTaxonomyNodes(liveTaxonomy || []);
       } catch (err) {
-        console.error("Error fetching Olympiad system data:", err);
-        setTournaments(SEED_TOURNAMENTS);
+        console.error("Error fetching live Olympiad system data:", err);
+        setTournaments([]);
+        setTaxonomyNodes([]);
       } finally {
         setLoading(false);
       }
@@ -202,41 +73,38 @@ export default function CascadingOlympiadSuite() {
     loadLiveSystemData();
   }, []);
 
-  // 1. Dynamic Cadences (Pulls both default + any custom cadence created by Admin)
+  // 1. DYNAMIC CADENCES (Derived strictly from Admin-created tournaments)
   const availableCadences = useMemo(() => {
-    const defaultCadences = [
-      { id: 'ALL', label: 'All Schedules' },
-      { id: 'WEEKLY', label: 'Weekly Sprints (Sundays)' },
-      { id: 'MONTHLY', label: 'Monthly Megas' },
-      { id: 'QUARTERLY', label: 'Quarterly Talent (3-Mo)' },
-      { id: 'HALF_YEARLY', label: 'Half-Yearly' },
-      { id: 'YEARLY', label: 'Annual Grand Fellowship' },
-      { id: 'GRAND', label: 'National Days (15 Aug / 26 Jan)' },
-    ];
+    const cadencesSet = new Set<string>();
 
-    const customFromDB = new Set<string>();
     tournaments.forEach(t => {
-      const sec = t.categorySection;
-      if (sec && !defaultCadences.some(d => d.id === sec)) {
-        customFromDB.add(sec);
+      if (t.categorySection) {
+        cadencesSet.add(t.categorySection.toUpperCase());
       }
     });
 
-    const customItems = Array.from(customFromDB).map(c => ({
-      id: c,
-      label: c.replace('_', ' ')
-    }));
+    const list = Array.from(cadencesSet).map(c => {
+      let displayLabel = c.replace(/_/g, ' ');
+      if (c === 'WEEKLY') displayLabel = 'Weekly Assessments';
+      else if (c === 'MONTHLY') displayLabel = 'Monthly Assessments';
+      else if (c === 'QUARTERLY') displayLabel = 'Quarterly Talent Search';
+      else if (c === 'HALF_YEARLY') displayLabel = 'Half-Yearly Assessments';
+      else if (c === 'YEARLY') displayLabel = 'Annual Grand Fellowship';
+      else if (c === 'GRAND') displayLabel = 'National Convocation';
+      
+      return { id: c, label: displayLabel };
+    });
 
-    return [...defaultCadences, ...customItems];
+    return [{ id: 'ALL', label: 'All Schedules' }, ...list];
   }, [tournaments]);
 
-  // 2. Dynamic Sub-Categories (Pulls from taxonomy tree + active tournament definitions)
+  // 2. DYNAMIC SUB-CATEGORIES (Populated purely from database taxonomy & active tournaments)
   const subCategoryOptions = useMemo(() => {
     if (selectedDimension === 'ALL') return [];
 
     const itemsSet = new Set<string>();
 
-    // From Database Taxonomy
+    // Collect from database Taxonomy Nodes (Created in Admin Tab 3)
     taxonomyNodes.forEach(node => {
       if (selectedDimension === 'EXAM' && node.level === 'EXAM') itemsSet.add(node.nameEn);
       if (selectedDimension === 'CLASS' && (node.level === 'CLASS' || node.level === 'DOMAIN')) itemsSet.add(node.nameEn);
@@ -244,7 +112,7 @@ export default function CascadingOlympiadSuite() {
       if (selectedDimension === 'TOPIC' && node.level === 'TOPIC') itemsSet.add(node.nameEn);
     });
 
-    // From Active Tournaments (Created in Admin)
+    // Also collect from any manual entries typed directly during tournament setup
     tournaments.forEach(t => {
       if (selectedDimension === 'EXAM' && t.targetExam) itemsSet.add(t.targetExam);
       if (selectedDimension === 'CLASS' && t.targetClass) itemsSet.add(t.targetClass);
@@ -261,7 +129,7 @@ export default function CascadingOlympiadSuite() {
     return Array.from(itemsSet).filter(Boolean);
   }, [selectedDimension, taxonomyNodes, tournaments]);
 
-  // 3. Filtered Tournaments
+  // 3. FILTERED TOURNAMENTS
   const filteredTournaments = useMemo(() => {
     return tournaments.filter(t => {
       // Cadence filter
@@ -386,7 +254,7 @@ export default function CascadingOlympiadSuite() {
           </div>
 
           {/* ========================================================================= */}
-          {/* LEVEL 1: CADENCE / FREQUENCY SELECTOR */}
+          {/* LEVEL 1: CADENCE / FREQUENCY SELECTOR (DYNAMIC) */}
           {/* ========================================================================= */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -452,7 +320,7 @@ export default function CascadingOlympiadSuite() {
                 { id: 'EXAM', label: 'Examinations', desc: 'UPSC, SSC, JEE, NEET...' },
                 { id: 'CLASS', label: 'Classes & Grades', desc: 'Class 6–8, 9–10, 11–12...' },
                 { id: 'SUBJECT', label: 'Subjects', desc: 'Polity, Physics, Maths...' },
-                { id: 'TOPIC', label: 'Topics & Chapters', desc: 'Preamble, Mechanics...' }
+                { id: 'TOPIC', label: 'Topics & Chapters', desc: 'Syllabus modules...' }
               ].map(dim => {
                 const isSelected = selectedDimension === dim.id;
                 return (
@@ -479,7 +347,7 @@ export default function CascadingOlympiadSuite() {
           </div>
 
           {/* ========================================================================= */}
-          {/* LEVEL 3: DYNAMIC SUB-CATEGORIES (PULLED FROM BACKEND) */}
+          {/* LEVEL 3: DYNAMIC SUB-CATEGORIES (PURELY FROM DATABASE) */}
           {/* ========================================================================= */}
           {selectedDimension !== 'ALL' && (
             <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
@@ -502,36 +370,42 @@ export default function CascadingOlympiadSuite() {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedSubCategory('ALL')}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                    selectedSubCategory === 'ALL'
-                      ? 'bg-slate-900 border-slate-900 text-white'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  All Available ({subCategoryOptions.length})
-                </button>
+              {subCategoryOptions.length === 0 ? (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-xs text-slate-400 font-medium">
+                  No {selectedDimension.toLowerCase()} categories found in database. Create them in Admin panel to show here.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedSubCategory('ALL')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                      selectedSubCategory === 'ALL'
+                        ? 'bg-slate-900 border-slate-900 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    All Available ({subCategoryOptions.length})
+                  </button>
 
-                {subCategoryOptions.map(sub => {
-                  const isSelected = selectedSubCategory === sub;
-                  return (
-                    <button
-                      key={sub}
-                      onClick={() => setSelectedSubCategory(sub)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{sub}</span>
-                      {isSelected && <Check className="w-3 h-3" />}
-                    </button>
-                  );
-                })}
-              </div>
+                  {subCategoryOptions.map(sub => {
+                    const isSelected = selectedSubCategory === sub;
+                    return (
+                      <button
+                        key={sub}
+                        onClick={() => setSelectedSubCategory(sub)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{sub}</span>
+                        {isSelected && <Check className="w-3 h-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -609,14 +483,14 @@ export default function CascadingOlympiadSuite() {
           </div>
         )}
 
-        {/* Section Heading & Live Search */}
+        {/* Section Heading & Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
           <div>
             <h2 className="text-base font-black text-slate-900">
-              Matching Examination Sessions ({filteredTournaments.length})
+              Active Examination Sessions ({filteredTournaments.length})
             </h2>
             <p className="text-xs text-slate-500">
-              Showing active assessments filtered by your selected schedule and category hierarchy.
+              Showing officially scheduled assessments synchronized directly with the national database.
             </p>
           </div>
 
@@ -632,7 +506,7 @@ export default function CascadingOlympiadSuite() {
           </div>
         </div>
 
-        {/* Tournaments Grid */}
+        {/* Tournaments Grid (Clean empty state if database is empty) */}
         {loading ? (
           <div className="text-center py-24 space-y-3">
             <Loader2 className="w-9 h-9 text-slate-800 animate-spin mx-auto" />
@@ -641,11 +515,11 @@ export default function CascadingOlympiadSuite() {
             </p>
           </div>
         ) : filteredTournaments.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center space-y-3">
+          <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center space-y-3 shadow-xs">
             <FolderOpen className="w-12 h-12 text-slate-300 mx-auto" />
-            <h3 className="font-bold text-base text-slate-800">No Examinations Found</h3>
+            <h3 className="font-bold text-base text-slate-800">No Examinations Currently Scheduled</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              No active Olympiad sessions match this combination. Try changing schedule frequency or choosing another category dimension above.
+              There are currently no active examinations matching this criteria in the database. New official sessions published from the Admin panel will appear here automatically.
             </p>
           </div>
         ) : (
