@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
-  BookOpen, Filter, ChevronRight, ArrowRight,
-  FolderOpen, Clock, Sparkles, Search, Layers,
-  Compass, CheckCircle2, FileText, GraduationCap,
-  Check, Tag, ShieldCheck, HelpCircle
+  BookOpen, Filter, ArrowRight,
+  FolderOpen, Clock, Search, Layers,
+  Compass, CheckCircle2, GraduationCap,
+  Check, Tag, ShieldCheck, Sparkles, FileText
 } from 'lucide-react';
 
 import { 
@@ -21,15 +21,21 @@ export default function DynamicPracticeBank() {
   const [taxonomy, setTaxonomy] = useState<TaxonomyNode[]>([]);
   const [questions, setQuestions] = useState<QuestionData[]>([]);
 
-  // Navigation & Hierarchy State
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedExam, setSelectedExam] = useState<string>('');
+  // LEVEL 1: Academic Dimension
+  const [selectedDimension, setSelectedDimension] = useState<'ALL' | 'EXAM' | 'CLASS' | 'SUBJECT' | 'TOPIC'>('ALL');
+
+  // LEVEL 2: Dynamic Sub-Category (Loaded purely from database)
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
+
+  // LEVEL 3: Mode Filter (Practice Drills vs Official PYQs)
   const [selectedSegment, setSelectedSegment] = useState<'ALL' | 'PRACTICE' | 'PYQ'>('ALL');
+
+  // Search Filter
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     setMounted(true);
-    async function loadLiveData() {
+    async function loadLivePracticeData() {
       try {
         const [taxRes, qsRes] = await Promise.allSettled([
           getTaxonomyNodes(),
@@ -40,94 +46,119 @@ export default function DynamicPracticeBank() {
         const safeQs = qsRes.status === 'fulfilled' && Array.isArray(qsRes.value) ? qsRes.value : [];
 
         // Isolate active, non-archived questions (Practice & PYQ only)
-        const practiceAndPyq = safeQs.filter(q => 
+        const practiceOnly = safeQs.filter(q => 
           !q.isArchived && 
           (q.segment === 'PRACTICE' || q.segment === 'PYQ' || !q.segment)
         );
 
         setTaxonomy(safeTax);
-        setQuestions(practiceAndPyq);
-
-        // Extract all Classes from Taxonomy + Questions
-        const allClasses = Array.from(new Set([
-          ...safeTax.filter(t => t.level === 'CLASS' || t.level === 'DOMAIN').map(t => t.nameEn),
-          ...practiceAndPyq.map(q => q.className || q.class)
-        ])).filter(Boolean) as string[];
-
-        if (allClasses.length > 0) {
-          setSelectedClass(allClasses[0]);
-        }
+        setQuestions(practiceOnly);
       } catch (err) {
         console.error("Practice repository loader error:", err);
+        setTaxonomy([]);
+        setQuestions([]);
       } finally {
         setLoading(false);
       }
     }
-    loadLiveData();
+    loadLivePracticeData();
   }, []);
 
-  // 1. Available Classes
-  const availableClasses = useMemo(() => {
-    return Array.from(new Set([
-      ...taxonomy.filter(t => t.level === 'CLASS' || t.level === 'DOMAIN').map(t => t.nameEn),
-      ...questions.map(q => q.className || q.class)
-    ])).filter(Boolean) as string[];
-  }, [taxonomy, questions]);
+  // 1. DYNAMIC SUB-CATEGORIES (Extracted strictly from database Taxonomy + Active Questions)
+  const subCategoryOptions = useMemo(() => {
+    if (selectedDimension === 'ALL') return [];
 
-  const activeClass = selectedClass || availableClasses[0] || '';
+    const itemsSet = new Set<string>();
 
-  // 2. Questions belonging to Active Class
-  const classQuestions = useMemo(() => {
-    if (!activeClass) return [];
-    return questions.filter(q => (q.className || q.class) === activeClass);
-  }, [questions, activeClass]);
-
-  const activeClassNode = useMemo(() => {
-    return taxonomy.find(t => (t.level === 'CLASS' || t.level === 'DOMAIN') && t.nameEn === activeClass);
-  }, [taxonomy, activeClass]);
-
-  // 3. Target Examinations under Active Class
-  const availableExams = useMemo(() => {
-    return Array.from(new Set([
-      ...taxonomy.filter(t => t.level === 'EXAM' && (!activeClassNode || t.parentId === activeClassNode.id)).map(t => t.nameEn),
-      ...classQuestions.map(q => q.examName || q.category)
-    ])).filter(Boolean) as string[];
-  }, [taxonomy, activeClassNode, classQuestions]);
-
-  const activeExam = selectedExam || availableExams[0] || '';
-
-  // 4. Questions belonging to Active Exam & Segment Filter
-  const examQuestions = useMemo(() => {
-    if (!activeExam) return [];
-    return classQuestions.filter(q => {
-      const matchExam = (q.examName || q.category) === activeExam;
-      const matchSegment = selectedSegment === 'ALL' || q.segment === selectedSegment;
-      return matchExam && matchSegment;
+    // From Taxonomy Nodes (Created in Admin Tab 3)
+    taxonomy.forEach(node => {
+      if (selectedDimension === 'EXAM' && node.level === 'EXAM') itemsSet.add(node.nameEn);
+      if (selectedDimension === 'CLASS' && (node.level === 'CLASS' || node.level === 'DOMAIN')) itemsSet.add(node.nameEn);
+      if (selectedDimension === 'SUBJECT' && node.level === 'SUBJECT') itemsSet.add(node.nameEn);
+      if (selectedDimension === 'TOPIC' && node.level === 'TOPIC') itemsSet.add(node.nameEn);
     });
-  }, [classQuestions, activeExam, selectedSegment]);
 
-  const activeExamNode = useMemo(() => {
-    return taxonomy.find(t => t.level === 'EXAM' && t.nameEn === activeExam);
-  }, [taxonomy, activeExam]);
+    // From Questions Vault (Created in Admin Tab 1)
+    questions.forEach(q => {
+      if (selectedDimension === 'EXAM' && (q.examName || q.category)) itemsSet.add(q.examName || q.category);
+      if (selectedDimension === 'CLASS' && (q.className || q.class)) itemsSet.add(q.className || q.class);
+      if (selectedDimension === 'SUBJECT' && (q.subjectName || q.subject)) itemsSet.add(q.subjectName || q.subject);
+      if (selectedDimension === 'TOPIC' && (q.topicName || q.topic)) itemsSet.add(q.topicName || q.topic);
+    });
 
-  // 5. Subjects under Active Exam
-  const availableSubjects = useMemo(() => {
-    return Array.from(new Set([
-      ...taxonomy.filter(t => t.level === 'SUBJECT' && (!activeExamNode || t.parentId === activeExamNode.id)).map(t => t.nameEn),
-      ...examQuestions.map(q => q.subjectName || q.subject)
-    ])).filter(Boolean) as string[];
-  }, [taxonomy, activeExamNode, examQuestions]);
+    return Array.from(itemsSet).filter(Boolean);
+  }, [selectedDimension, taxonomy, questions]);
 
-  // 6. Metrics Calculations
-  const totalExamQuestionsCount = examQuestions.length;
+  // 2. FILTERED QUESTIONS ENGINE
+  const filteredQuestions = useMemo(() => {
+    return questions.filter(q => {
+      // Segment filter
+      if (selectedSegment !== 'ALL' && q.segment !== selectedSegment) {
+        return false;
+      }
+
+      // Dimension & Sub-Category filter
+      if (selectedDimension !== 'ALL' && selectedSubCategory !== 'ALL') {
+        const target = selectedSubCategory.toLowerCase();
+        let matched = false;
+
+        if (selectedDimension === 'EXAM') {
+          matched = (q.examName || q.category || '').toLowerCase().includes(target);
+        } else if (selectedDimension === 'CLASS') {
+          matched = (q.className || q.class || '').toLowerCase().includes(target);
+        } else if (selectedDimension === 'SUBJECT') {
+          matched = (q.subjectName || q.subject || '').toLowerCase().includes(target);
+        } else if (selectedDimension === 'TOPIC') {
+          matched = (q.topicName || q.topic || '').toLowerCase().includes(target);
+        }
+
+        if (!matched) return false;
+      }
+
+      // Search Query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesStatement = (q.questionEn || '').toLowerCase().includes(query) || (q.questionHi || '').toLowerCase().includes(query);
+        const matchesSubject = (q.subjectName || q.subject || '').toLowerCase().includes(query);
+        const matchesTopic = (q.topicName || q.topic || '').toLowerCase().includes(query);
+        const matchesExam = (q.examName || q.category || '').toLowerCase().includes(query);
+        if (!matchesStatement && !matchesSubject && !matchesTopic && !matchesExam) return false;
+      }
+
+      return true;
+    });
+  }, [questions, selectedSegment, selectedDimension, selectedSubCategory, searchQuery]);
+
+  // 3. GROUP BY SUBJECT AND TOPIC
+  const groupedModules = useMemo(() => {
+    const subjectsMap: Record<string, Record<string, QuestionData[]>> = {};
+
+    filteredQuestions.forEach(q => {
+      const subj = q.subjectName || q.subject || 'General Studies';
+      const top = q.topicName || q.topic || 'General Chapter';
+
+      if (!subjectsMap[subj]) subjectsMap[subj] = {};
+      if (!subjectsMap[subj][top]) subjectsMap[subj][top] = [];
+
+      subjectsMap[subj][top].push(q);
+    });
+
+    return subjectsMap;
+  }, [filteredQuestions]);
+
+  const totalFilteredQuestionsCount = filteredQuestions.length;
   const totalTopicsCount = useMemo(() => {
-    return new Set(examQuestions.map(q => q.topicName || q.topic || 'General')).size;
-  }, [examQuestions]);
+    let count = 0;
+    Object.values(groupedModules).forEach(topics => {
+      count += Object.keys(topics).length;
+    });
+    return count;
+  }, [groupedModules]);
 
   if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4">
-        <div className="w-10 h-10 border-3 border-slate-800 border-t-transparent rounded-full animate-spin mb-3 shadow-xs" />
+        <div className="w-10 h-10 border-3 border-slate-900 border-t-transparent rounded-full animate-spin mb-3 shadow-xs" />
         <p className="text-slate-800 font-bold text-xs uppercase tracking-widest">
           Synchronizing Knowledge Repository...
         </p>
@@ -138,314 +169,306 @@ export default function DynamicPracticeBank() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-32 font-sans selection:bg-slate-900 selection:text-white">
       
-      {/* Institutional Academic Banner */}
+      {/* Official Academic Charter Notice */}
       <div className="bg-slate-900 text-slate-200 border-b border-slate-800 px-4 py-2.5 shadow-sm flex items-center justify-center gap-2 text-xs font-medium text-center">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
-          <strong className="text-white font-bold">ABHYAAS OPEN KNOWLEDGE REPOSITORY:</strong> All conceptual practice drills and official past year archives (PYQ) are completely open access with verified solutions.
+          <strong className="text-white font-bold">ABHYAAS OPEN KNOWLEDGE REPOSITORY:</strong> All conceptual practice drills and official past year archives (PYQ) are completely open-access with verified step-by-step solutions.
         </span>
       </div>
 
-      {/* Header & Stream Selection */}
+      {/* Header Banner */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[11px] font-bold uppercase tracking-wider">
                 <GraduationCap className="w-4 h-4 text-blue-700" />
                 <span>Chapter-Wise Conceptual Mastery & PYQ Archives</span>
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
                 Standardized Practice Drills
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-2xl font-medium leading-relaxed">
-                Precision-curated question sets categorized by academic disciplines, competitive examinations, and individual chapter modules.
+              <p className="text-xs sm:text-sm font-semibold text-slate-500">
+                Precision-Curated Questions • Official Past Year Archives • Step-by-Step Solutions
               </p>
             </div>
 
-            {/* Metrics */}
+            {/* Quick Metrics Badge */}
             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl shrink-0">
               <div className="text-center px-3 border-r border-slate-200">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Questions</p>
-                <p className="text-xl font-black text-slate-900">{totalExamQuestionsCount}</p>
+                <p className="text-xl font-black text-slate-900">{totalFilteredQuestionsCount}</p>
               </div>
               <div className="text-center px-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Topics</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Modules</p>
                 <p className="text-xl font-black text-blue-600">{totalTopicsCount}</p>
               </div>
             </div>
           </div>
 
-          {/* Academic Stream / Class Horizontal Bar */}
-          {availableClasses.length > 0 && (
-            <div className="pt-2 border-t border-slate-100 space-y-2">
-              <p className="text-[11px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-blue-600" /> Select Academic Stream / Grade
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200">
-                {availableClasses.map(cls => {
-                  const isSelected = activeClass === cls;
-                  return (
-                    <button
-                      key={cls}
-                      onClick={() => { setSelectedClass(cls); setSelectedExam(''); }}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer ${
-                        isSelected 
-                          ? 'bg-slate-900 border-slate-900 text-white shadow-sm' 
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{cls}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* ========================================================================= */}
+          {/* LEVEL 1: ACADEMIC DIMENSION SELECTOR */}
+          {/* ========================================================================= */}
+          <div className="pt-4 border-t border-slate-100 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">1</span>
+                <span>Choose Category Dimension</span>
+              </span>
+              {selectedDimension !== 'ALL' && (
+                <button
+                  onClick={() => {
+                    setSelectedDimension('ALL');
+                    setSelectedSubCategory('ALL');
+                  }}
+                  className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
+                >
+                  View All Questions
+                </button>
+              )}
             </div>
-          )}
 
-        </div>
-      </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              {[
+                { id: 'ALL', label: 'All Categories', desc: 'Browse full question bank' },
+                { id: 'EXAM', label: 'Examinations', desc: 'UPSC, SSC, JEE, NEET...' },
+                { id: 'CLASS', label: 'Classes & Grades', desc: 'Class 6–8, 9–10, 11–12...' },
+                { id: 'SUBJECT', label: 'Subjects', desc: 'Polity, Physics, Maths...' },
+                { id: 'TOPIC', label: 'Topics & Chapters', desc: 'Chapter-wise modules...' }
+              ].map(dim => {
+                const isSelected = selectedDimension === dim.id;
+                return (
+                  <button
+                    key={dim.id}
+                    onClick={() => {
+                      setSelectedDimension(dim.id as any);
+                      setSelectedSubCategory('ALL');
+                    }}
+                    className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-600'
+                        : 'bg-slate-50 hover:bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <p className="font-black text-xs">{dim.label}</p>
+                    <p className={`text-[10px] mt-1 font-medium ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                      {dim.desc}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* Main Content Workspace */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Panel: Examination Tracks (Col Span 4) */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-4">
-              
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                    <Filter className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-xs font-bold uppercase text-slate-900 tracking-wider">Target Examination</h2>
-                    <p className="text-[10px] text-slate-400 font-medium">{availableExams.length} Programs Configured</p>
-                  </div>
-                </div>
+          {/* ========================================================================= */}
+          {/* LEVEL 2: DYNAMIC SUB-CATEGORIES (PULLED 100% FROM DATABASE) */}
+          {/* ========================================================================= */}
+          {selectedDimension !== 'ALL' && (
+            <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">2</span>
+                  <span>
+                    Select {selectedDimension === 'EXAM' ? 'Target Examination' :
+                           selectedDimension === 'CLASS' ? 'Target Class / Standard' :
+                           selectedDimension === 'SUBJECT' ? 'Subject Discipline' : 'Topic / Chapter'}
+                  </span>
+                </span>
+                {selectedSubCategory !== 'ALL' && (
+                  <button
+                    onClick={() => setSelectedSubCategory('ALL')}
+                    className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
+                  >
+                    Clear Filter
+                  </button>
+                )}
               </div>
 
-              {availableExams.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-slate-100 rounded-2xl space-y-2">
-                  <FolderOpen className="w-8 h-8 text-slate-300 mx-auto" />
-                  <p className="text-xs font-bold text-slate-600">No Examinations Found</p>
-                  <p className="text-[10px] text-slate-400">Add questions or exams in admin to activate this stream.</p>
+              {subCategoryOptions.length === 0 ? (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-xs text-slate-400 font-medium">
+                  No {selectedDimension.toLowerCase()} items found in the database. Add questions or entities in Admin to display them here.
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {availableExams.map(exam => {
-                    const isSelected = activeExam === exam;
-                    const count = classQuestions.filter(q => (q.examName || q.category) === exam).length;
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedSubCategory('ALL')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                      selectedSubCategory === 'ALL'
+                        ? 'bg-slate-900 border-slate-900 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    All Available ({subCategoryOptions.length})
+                  </button>
 
+                  {subCategoryOptions.map(sub => {
+                    const isSelected = selectedSubCategory === sub;
                     return (
                       <button
-                        key={exam}
-                        onClick={() => setSelectedExam(exam)}
-                        className={`w-full text-left p-3.5 rounded-2xl border transition flex items-center justify-between group cursor-pointer ${
+                        key={sub}
+                        onClick={() => setSelectedSubCategory(sub)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
-                            : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="space-y-0.5 pr-2">
-                          <p className="font-bold text-xs leading-snug">
-                            {exam}
-                          </p>
-                          <p className={`text-[10px] ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
-                            {count} Question{count === 1 ? '' : 's'} in Bank
-                          </p>
-                        </div>
-                        <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-white translate-x-0.5' : 'text-slate-300 group-hover:text-slate-600'}`} />
+                        <span>{sub}</span>
+                        {isSelected && <Check className="w-3 h-3" />}
                       </button>
                     );
                   })}
                 </div>
               )}
+            </div>
+          )}
 
+          {/* ========================================================================= */}
+          {/* LEVEL 3: DRILL MODE TOGGLE (PRACTICE VS PYQ) & SEARCH */}
+          {/* ========================================================================= */}
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold w-fit">
+              <button
+                onClick={() => setSelectedSegment('ALL')}
+                className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
+                  selectedSegment === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All Question Sets
+              </button>
+              <button
+                onClick={() => setSelectedSegment('PRACTICE')}
+                className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
+                  selectedSegment === 'PRACTICE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📘 Conceptual Practice
+              </button>
+              <button
+                onClick={() => setSelectedSegment('PYQ')}
+                className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
+                  selectedSegment === 'PYQ' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📜 Official PYQs
+              </button>
             </div>
 
-            {/* Quality Charter Card */}
-            <div className="p-5 bg-white border border-slate-200 rounded-3xl space-y-2 shadow-xs">
-              <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Verified Scientific Solutions</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Every practice module includes detailed explanations, formula formatting, and chemical subscripts.
-              </p>
+            <div className="relative w-full sm:w-72">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search within question bank..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full h-9 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800 focus:bg-white transition"
+              />
             </div>
           </div>
 
-          {/* Right Panel: Mode Toggle, Search & Chapter-Wise Drills (Col Span 8) */}
-          <div className="lg:col-span-8 space-y-6">
-            
-            {activeExam ? (
-              <div className="space-y-6">
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* LEVEL 4: STRUCTURED PRACTICE DRILL MODULES */}
+      {/* ========================================================================= */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
+        
+        {totalFilteredQuestionsCount === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center space-y-3 shadow-xs">
+            <FolderOpen className="w-12 h-12 text-slate-300 mx-auto" />
+            <h3 className="font-bold text-base text-slate-800">No Questions Found in Repository</h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              There are currently no active questions matching this selection in the database. Questions uploaded via the Admin Question Studio will appear here automatically.
+            </p>
+          </div>
+        ) : (
+          Object.keys(groupedModules).map(subject => {
+            const topicGroups = groupedModules[subject];
+            const subjectQuestionsCount = Object.values(topicGroups).reduce((acc, qs) => acc + qs.length, 0);
+
+            return (
+              <div key={subject} className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
                 
-                {/* Active Program Bar, Segment Filter & Search */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-                  
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                {/* Subject Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
                     <div>
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 uppercase">
-                        {activeClass}
-                      </span>
-                      <h2 className="text-xl font-black text-slate-900 mt-1">{activeExam}</h2>
-                    </div>
-
-                    {/* Dual Mode: Practice vs PYQ */}
-                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
-                      <button
-                        onClick={() => setSelectedSegment('ALL')}
-                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                          selectedSegment === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        All
-                      </button>
-                      <button
-                        onClick={() => setSelectedSegment('PRACTICE')}
-                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                          selectedSegment === 'PRACTICE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Practice Drills
-                      </button>
-                      <button
-                        onClick={() => setSelectedSegment('PYQ')}
-                        className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                          selectedSegment === 'PYQ' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Official PYQs
-                      </button>
+                      <h3 className="font-bold text-base text-slate-900">
+                        {formatScientific(subject)}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        {subjectQuestionsCount} Question{subjectQuestionsCount === 1 ? '' : 's'} across {Object.keys(topicGroups).length} Topic{Object.keys(topicGroups).length === 1 ? '' : 's'}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Search within chapter titles or topics..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800 focus:bg-white transition"
-                    />
-                  </div>
-
+                  
+                  <span className="px-2.5 py-1 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-lg uppercase">
+                    Subject Module
+                  </span>
                 </div>
 
-                {/* Subjects & Chapter Modules Loop */}
-                {availableSubjects.length === 0 ? (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center space-y-2 shadow-xs">
-                    <FolderOpen className="w-10 h-10 text-slate-300 mx-auto" />
-                    <h3 className="font-bold text-sm text-slate-800">No Questions Found</h3>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                      There are currently no active practice questions matching this examination or segment. Upload questions via Admin Question Studio.
-                    </p>
-                  </div>
-                ) : (
-                  availableSubjects.map(subj => {
-                    const subjectQs = examQuestions.filter(q => (q.subjectName || q.subject) === subj);
-                    
-                    const allTopics = Array.from(new Set(subjectQs.map(q => q.topicName || q.topic || 'General'))).filter(Boolean) as string[];
-                    const filteredTopics = allTopics.filter(t => 
-                      t.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      subj.toLowerCase().includes(searchQuery.toLowerCase())
-                    );
-
-                    if (filteredTopics.length === 0 && searchQuery) return null;
+                {/* Topics & 10-Question Test Drill Sets */}
+                <div className="space-y-4">
+                  {Object.keys(topicGroups).map(topic => {
+                    const topicQs = topicGroups[topic];
+                    const totalCount = topicQs.length;
+                    const testCount = Math.max(1, Math.ceil(totalCount / 10));
 
                     return (
-                      <div key={subj} className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
+                      <div key={topic} className="p-5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
                         
-                        {/* Subject Title */}
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">
-                              <BookOpen className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-base text-slate-900">
-                                {formatScientific(subj)}
-                              </h3>
-                              <p className="text-[11px] text-slate-400">
-                                {subjectQs.length} Question{subjectQs.length === 1 ? '' : 's'} across {allTopics.length} Chapters
-                              </p>
-                            </div>
+                        {/* Topic Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <h4 className="font-bold text-sm text-slate-900 leading-snug">
+                              {formatScientific(topic)}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                              Available Questions: <strong className="text-slate-800">{totalCount}</strong>
+                            </p>
                           </div>
                           
-                          <span className="px-2.5 py-1 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-lg uppercase">
-                            Discipline Module
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg w-fit">
+                            Chapter Mastery
                           </span>
                         </div>
 
-                        {/* Topics & Test Sets Grid */}
-                        <div className="space-y-4">
-                          {filteredTopics.map(topic => {
-                            const topicQs = subjectQs.filter(q => (q.topicName || q.topic || 'General') === topic);
-                            const totalCount = topicQs.length;
-
-                            // 10 questions per test drill
-                            const testCount = Math.max(1, Math.ceil(totalCount / 10));
+                        {/* Partitioned Test Sets (10 Questions Per Set) */}
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {Array.from({ length: testCount }).map((_, testIdx) => {
+                            const testNum = testIdx + 1;
+                            const startQ = testIdx * 10 + 1;
+                            const endQ = Math.min((testIdx + 1) * 10, totalCount);
+                            
+                            const testUrl = `/quiz?subject=${encodeURIComponent(subject)}&topic=${encodeURIComponent(topic)}&set=${testNum}&segment=${selectedSegment}`;
 
                             return (
-                              <div key={topic} className="p-5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
-                                
-                                {/* Topic Header */}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                  <div>
-                                    <h4 className="font-bold text-sm text-slate-900 leading-snug">
-                                      {formatScientific(topic)}
-                                    </h4>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">
-                                      Available Questions: <strong className="text-slate-800">{totalCount}</strong>
-                                    </p>
-                                  </div>
-                                  
-                                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg w-fit">
-                                    Chapter Mastery
-                                  </span>
+                              <div 
+                                key={testNum} 
+                                className="bg-white border border-slate-200 hover:border-slate-400 p-4 rounded-xl flex items-center justify-between shadow-xs transition group"
+                              >
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-xs text-slate-900 group-hover:text-blue-600 transition">
+                                    Practice Drill Set {testNum}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                                    <Clock className="w-3 h-3 text-slate-400" />
+                                    {totalCount < 10 ? `${totalCount} Questions • 15 Mins` : `Questions ${startQ}–${endQ} • 15 Mins`}
+                                  </p>
                                 </div>
 
-                                {/* Partitioned Test Sets */}
-                                <div className="grid sm:grid-cols-2 gap-3">
-                                  {Array.from({ length: testCount }).map((_, testIdx) => {
-                                    const testNum = testIdx + 1;
-                                    const startQ = testIdx * 10 + 1;
-                                    const endQ = Math.min((testIdx + 1) * 10, totalCount);
-                                    
-                                    const testUrl = `/quiz?category=${encodeURIComponent(activeExam)}&exam=${encodeURIComponent(activeExam)}&subject=${encodeURIComponent(subj)}&topic=${encodeURIComponent(topic)}&set=${testNum}&segment=${selectedSegment}`;
-
-                                    return (
-                                      <div 
-                                        key={testNum} 
-                                        className="bg-white border border-slate-200 hover:border-slate-400 p-4 rounded-xl flex items-center justify-between shadow-xs transition group"
-                                      >
-                                        <div className="space-y-0.5">
-                                          <p className="font-bold text-xs text-slate-900 group-hover:text-blue-600 transition">
-                                            Practice Drill Set {testNum}
-                                          </p>
-                                          <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                                            <Clock className="w-3 h-3 text-slate-400" />
-                                            {totalCount < 10 ? `${totalCount} Questions • 15 Mins` : `Questions ${startQ}–${endQ} • 15 Mins`}
-                                          </p>
-                                        </div>
-
-                                        <Link
-                                          href={testUrl}
-                                          className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition"
-                                        >
-                                          Start <ArrowRight className="w-3.5 h-3.5" />
-                                        </Link>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
+                                <Link
+                                  href={testUrl}
+                                  className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                                >
+                                  Start <ArrowRight className="w-3.5 h-3.5" />
+                                </Link>
                               </div>
                             );
                           })}
@@ -453,20 +476,14 @@ export default function DynamicPracticeBank() {
 
                       </div>
                     );
-                  })
-                )}
+                  })}
+                </div>
 
               </div>
-            ) : (
-              <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center text-slate-400 font-medium text-xs space-y-2">
-                <Compass className="w-8 h-8 text-slate-300 mx-auto" />
-                <p>Select an examination track from the left panel to display practice modules.</p>
-              </div>
-            )}
+            );
+          })
+        )}
 
-          </div>
-
-        </div>
       </div>
 
     </div>
