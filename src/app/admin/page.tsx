@@ -117,6 +117,146 @@ function parseCSVProperly(text: string): string[][] {
   return rows;
 }
 
+// =========================================================================
+// UNIVERSAL COMPONENT WITH EXCEL RIBBON TOOLBAR & MATH KEYS
+// =========================================================================
+function RichTextField({
+  label,
+  value,
+  setValue,
+  placeholder,
+  rows = 2
+}: {
+  label: string;
+  value: string;
+  setValue: (val: string) => void;
+  placeholder: string;
+  rows?: number;
+}) {
+  const [ribbonTab, setRibbonTab] = useState<'home' | 'insert' | 'equations' | 'symbols'>('home');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertText = (prefix: string, suffix: string = '') => {
+    const textToInsert = prefix + suffix;
+    const el = textareaRef.current;
+    if (!el) {
+      setValue(value + textToInsert);
+      return;
+    }
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const updated = value.substring(0, start) + textToInsert + value.substring(end);
+    setValue(updated);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
+    }, 0);
+  };
+
+  return (
+    <div className="space-y-1.5 bg-slate-50/80 p-4 rounded-2xl border border-slate-200">
+      <label className="block text-xs font-black text-slate-700">{label}</label>
+
+      {/* Excel Ribbon Toolbar */}
+      <div className="border border-slate-300 rounded-xl overflow-hidden bg-slate-900 text-white shadow-xs">
+        <div className="flex items-center gap-1 border-b border-slate-800 px-2 bg-slate-950 overflow-x-auto py-1">
+          {[
+            { id: 'home', label: 'Home' },
+            { id: 'insert', label: 'Insert' },
+            { id: 'equations', label: '📐 Equations' },
+            { id: 'symbols', label: 'Ω Symbols' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setRibbonTab(tab.id as any)}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg whitespace-nowrap transition cursor-pointer ${
+                ribbonTab === tab.id ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {ribbonTab === 'home' && (
+          <div className="p-2 flex flex-wrap items-center gap-2 text-xs">
+            <button type="button" onClick={() => insertText('**', '**')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Bold</button>
+            <button type="button" onClick={() => insertText('*', '*')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer">Italic</button>
+            <button type="button" onClick={() => insertText('$X_{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
+            <button type="button" onClick={() => insertText('$X^{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
+            <button type="button" onClick={() => insertText('$\\frac{a}{b}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
+          </div>
+        )}
+
+        {ribbonTab === 'insert' && (
+          <div className="p-2 flex flex-wrap items-center gap-2 text-xs">
+            <button type="button" onClick={() => insertText('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
+            <button type="button" onClick={() => insertText('\n> **💡 Note:** ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold cursor-pointer">Note Box</button>
+          </div>
+        )}
+
+        {ribbonTab === 'equations' && (
+          <div className="p-2 flex flex-wrap items-center gap-1.5 text-xs">
+            {[
+              { label: 'Area of Circle', formula: '$A = \\pi r^2$' },
+              { label: 'Quadratic Formula', formula: '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$' },
+              { label: 'Pythagorean', formula: '$a^2 + b^2 = c^2$' },
+              { label: 'Binomial Theorem', formula: '$(x + a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} a^k$' },
+              { label: 'Fourier Series', formula: '$f(x) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} (a_n \\cos nx + b_n \\sin nx)$' },
+              { label: 'Taylor Expansion', formula: '$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x-a)^n$' },
+              { label: 'Limit Expression', formula: '$\\lim_{n \\to \\infty} f(x)$' },
+              { label: 'Trign Identity', formula: '$\\sin^2\\theta + \\cos^2\\theta = 1$' }
+            ].map((eq, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => insertText(` ${eq.formula} `)}
+                className="px-2 py-1 bg-slate-800 hover:bg-blue-600 text-white rounded text-[11px] font-mono font-bold transition cursor-pointer"
+              >
+                {eq.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {ribbonTab === 'symbols' && (
+          <div className="p-2 flex flex-wrap items-center gap-1 text-xs font-mono">
+            {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in'].map((sym, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => insertText(` $${sym}$ `)}
+                className="px-2 py-0.5 bg-slate-800 hover:bg-purple-600 text-white rounded text-xs font-bold transition cursor-pointer"
+              >
+                {sym}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <textarea
+        ref={textareaRef}
+        rows={rows}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        placeholder={placeholder}
+        className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-sans"
+      />
+
+      {value.trim() && (
+        <div className="p-3 bg-white border border-blue-200 rounded-xl shadow-xs">
+          <p className="text-[10px] font-black text-blue-600 uppercase mb-1">Live Rendered Preview:</p>
+          <div className="text-xs font-bold text-slate-900 overflow-x-auto py-1 leading-loose">
+            <MathRenderer text={value} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AbhyaasMasterTower() {
   const [mounted, setMounted] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null);
@@ -300,140 +440,6 @@ export default function AbhyaasMasterTower() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('abhyaas_admin_auth');
-  };
-
-  // =========================================================================
-  // UNIVERSAL COMPONENT FOR EXCEL RIBBON TOOLBAR & MATH KEYS ON EVERY FIELD
-  // =========================================================================
-  const renderFieldWithRibbon = (
-    label: string,
-    value: string,
-    setValue: (val: string) => void,
-    placeholder: string,
-    rows: number = 2
-  ) => {
-    const [ribbonTab, setRibbonTab] = useState<'home' | 'insert' | 'equations' | 'symbols'>('home');
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-    const insertText = (prefix: string, suffix: string = '') => {
-      const textToInsert = prefix + suffix;
-      const el = textareaRef.current;
-      if (!el) {
-        setValue(value + textToInsert);
-        return;
-      }
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      const updated = value.substring(0, start) + textToInsert + value.substring(end);
-      setValue(updated);
-      setTimeout(() => {
-        el.focus();
-        el.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
-      }, 0);
-    };
-
-    return (
-      <div className="space-y-1.5 bg-slate-50/80 p-4 rounded-2xl border border-slate-200">
-        <label className="block text-xs font-black text-slate-700">{label}</label>
-
-        {/* Excel Ribbon Toolbar */}
-        <div className="border border-slate-300 rounded-xl overflow-hidden bg-slate-900 text-white shadow-xs">
-          <div className="flex items-center gap-1 border-b border-slate-800 px-2 bg-slate-950 overflow-x-auto py-1">
-            {[
-              { id: 'home', label: 'Home' },
-              { id: 'insert', label: 'Insert' },
-              { id: 'equations', label: '📐 Equations' },
-              { id: 'symbols', label: 'Ω Symbols' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setRibbonTab(tab.id as any)}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg whitespace-nowrap transition cursor-pointer ${
-                  ribbonTab === tab.id ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {ribbonTab === 'home' && (
-            <div className="p-2 flex flex-wrap items-center gap-2 text-xs">
-              <button type="button" onClick={() => insertText('**', '**')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold">Bold</button>
-              <button type="button" onClick={() => insertText('*', '*')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded italic">Italic</button>
-              <button type="button" onClick={() => insertText('$X_{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono">Subscript</button>
-              <button type="button" onClick={() => insertText('$X^{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono">Power</button>
-              <button type="button" onClick={() => insertText('$\\frac{a}{b}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono">Fraction</button>
-            </div>
-          )}
-
-          {ribbonTab === 'insert' && (
-            <div className="p-2 flex flex-wrap items-center gap-2 text-xs">
-              <button type="button" onClick={() => insertText('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold">Table 2x2</button>
-              <button type="button" onClick={() => insertText('\n> **💡 Note:** ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold">Note Box</button>
-            </div>
-          )}
-
-          {ribbonTab === 'equations' && (
-            <div className="p-2 flex flex-wrap items-center gap-1.5 text-xs">
-              {[
-                { label: 'Area of Circle', formula: '$A = \\pi r^2$' },
-                { label: 'Quadratic Formula', formula: '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$' },
-                { label: 'Pythagorean', formula: '$a^2 + b^2 = c^2$' },
-                { label: 'Binomial Theorem', formula: '$(x + a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} a^k$' },
-                { label: 'Fourier Series', formula: '$f(x) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} (a_n \\cos nx + b_n \\sin nx)$' },
-                { label: 'Taylor Expansion', formula: '$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x-a)^n$' },
-                { label: 'Limit Expression', formula: '$\\lim_{n \\to \\infty} f(x)$' },
-                { label: 'Trign Identity', formula: '$\\sin^2\\theta + \\cos^2\\theta = 1$' }
-              ].map((eq, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => insertText(` ${eq.formula} `)}
-                  className="px-2 py-1 bg-slate-800 hover:bg-blue-600 text-white rounded text-[11px] font-mono font-bold"
-                >
-                  {eq.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {ribbonTab === 'symbols' && (
-            <div className="p-2 flex flex-wrap items-center gap-1 text-xs font-mono">
-              {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in'].map((sym, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => insertText(` $${sym}$ `)}
-                  className="px-2 py-0.5 bg-slate-800 hover:bg-purple-600 text-white rounded text-xs font-bold"
-                >
-                  {sym}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <textarea
-          ref={textareaRef}
-          rows={rows}
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          placeholder={placeholder}
-          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-sans"
-        />
-
-        {value.trim() && (
-          <div className="p-3 bg-white border border-blue-200 rounded-xl shadow-xs">
-            <p className="text-[10px] font-black text-blue-600 uppercase mb-1">Live Rendered Preview:</p>
-            <div className="text-xs font-bold text-slate-900 overflow-x-auto py-1 leading-loose">
-              <MathRenderer text={value} />
-            </div>
-          </div>
-        )}
-      </div>
-    );
   };
 
   // =========================================================================
@@ -2006,6 +2012,49 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
+                <div className="space-y-2">
+                  {newOlySyllabus.map((s, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
+                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
+                      </div>
+                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2 pt-2">
+                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                </div>
+                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
+              </div>
+
+              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {newOlyRules.map((rule, idx) => (
+                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
+                      <span>• {rule}</span>
+                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
+                    value={newRuleInput}
+                    onChange={e => setNewRuleInput(e.target.value)}
+                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
+                  />
+                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
@@ -2211,7 +2260,7 @@ export default function AbhyaasMasterTower() {
               {renderFieldWithRibbon("Question Statement (English)*", qStatementEn, setQStatementEn, "Enter question statement in English...", 3)}
               {renderFieldWithRibbon("प्रश्न विवरण (हिंदी अनुवाद)", qStatementHi, setQStatementHi, "हिंदी में प्रश्न दर्ज करें...", 3)}
 
-              {/* Diagram URL */}
+              {/* Diagram Attachment */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
