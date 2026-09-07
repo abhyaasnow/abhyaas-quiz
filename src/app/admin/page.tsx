@@ -11,7 +11,8 @@ import {
   Trophy, Users, Video, Award, CheckCircle2, Calendar, Clock, AlertOctagon,
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
-  Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript
+  Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
+  Sigma, Pi
 } from 'lucide-react';
 
 import { 
@@ -187,7 +188,7 @@ export default function AbhyaasMasterTower() {
 
   // Visual Math Input State & Excel Ribbon Tab
   const [visualEquation, setVisualEquation] = useState('');
-  const [ribbonTab, setRibbonTab] = useState<'home' | 'insert'>('home');
+  const [ribbonTab, setRibbonTab] = useState<'home' | 'insert' | 'equations' | 'symbols'>('home');
   const [activeTargetField, setActiveTargetField] = useState<'statementEn' | 'statementHi' | 'explanationEn' | 'explanationHi'>('statementEn');
 
   // Bulk Importer States
@@ -304,7 +305,7 @@ export default function AbhyaasMasterTower() {
   };
 
   // =========================================================================
-  // EXCEL RIBBON INSERTER
+  // EXCEL RIBBON TOOLBAR INSERTER
   // =========================================================================
   const insertAtActiveField = (prefix: string, suffix: string = '') => {
     const textToInsert = prefix + suffix;
@@ -403,10 +404,10 @@ export default function AbhyaasMasterTower() {
 
       setBulkParsedQuestions(parsed);
       if (parsed.length === 0) {
-        setBulkParseError("No valid question rows could be identified.");
+        setBulkParseError("No valid question rows could be identified. Make sure each row has at least columns A to R.");
       }
     } catch (err: any) {
-      setBulkParseError("Error reading data: " + err.message);
+      setBulkParseError("Error reading Excel data: " + err.message);
       setBulkParsedQuestions([]);
     }
   };
@@ -500,7 +501,7 @@ export default function AbhyaasMasterTower() {
       setPasteData('');
       setBulkParsedQuestions([]);
       setIsBulkModalOpen(false);
-      alert(`🎉 Success! Uploaded ${count} questions to the database.`);
+      alert(`🎉 Success! Uploaded ${count} questions to the database. They are now live!`);
     } catch (err: any) {
       alert("Error importing questions: " + err.message);
     } finally {
@@ -754,12 +755,12 @@ export default function AbhyaasMasterTower() {
 
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalClass = qClass === 'OTHER' ? '' : qClass;
-    const finalExam = qExam === 'OTHER' ? '' : qExam;
-    const finalSubject = qSubject === 'OTHER' ? '' : qSubject;
-    const finalTopic = qTopic === 'OTHER' ? '' : qTopic;
+    const finalClass = qClass === 'OTHER' ? qClassCustom.trim() : qClass;
+    const finalExam = qExam === 'OTHER' ? qExamCustom.trim() : qExam;
+    const finalSubject = qSubject === 'OTHER' ? qSubjectCustom.trim() : qSubject;
+    const finalTopic = qTopic === 'OTHER' ? qTopicCustom.trim() : qTopic;
 
-    if (!qClass || !qExam || !qSubject || !qStatementEn.trim()) {
+    if (!finalClass || !finalExam || !finalSubject || !qStatementEn.trim()) {
       return alert("Class, Exam, Subject, and English Question Statement are required!");
     }
 
@@ -768,14 +769,14 @@ export default function AbhyaasMasterTower() {
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
-      className: qClass,
-      examName: qExam,
-      subjectName: qSubject,
-      topicName: qTopic || 'General',
-      category: qExam,
-      subject: qSubject,
-      class: qClass,
-      topic: qTopic || 'General',
+      className: finalClass,
+      examName: finalExam,
+      subjectName: finalSubject,
+      topicName: finalTopic || 'General',
+      category: finalExam,
+      subject: finalSubject,
+      class: finalClass,
+      topic: finalTopic || 'General',
       segment: qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
       questionEn: qStatementEn.trim(),
@@ -987,7 +988,7 @@ export default function AbhyaasMasterTower() {
                     Active Question Bank & Practice Vault
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Upload via standard Excel templates or Visual Question Studio with LaTeX and MathLive support.
+                    Upload via standard Excel templates or Single Question Studio with LaTeX and chemical subscript support.
                   </p>
                 </div>
 
@@ -996,7 +997,7 @@ export default function AbhyaasMasterTower() {
                     onClick={openCreateQuestionModal}
                     className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
-                    <Plus className="w-4 h-4" /> Visual Question Studio
+                    <Plus className="w-4 h-4" /> Single Question Studio
                   </button>
                   <button
                     onClick={() => {
@@ -1119,7 +1120,7 @@ export default function AbhyaasMasterTower() {
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Add questions using Visual Question Studio or Excel Power Importer.</p>
+                  <p className="text-xs text-slate-400">Add questions using Single Question Studio or Excel Power Importer.</p>
                 </div>
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
@@ -1649,9 +1650,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* ========================================================================= */}
       {/* MODAL 1: CREATE CUSTOM OLYMPIAD */}
-      {/* ========================================================================= */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1668,7 +1667,6 @@ export default function AbhyaasMasterTower() {
             </div>
 
             <form onSubmit={handleCreateOlympiadSubmit} className="space-y-4 text-xs font-medium">
-              
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
@@ -1941,9 +1939,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 2: VISUAL QUESTION STUDIO WITH EXCEL RIBBON & MATHLIVE */}
-      {/* ========================================================================= */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
@@ -1953,7 +1949,7 @@ export default function AbhyaasMasterTower() {
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Excel-Style Ribbon (Home, Insert) + Visual Math Keyboard</p>
+                <p className="text-xs text-slate-500">Excel Ribbon Toolbar (Home, Insert, Equations, Symbols) + MathLive Editor</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -1972,7 +1968,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
-              {/* Target Segment */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
                   Target Destination / Vault*
@@ -2015,85 +2010,124 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* Taxonomy Dropdowns */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <select
-                    value={qClass}
-                    onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Class --</option>
-                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={qClass}
+                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Class --</option>
+                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qClass === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <select
-                    value={qExam}
-                    onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Exam --</option>
-                    {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={qExam}
+                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Exam --</option>
+                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qExam === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
-                  <select
-                    value={qSubject}
-                    onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Subject --</option>
-                    {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={qSubject}
+                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Subject --</option>
+                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qSubject === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
-                  <select
-                    value={qTopic}
-                    onChange={e => setQTopic(e.target.value)}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Topic --</option>
-                    {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={qTopic}
+                      onChange={e => setQTopic(e.target.value)}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Topic --</option>
+                      {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qTopic === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                    />
+                  )}
                 </div>
               </div>
 
               {/* ========================================================================= */}
-              {/* EXCEL RIBBON TOOLBAR (HOME & INSERT) */}
+              {/* EXCEL RIBBON TOOLBAR (HOME, INSERT, EQUATIONS, SYMBOLS) */}
               {/* ========================================================================= */}
               <div className="border border-slate-300 rounded-2xl overflow-hidden shadow-xs bg-slate-900 text-white">
-                <div className="flex items-center justify-between border-b border-slate-800 px-3 bg-slate-950">
+                <div className="flex items-center justify-between border-b border-slate-800 px-3 bg-slate-950 overflow-x-auto">
                   <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setRibbonTab('home')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-t-lg transition ${
-                        ribbonTab === 'home' ? 'bg-slate-900 text-emerald-400 border-t-2 border-emerald-400' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Home (Font, Align, Number)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRibbonTab('insert')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-t-lg transition ${
-                        ribbonTab === 'insert' ? 'bg-slate-900 text-blue-400 border-t-2 border-blue-400' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Insert (Tables, Shapes, Charts)
-                    </button>
+                    {[
+                      { id: 'home', label: 'Home (Font, Align, Number)' },
+                      { id: 'insert', label: 'Insert (Tables, Shapes)' },
+                      { id: 'equations', label: '📐 Equations (Presets)' },
+                      { id: 'symbols', label: 'Ω Math Symbols' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setRibbonTab(tab.id as any)}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-t-lg whitespace-nowrap transition cursor-pointer ${
+                          ribbonTab === tab.id ? 'bg-slate-900 text-emerald-400 border-t-2 border-emerald-400' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">Active Target Field: {activeTargetField}</span>
+                  <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">Active Target: {activeTargetField}</span>
                 </div>
 
+                {/* HOME TAB */}
                 {ribbonTab === 'home' && (
                   <div className="p-2.5 flex flex-wrap items-center gap-3 text-xs">
                     <div className="flex items-center gap-1 border-r border-slate-800 pr-3">
@@ -2102,12 +2136,11 @@ export default function AbhyaasMasterTower() {
                       <button type="button" onClick={() => insertAtActiveField('*', '*')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Italic"><Italic className="w-3.5 h-3.5" /></button>
                       <button type="button" onClick={() => insertAtActiveField('<u>', '</u>')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Underline"><Underline className="w-3.5 h-3.5" /></button>
                       <button type="button" onClick={() => insertAtActiveField('~~', '~~')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Strikethrough"><Strikethrough className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => insertAtActiveField('`', '`')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Code"><Code className="w-3.5 h-3.5" /></button>
                     </div>
 
                     <div className="flex items-center gap-1 border-r border-slate-800 pr-3">
                       <span className="text-[9px] uppercase font-bold text-slate-400 mr-1">Align:</span>
-                      <button type="button" onClick={() => insertAtActiveField('\n')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="New Line"><AlignLeft className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('\n')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Newline"><AlignLeft className="w-3.5 h-3.5" /></button>
                       <button type="button" onClick={() => insertAtActiveField('$$', '$$')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Center Equation"><AlignCenter className="w-3.5 h-3.5" /></button>
                       <button type="button" onClick={() => insertAtActiveField('\n• ')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Bullets"><List className="w-3.5 h-3.5" /></button>
                       <button type="button" onClick={() => insertAtActiveField('\n1. ')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Numbering"><ListOrdered className="w-3.5 h-3.5" /></button>
@@ -2115,48 +2148,85 @@ export default function AbhyaasMasterTower() {
 
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] uppercase font-bold text-emerald-400 mr-1">Number / Math:</span>
-                      <button type="button" onClick={() => insertAtActiveField('$X_{2}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono flex items-center gap-0.5"><Subscript className="w-3 h-3" /> Sub</button>
-                      <button type="button" onClick={() => insertAtActiveField('$X^{2}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono flex items-center gap-0.5"><Superscript className="w-3 h-3" /> Power</button>
-                      <button type="button" onClick={() => insertAtActiveField('$\\frac{a}{b}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono">a/b Fraction</button>
-                      <button type="button" onClick={() => insertAtActiveField('%')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold">%</button>
-                      <button type="button" onClick={() => insertAtActiveField('₹')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold">₹</button>
+                      <button type="button" onClick={() => insertAtActiveField('$X_{2}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono"><Subscript className="w-3 h-3 inline mr-0.5" /> Sub</button>
+                      <button type="button" onClick={() => insertAtActiveField('$X^{2}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono"><Superscript className="w-3 h-3 inline mr-0.5" /> Power</button>
+                      <button type="button" onClick={() => insertAtActiveField('$\\frac{a}{b}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono">Fraction</button>
                     </div>
                   </div>
                 )}
 
+                {/* INSERT TAB */}
                 {ribbonTab === 'insert' && (
                   <div className="p-2.5 flex flex-wrap items-center gap-3 text-xs">
                     <div className="flex items-center gap-1.5 border-r border-slate-800 pr-3">
                       <span className="text-[9px] uppercase font-bold text-blue-400 mr-1">Tables:</span>
-                      <button type="button" onClick={() => insertAtActiveField('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| Val 1 | Val 2 |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] flex items-center gap-1 font-bold">
-                        <Table className="w-3 h-3 text-blue-400" /> Insert Table 2×2
+                      <button type="button" onClick={() => insertAtActiveField('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| Val 1 | Val 2 |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold">
+                        <Table className="w-3 h-3 text-blue-400 inline mr-1" /> Table 2×2
                       </button>
-                      <button type="button" onClick={() => insertAtActiveField('\n\n| Parameter | Case 1 | Case 2 |\n| --- | --- | --- |\n| Data A | 10 | 20 |\n| Data B | 30 | 40 |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] flex items-center gap-1 font-bold">
-                        <Table className="w-3 h-3 text-blue-400" /> Table 3×3
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 border-r border-slate-800 pr-3">
-                      <span className="text-[9px] uppercase font-bold text-amber-400 mr-1">Illustrations:</span>
-                      <button type="button" onClick={() => insertAtActiveField('\n> **💡 Note / Important Formula:** ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-amber-300 font-bold flex items-center gap-1">
-                        <Shapes className="w-3 h-3" /> Note Box
-                      </button>
-                      <button type="button" onClick={() => insertAtActiveField('[Diagram: Geometry Shape / Chemical Structure Tag]')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-purple-300 font-bold flex items-center gap-1">
-                        <ImageIcon className="w-3 h-3" /> Geometry Tag
+                      <button type="button" onClick={() => insertAtActiveField('\n\n| Param | Case 1 | Case 2 |\n| --- | --- | --- |\n| Data | A | B |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold">
+                        <Table className="w-3 h-3 text-blue-400 inline mr-1" /> Table 3×3
                       </button>
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] uppercase font-bold text-rose-400 mr-1">Charts:</span>
-                      <button type="button" onClick={() => insertAtActiveField('\n```\n[Bar Chart Placeholder]\n```\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-slate-300 font-bold flex items-center gap-1">
-                        <BarChart2 className="w-3 h-3 text-emerald-400" /> Bar Chart
+                      <span className="text-[9px] uppercase font-bold text-amber-400 mr-1">Illustrations:</span>
+                      <button type="button" onClick={() => insertAtActiveField('\n> **💡 Note Box:** ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-amber-300 font-bold">
+                        <Shapes className="w-3 h-3 inline mr-1" /> Note Box
                       </button>
-                      <button type="button" onClick={() => insertAtActiveField(' ↗ (Rising Trend) ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-emerald-300 font-mono font-bold flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" /> Sparkline ↗
+                      <button type="button" onClick={() => insertAtActiveField(' ↗ (Rising Trend) ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-emerald-300 font-mono font-bold">
+                        <TrendingUp className="w-3 h-3 inline mr-1" /> Sparkline ↗
                       </button>
                     </div>
                   </div>
                 )}
+
+                {/* EQUATIONS TAB */}
+                {ribbonTab === 'equations' && (
+                  <div className="p-2.5 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-[9px] uppercase font-bold text-amber-400 mr-1">Quick Formulas:</span>
+                    {[
+                      { label: 'Area of Circle', formula: '$A = \\pi r^2$' },
+                      { label: 'Quadratic Formula', formula: '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$' },
+                      { label: 'Pythagorean Theorem', formula: '$a^2 + b^2 = c^2$' },
+                      { label: 'Binomial Theorem', formula: '$(x + a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} a^k$' },
+                      { label: 'Fourier Series', formula: '$f(x) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} (a_n \\cos nx + b_n \\sin nx)$' },
+                      { label: 'Taylor Expansion', formula: '$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x-a)^n$' },
+                      { label: 'Trign Identity', formula: '$\\sin^2\\theta + \\cos^2\\theta = 1$' },
+                      { label: 'Expansion of Sum', formula: '$\\sum_{i=1}^{n} x_i = x_1 + x_2 + \\dots + x_n$' }
+                    ].map((eq, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => insertAtActiveField(` ${eq.formula} `)}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 text-white rounded text-[11px] font-mono font-bold transition cursor-pointer"
+                        title={eq.label}
+                      >
+                        {eq.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* SYMBOLS TAB */}
+                {ribbonTab === 'symbols' && (
+                  <div className="p-2.5 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-[9px] uppercase font-bold text-purple-400 mr-1">Math Symbols:</span>
+                    {[
+                      '\\alpha', '\\beta', '\\gamma', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\omega', '\\infty',
+                      '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in', '\\subset', '\\cup', '\\cap'
+                    ].map((sym, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => insertAtActiveField(` $${sym}$ `)}
+                        className="px-2 py-1 bg-slate-800 hover:bg-purple-600 text-white rounded text-xs font-mono font-bold transition cursor-pointer"
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
               </div>
 
               {/* ========================================================================= */}
@@ -2201,7 +2271,7 @@ export default function AbhyaasMasterTower() {
                   value={qStatementEn}
                   onFocus={() => setActiveTargetField('statementEn')}
                   onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                  placeholder="Enter question statement..."
+                  placeholder="Enter question statement using toolbar buttons above..."
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-sans"
                   required
                 />
@@ -2226,7 +2296,7 @@ export default function AbhyaasMasterTower() {
                   value={qStatementHi}
                   onFocus={() => setActiveTargetField('statementHi')}
                   onChange={e => setQStatementHi(e.target.value)}
-                  placeholder="हिंदी अनुवाद..."
+                  placeholder="हिंदी अनुवाद दर्ज करें..."
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                 />
               </div>
@@ -2305,7 +2375,7 @@ export default function AbhyaasMasterTower() {
 
               <button
                 type="submit"
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" /> Save Question Entry to Database
               </button>
