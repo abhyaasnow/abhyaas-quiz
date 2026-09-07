@@ -2137,6 +2137,10 @@ export default function AbhyaasMasterTower() {
                     <div className="flex flex-wrap gap-2 text-xs">
                       <button type="button" onClick={() => insertIntoTargetField('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
                       <button type="button" onClick={() => insertIntoTargetField('\n> **💡 Note Box:** ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold cursor-pointer">Note Box</button>
+                      <button type="button" onClick={() => insertIntoTargetField(' 🔲 ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Box 🔲</button>
+                      <button type="button" onClick={() => insertIntoTargetField(' ⬤ ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Circle ⬤</button>
+                      <button type="button" onClick={() => insertIntoTargetField(' ➔ ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Arrow ➔</button>
+                      <button type="button" onClick={() => insertIntoTargetField('\n--- \n')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Divider ───</button>
                     </div>
                   )}
 
