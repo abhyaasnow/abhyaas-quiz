@@ -9,7 +9,9 @@ import {
   Search, AlertTriangle, Image as ImageIcon, ClipboardCheck,
   RotateCcw, ShieldAlert, Copy, Atom, UploadCloud, FileText, ExternalLink,
   Trophy, Users, Video, Award, CheckCircle2, Calendar, Clock, AlertOctagon,
-  Bold, Italic, List, ListOrdered, Palette, Sigma, Shapes, Sparkles, FileDown
+  Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
+  AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
+  Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript
 } from 'lucide-react';
 
 import { 
@@ -24,6 +26,7 @@ import {
 } from '@/lib/db';
 
 import MathRenderer from '@/components/MathRenderer';
+import VisualMathInput from '@/components/VisualMathInput';
 
 const MASTER_ADMIN_EMAIL = 'admin.abhyaas@gmail.com';
 
@@ -182,6 +185,11 @@ export default function AbhyaasMasterTower() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
 
+  // Visual Math Input State & Excel Ribbon Tab
+  const [visualEquation, setVisualEquation] = useState('');
+  const [ribbonTab, setRibbonTab] = useState<'home' | 'insert'>('home');
+  const [activeTargetField, setActiveTargetField] = useState<'statementEn' | 'statementHi' | 'explanationEn' | 'explanationHi'>('statementEn');
+
   // Bulk Importer States
   const [bulkMode, setBulkMode] = useState<'paste' | 'file'>('paste');
   const [pasteData, setPasteData] = useState('');
@@ -296,6 +304,17 @@ export default function AbhyaasMasterTower() {
   };
 
   // =========================================================================
+  // EXCEL RIBBON INSERTER
+  // =========================================================================
+  const insertAtActiveField = (prefix: string, suffix: string = '') => {
+    const textToInsert = prefix + suffix;
+    if (activeTargetField === 'statementEn') setQStatementEn(prev => prev + textToInsert);
+    else if (activeTargetField === 'statementHi') setQStatementHi(prev => prev + textToInsert);
+    else if (activeTargetField === 'explanationEn') setQExplanationEn(prev => prev + textToInsert);
+    else if (activeTargetField === 'explanationHi') setQExplanationHi(prev => prev + textToInsert);
+  };
+
+  // =========================================================================
   // EXCEL-FIRST BULK IMPORT LOGIC & TEMPLATE GENERATOR
   // =========================================================================
   const parseExcelCorrectOption = (val: string): number => {
@@ -343,7 +362,6 @@ export default function AbhyaasMasterTower() {
         const newId = `q-bulk-${Date.now()}-${i}`;
         const correctIndex = parseExcelCorrectOption(row[16]);
 
-        // YAHAN BADLAV KIYA GAYA HAI: formatScientific hata kar raw LaTeX safe rakha gaya hai
         parsed.push({
           id: newId,
           docId: newId,
@@ -385,10 +403,10 @@ export default function AbhyaasMasterTower() {
 
       setBulkParsedQuestions(parsed);
       if (parsed.length === 0) {
-        setBulkParseError("No valid question rows could be identified. Make sure each row has at least columns A to R.");
+        setBulkParseError("No valid question rows could be identified.");
       }
     } catch (err: any) {
-      setBulkParseError("Error reading Excel data: " + err.message);
+      setBulkParseError("Error reading data: " + err.message);
       setBulkParsedQuestions([]);
     }
   };
@@ -482,7 +500,7 @@ export default function AbhyaasMasterTower() {
       setPasteData('');
       setBulkParsedQuestions([]);
       setIsBulkModalOpen(false);
-      alert(`🎉 Success! Uploaded ${count} questions to the database. They are now live!`);
+      alert(`🎉 Success! Uploaded ${count} questions to the database.`);
     } catch (err: any) {
       alert("Error importing questions: " + err.message);
     } finally {
@@ -669,14 +687,6 @@ export default function AbhyaasMasterTower() {
     await deleteTaxonomyNode(id);
   };
 
-  const insertSymbol = (sym: string) => {
-    setQStatementEn(prev => prev + sym);
-  };
-
-  const insertFormatting = (prefix: string, suffix: string = '') => {
-    setQStatementEn(prev => prev + prefix + suffix);
-  };
-
   const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
 
   const checkDuplicates = (text: string) => {
@@ -708,23 +718,10 @@ export default function AbhyaasMasterTower() {
     reader.readAsDataURL(file);
   };
 
-  const handleOptionDiagramUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const b64 = (evt.target?.result as string) || '';
-      const updated = [...qOptionsDiagrams];
-      updated[idx] = b64;
-      setQOptionsDiagrams(updated);
-    };
-    reader.readAsDataURL(file);
-  };
-
   const openCreateQuestionModal = () => {
     setEditingQuestionId(null);
     setDuplicateWarning(null);
+    setVisualEquation('');
     setQStatementEn(''); setQStatementHi('');
     setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
     setQOptionsDiagrams(['', '', '', '']);
@@ -736,6 +733,7 @@ export default function AbhyaasMasterTower() {
   const openEditQuestionModal = (q: QuestionData) => {
     setEditingQuestionId(q.id);
     setDuplicateWarning(null);
+    setVisualEquation('');
     setQClass(q.className || q.class || '');
     setQExam(q.examName || q.category || '');
     setQSubject(q.subjectName || q.subject || '');
@@ -756,12 +754,12 @@ export default function AbhyaasMasterTower() {
 
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalClass = qClass === 'OTHER' ? qClassCustom.trim() : qClass;
-    const finalExam = qExam === 'OTHER' ? qExamCustom.trim() : qExam;
-    const finalSubject = qSubject === 'OTHER' ? qSubjectCustom.trim() : qSubject;
-    const finalTopic = qTopic === 'OTHER' ? qTopicCustom.trim() : qTopic;
+    const finalClass = qClass === 'OTHER' ? '' : qClass;
+    const finalExam = qExam === 'OTHER' ? '' : qExam;
+    const finalSubject = qSubject === 'OTHER' ? '' : qSubject;
+    const finalTopic = qTopic === 'OTHER' ? '' : qTopic;
 
-    if (!finalClass || !finalExam || !finalSubject || !qStatementEn.trim()) {
+    if (!qClass || !qExam || !qSubject || !qStatementEn.trim()) {
       return alert("Class, Exam, Subject, and English Question Statement are required!");
     }
 
@@ -770,14 +768,14 @@ export default function AbhyaasMasterTower() {
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
-      className: finalClass,
-      examName: finalExam,
-      subjectName: finalSubject,
-      topicName: finalTopic || 'General',
-      category: finalExam,
-      subject: finalSubject,
-      class: finalClass,
-      topic: finalTopic || 'General',
+      className: qClass,
+      examName: qExam,
+      subjectName: qSubject,
+      topicName: qTopic || 'General',
+      category: qExam,
+      subject: qSubject,
+      class: qClass,
+      topic: qTopic || 'General',
       segment: qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
       questionEn: qStatementEn.trim(),
@@ -989,7 +987,7 @@ export default function AbhyaasMasterTower() {
                     Active Question Bank & Practice Vault
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Upload via standard Excel templates or Single Question Studio with LaTeX and chemical subscript support.
+                    Upload via standard Excel templates or Visual Question Studio with LaTeX and MathLive support.
                   </p>
                 </div>
 
@@ -998,7 +996,7 @@ export default function AbhyaasMasterTower() {
                     onClick={openCreateQuestionModal}
                     className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
-                    <Plus className="w-4 h-4" /> Single Question Studio
+                    <Plus className="w-4 h-4" /> Visual Question Studio
                   </button>
                   <button
                     onClick={() => {
@@ -1121,7 +1119,7 @@ export default function AbhyaasMasterTower() {
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Add questions using Single Question Studio or Excel Power Importer.</p>
+                  <p className="text-xs text-slate-400">Add questions using Visual Question Studio or Excel Power Importer.</p>
                 </div>
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
@@ -1181,7 +1179,6 @@ export default function AbhyaasMasterTower() {
                         </div>
                       </div>
 
-                      {/* Question Text Preview */}
                       <div>
                         <div className="font-bold text-sm text-slate-900 leading-relaxed">
                           <MathRenderer text={q.questionEn} />
@@ -1652,7 +1649,9 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
+      {/* ========================================================================= */}
       {/* MODAL 1: CREATE CUSTOM OLYMPIAD */}
+      {/* ========================================================================= */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1942,17 +1941,19 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: SINGLE QUESTION STUDIO */}
+      {/* ========================================================================= */}
+      {/* MODAL 2: VISUAL QUESTION STUDIO WITH EXCEL RIBBON & MATHLIVE */}
+      {/* ========================================================================= */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
             
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Question Studio'}
+                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Configure hierarchy, text styling, math formulas, equations, symbols, and diagram attachments.</p>
+                <p className="text-xs text-slate-500">Excel-Style Ribbon (Home, Insert) + Visual Math Keyboard</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -1971,6 +1972,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
 
+              {/* Target Segment */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                 <label className="block text-xs font-black uppercase text-slate-500">
                   Target Destination / Vault*
@@ -2013,367 +2015,299 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
+              {/* Taxonomy Dropdowns */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <div className="relative">
-                    <select
-                      value={qClass}
-                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qClass === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qClass}
+                    onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose Class --</option>
+                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <div className="relative">
-                    <select
-                      value={qExam}
-                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Exam --</option>
-                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qExam === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qExam}
+                    onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose Exam --</option>
+                    {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
-                  <div className="relative">
-                    <select
-                      value={qSubject}
-                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Subject --</option>
-                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qSubject === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qSubject}
+                    onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose Subject --</option>
+                    {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
-                  <div className="relative">
-                    <select
-                      value={qTopic}
-                      onChange={e => setQTopic(e.target.value)}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Topic --</option>
-                      {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qTopic === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                    />
-                  )}
+                  <select
+                    value={qTopic}
+                    onChange={e => setQTopic(e.target.value)}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose Topic --</option>
+                    {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
+                  </select>
                 </div>
               </div>
 
-              {/* Formatting & Formula Toolbar */}
-              <div className="p-3 bg-slate-900 text-white rounded-2xl space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 border-b border-slate-800 pb-2">
-                  <span className="flex items-center gap-1.5 text-blue-400">
-                    <Sigma className="w-4 h-4" /> Excel & Formula Toolbar (Click to insert)
-                  </span>
-                  <span className="text-[10px] text-slate-400">Inserts formatting directly into Question Statement</span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 mr-1">Text:</span>
-                  <button type="button" onClick={() => insertFormatting('**', '**')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold flex items-center gap-1 transition cursor-pointer" title="Bold">
-                    <Bold className="w-3 h-3" /> Bold
-                  </button>
-                  <button type="button" onClick={() => insertFormatting('*', '*')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic flex items-center gap-1 transition cursor-pointer" title="Italic">
-                    <Italic className="w-3 h-3" /> Italic
-                  </button>
-                  <button type="button" onClick={() => insertFormatting('\n• ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded flex items-center gap-1 transition cursor-pointer" title="Bullet Points">
-                    <List className="w-3 h-3" /> Bullet
-                  </button>
-                  <button type="button" onClick={() => insertFormatting('\n1. ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded flex items-center gap-1 transition cursor-pointer" title="Numbered List">
-                    <ListOrdered className="w-3 h-3" /> Numbering
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1 text-xs font-mono pt-1 border-t border-slate-800">
-                  <span className="text-[10px] font-black uppercase text-emerald-400 mr-1 font-sans">Formulas & Math:</span>
-                  {['x²', 'x³', '√x', 'A = πr²', '(x + a)ⁿ', '∫ f(x)dx', 'lim (x->0)', 'H₂O', 'Σ', '±', '∞', '°C', 'π'].map(sym => (
+              {/* ========================================================================= */}
+              {/* EXCEL RIBBON TOOLBAR (HOME & INSERT) */}
+              {/* ========================================================================= */}
+              <div className="border border-slate-300 rounded-2xl overflow-hidden shadow-xs bg-slate-900 text-white">
+                <div className="flex items-center justify-between border-b border-slate-800 px-3 bg-slate-950">
+                  <div className="flex gap-1">
                     <button
                       type="button"
-                      key={sym}
-                      onClick={() => insertSymbol(sym === '√x' ? '√' : sym === 'A = πr²' ? 'A = πr²' : sym === '(x + a)ⁿ' ? '(x + a)ⁿ' : sym === '∫ f(x)dx' ? '∫ f(x)dx' : sym === 'lim (x->0)' ? 'lim (x->0) ' : sym)}
-                      className="px-2 py-0.5 bg-slate-800 hover:bg-blue-600 hover:text-white rounded font-bold transition shadow-xs cursor-pointer text-[11px]"
+                      onClick={() => setRibbonTab('home')}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-t-lg transition ${
+                        ribbonTab === 'home' ? 'bg-slate-900 text-emerald-400 border-t-2 border-emerald-400' : 'text-slate-400 hover:text-white'
+                      }`}
                     >
-                      {sym}
+                      Home (Font, Align, Number)
                     </button>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1 border-t border-slate-800">
-                  <span className="text-[10px] font-black uppercase text-amber-400 mr-1 font-sans">Diagrams & Shapes:</span>
-                  <button type="button" onClick={() => insertFormatting('[Diagram: Geometry Shape]')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded text-[11px] font-bold flex items-center gap-1 transition cursor-pointer">
-                    <Shapes className="w-3 h-3" /> Insert Shape Tag
-                  </button>
-                  <button type="button" onClick={() => insertFormatting('[Graph: Coordinate Graph]')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded text-[11px] font-bold flex items-center gap-1 transition cursor-pointer">
-                    <ImageIcon className="w-3 h-3" /> Insert Graph Tag
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Question Statement (English)*
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={qStatementEn}
-                    onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
-                    placeholder="Enter question statement using formatting or formula buttons above..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500 font-sans"
-                    required
-                  />
-                  {qStatementEn.trim() && (
-                    <div className="mt-2 p-3 bg-white border border-blue-200 rounded-xl shadow-xs">
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Live Rendered Preview:
-                      </p>
-                      <div className="text-xs font-bold text-slate-900">
-                        <MathRenderer text={qStatementEn} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    प्रश्न विवरण (हिंदी में)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={qStatementHi}
-                    onChange={e => setQStatementHi(e.target.value)}
-                    placeholder="हिंदी अनुवाद दर्ज करें..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-blue-500 font-sans"
-                  />
-                  {qStatementHi.trim() && (
-                    <div className="mt-2 p-3 bg-white border border-blue-200 rounded-xl shadow-xs">
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Live Hindi Preview:
-                      </p>
-                      <div className="text-xs font-bold text-slate-900">
-                        <MathRenderer text={qStatementHi} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                  <div>
-                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-blue-600" /> Question Diagram / Shape Media (Optional)
-                    </label>
-                    <p className="text-[10px] text-slate-400">Supports Abhyaas Google Drive links, PDF Documents, SVG, PNG, and shape graphics.</p>
+                    <button
+                      type="button"
+                      onClick={() => setRibbonTab('insert')}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-t-lg transition ${
+                        ribbonTab === 'insert' ? 'bg-slate-900 text-blue-400 border-t-2 border-blue-400' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Insert (Tables, Shapes, Charts)
+                    </button>
                   </div>
-                  
-                  <input
-                    type="file"
-                    accept="image/*,.pdf,.svg,.mol,.pdb"
-                    ref={fileAttachmentRef}
-                    onChange={handleLocalFileAttachment}
-                    className="hidden"
-                  />
+                  <span className="text-[10px] text-slate-400 font-mono">Active Target Field: {activeTargetField}</span>
+                </div>
+
+                {ribbonTab === 'home' && (
+                  <div className="p-2.5 flex flex-wrap items-center gap-3 text-xs">
+                    <div className="flex items-center gap-1 border-r border-slate-800 pr-3">
+                      <span className="text-[9px] uppercase font-bold text-slate-400 mr-1">Font:</span>
+                      <button type="button" onClick={() => insertAtActiveField('**', '**')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Bold"><Bold className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('*', '*')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Italic"><Italic className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('<u>', '</u>')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Underline"><Underline className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('~~', '~~')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Strikethrough"><Strikethrough className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('`', '`')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Code"><Code className="w-3.5 h-3.5" /></button>
+                    </div>
+
+                    <div className="flex items-center gap-1 border-r border-slate-800 pr-3">
+                      <span className="text-[9px] uppercase font-bold text-slate-400 mr-1">Align:</span>
+                      <button type="button" onClick={() => insertAtActiveField('\n')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="New Line"><AlignLeft className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('$$', '$$')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Center Equation"><AlignCenter className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('\n• ')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Bullets"><List className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => insertAtActiveField('\n1. ')} className="p-1.5 hover:bg-slate-800 rounded text-slate-200" title="Numbering"><ListOrdered className="w-3.5 h-3.5" /></button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] uppercase font-bold text-emerald-400 mr-1">Number / Math:</span>
+                      <button type="button" onClick={() => insertAtActiveField('$X_{2}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono flex items-center gap-0.5"><Subscript className="w-3 h-3" /> Sub</button>
+                      <button type="button" onClick={() => insertAtActiveField('$X^{2}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono flex items-center gap-0.5"><Superscript className="w-3 h-3" /> Power</button>
+                      <button type="button" onClick={() => insertAtActiveField('$\\frac{a}{b}$')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-mono">a/b Fraction</button>
+                      <button type="button" onClick={() => insertAtActiveField('%')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold">%</button>
+                      <button type="button" onClick={() => insertAtActiveField('₹')} className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold">₹</button>
+                    </div>
+                  </div>
+                )}
+
+                {ribbonTab === 'insert' && (
+                  <div className="p-2.5 flex flex-wrap items-center gap-3 text-xs">
+                    <div className="flex items-center gap-1.5 border-r border-slate-800 pr-3">
+                      <span className="text-[9px] uppercase font-bold text-blue-400 mr-1">Tables:</span>
+                      <button type="button" onClick={() => insertAtActiveField('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| Val 1 | Val 2 |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] flex items-center gap-1 font-bold">
+                        <Table className="w-3 h-3 text-blue-400" /> Insert Table 2×2
+                      </button>
+                      <button type="button" onClick={() => insertAtActiveField('\n\n| Parameter | Case 1 | Case 2 |\n| --- | --- | --- |\n| Data A | 10 | 20 |\n| Data B | 30 | 40 |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] flex items-center gap-1 font-bold">
+                        <Table className="w-3 h-3 text-blue-400" /> Table 3×3
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 border-r border-slate-800 pr-3">
+                      <span className="text-[9px] uppercase font-bold text-amber-400 mr-1">Illustrations:</span>
+                      <button type="button" onClick={() => insertAtActiveField('\n> **💡 Note / Important Formula:** ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-amber-300 font-bold flex items-center gap-1">
+                        <Shapes className="w-3 h-3" /> Note Box
+                      </button>
+                      <button type="button" onClick={() => insertAtActiveField('[Diagram: Geometry Shape / Chemical Structure Tag]')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-purple-300 font-bold flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3" /> Geometry Tag
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] uppercase font-bold text-rose-400 mr-1">Charts:</span>
+                      <button type="button" onClick={() => insertAtActiveField('\n```\n[Bar Chart Placeholder]\n```\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-slate-300 font-bold flex items-center gap-1">
+                        <BarChart2 className="w-3 h-3 text-emerald-400" /> Bar Chart
+                      </button>
+                      <button type="button" onClick={() => insertAtActiveField(' ↗ (Rising Trend) ')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px] text-emerald-300 font-mono font-bold flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" /> Sparkline ↗
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* VISUAL MATHLIVE INPUT BUILDER */}
+              {/* ========================================================================= */}
+              <div className="p-3.5 bg-emerald-50/70 border-2 border-emerald-300 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    विज़ुअल मैथ कीबोर्ड (Click box below to open visual equation keyboard)
+                  </span>
                   <button
                     type="button"
-                    onClick={() => fileAttachmentRef.current?.click()}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                    disabled={!visualEquation.trim()}
+                    onClick={() => {
+                      if (!visualEquation.trim()) return;
+                      insertAtActiveField(` $${visualEquation}$ `);
+                      setVisualEquation('');
+                    }}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
+                      visualEquation.trim() 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs' 
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
                   >
-                    <UploadCloud className="w-3.5 h-3.5" /> Attach File from Device
+                    + सवाल में जोड़ें (Insert at cursor)
                   </button>
                 </div>
+                <VisualMathInput value={visualEquation} onChange={setVisualEquation} />
+              </div>
 
-                <input
-                  type="text"
-                  placeholder="Paste Abhyaas Google Drive link OR direct image/PDF URL..."
-                  value={qDiagramUrl}
-                  onChange={e => setQDiagramUrl(e.target.value)}
-                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 font-mono"
+              {/* Question Statement En */}
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-700">Question Statement (English)*</label>
+                  <button type="button" onClick={() => setActiveTargetField('statementEn')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${activeTargetField === 'statementEn' ? 'bg-blue-600 text-white' : 'text-blue-600 bg-blue-50'}`}>
+                    {activeTargetField === 'statementEn' ? '● Active Target' : 'Set as Target'}
+                  </button>
+                </div>
+                <textarea
+                  rows={3}
+                  value={qStatementEn}
+                  onFocus={() => setActiveTargetField('statementEn')}
+                  onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }}
+                  placeholder="Enter question statement..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-sans"
+                  required
+                />
+                {qStatementEn.trim() && (
+                  <div className="p-3 bg-white border border-blue-200 rounded-xl">
+                    <p className="text-[10px] font-black text-blue-600 uppercase mb-1">Live English Preview:</p>
+                    <MathRenderer text={qStatementEn} />
+                  </div>
+                )}
+              </div>
+
+              {/* Question Statement Hi */}
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-700">प्रश्न विवरण (हिंदी अनुवाद)</label>
+                  <button type="button" onClick={() => setActiveTargetField('statementHi')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${activeTargetField === 'statementHi' ? 'bg-blue-600 text-white' : 'text-blue-600 bg-blue-50'}`}>
+                    {activeTargetField === 'statementHi' ? '● Active Target' : 'Set as Target'}
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={qStatementHi}
+                  onFocus={() => setActiveTargetField('statementHi')}
+                  onChange={e => setQStatementHi(e.target.value)}
+                  placeholder="हिंदी अनुवाद..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                 />
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
-                <div>
-                  <label className="block text-xs font-black uppercase text-slate-700">
-                    Options (A, B, C, D) & Answer Key*
-                  </label>
-                  <p className="text-[10px] text-slate-400">Options can include text, numbers, or formula symbols.</p>
-                </div>
+              {/* Diagram URL */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
+                <input
+                  type="text"
+                  placeholder="Paste diagram image URL..."
+                  value={qDiagramUrl}
+                  onChange={e => setQDiagramUrl(e.target.value)}
+                  className="w-full h-9 px-3 bg-white border rounded-lg font-mono text-xs outline-none"
+                />
+                <input type="file" accept="image/*" ref={fileAttachmentRef} onChange={handleLocalFileAttachment} className="hidden" />
+                <button type="button" onClick={() => fileAttachmentRef.current?.click()} className="px-3 py-2 bg-slate-900 text-white font-bold rounded-lg shrink-0">
+                  Browse
+                </button>
+              </div>
 
-                {[0, 1, 2, 3].map(i => {
-                  const optDiag = qOptionsDiagrams[i] || '';
-                  const optAtt = parseAttachment(optDiag);
-                  const currentRef = getOptRef(i);
-
-                  return (
-                    <div key={i} className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-xs">
+              {/* Options A - D */}
+              <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border text-xs">
+                <span className="font-bold text-slate-700 block">Options & Answer Key*:</span>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {[0, 1, 2, 3].map(i => (
+                    <div key={i} className="p-2 bg-white border rounded-xl space-y-1">
                       <div className="flex items-center gap-2">
                         <input
                           type="radio"
                           name="correctKey"
                           checked={qCorrectOpt === i}
                           onChange={() => setQCorrectOpt(i)}
-                          className="w-4 h-4 text-blue-600 cursor-pointer"
+                          className="w-4 h-4 text-blue-600"
                         />
-                        <span className="text-xs font-black text-slate-700 w-16">
-                          Opt {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct)' : ''}
-                        </span>
-
+                        <span className="font-black text-slate-700 w-12">Opt {String.fromCharCode(65 + i)}</span>
                         <input
                           type="text"
-                          placeholder={`Option ${String.fromCharCode(65 + i)} English Text`}
+                          placeholder={`Option ${String.fromCharCode(65 + i)}`}
                           value={qOptionsEn[i]}
                           onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }}
-                          className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                          className="flex-1 h-8 px-2 bg-slate-50 border rounded-lg text-xs outline-none"
                           required
                         />
-
-                        <input
-                          type="text"
-                          placeholder={`विकल्प ${String.fromCharCode(65 + i)} हिंदी`}
-                          value={qOptionsHi[i]}
-                          onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }}
-                          className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                        />
                       </div>
-
                       {qOptionsEn[i].trim() && (
-                        <div className="pl-6 flex items-center gap-2 text-xs font-bold text-slate-800">
-                          <span className="text-[10px] text-blue-600 font-black uppercase">Preview:</span>
+                        <div className="pl-6 text-[11px] font-bold text-slate-800">
                           <MathRenderer text={qOptionsEn[i]} />
                         </div>
                       )}
-
-                      <div className="pl-6 flex flex-wrap items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*,.svg"
-                          ref={currentRef}
-                          onChange={(e) => handleOptionDiagramUpload(i, e)}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => currentRef.current?.click()}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg border flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <UploadCloud className="w-3.5 h-3.5 text-blue-600" /> Optional Opt {String.fromCharCode(65 + i)} Diagram
-                        </button>
-
-                        <input
-                          type="text"
-                          placeholder="Or paste image link (optional)..."
-                          value={qOptionsDiagrams[i]}
-                          onChange={e => {
-                            const d = [...qOptionsDiagrams];
-                            d[i] = e.target.value;
-                            setQOptionsDiagrams(d);
-                          }}
-                          className="flex-1 h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none font-mono"
-                        />
-
-                        {optAtt.type === 'IMAGE' && optAtt.directUrl && (
-                          <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                            <img src={optAtt.directUrl} alt="Opt preview" referrerPolicy="no-referrer" className="h-6 w-auto object-contain rounded" />
-                            <span className="text-[9px] font-bold text-blue-700">Preview</span>
-                            <button
-                              type="button"
-                              onClick={() => { const d = [...qOptionsDiagrams]; d[i] = ''; setQOptionsDiagrams(d); }}
-                              className="text-rose-500 hover:text-rose-700 text-xs font-black ml-1 cursor-pointer"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Explanation (English)</label>
-                  <textarea
-                    rows={2}
-                    value={qExplanationEn}
-                    onChange={e => setQExplanationEn(e.target.value)}
-                    placeholder="Solution..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                  />
-                  {qExplanationEn.trim() && (
-                    <div className="mt-1 p-2 bg-white border border-blue-100 rounded-lg text-xs font-semibold text-slate-800">
-                      <MathRenderer text={qExplanationEn} />
-                    </div>
-                  )}
+              {/* Explanations */}
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-700">Detailed Explainer Solution (English)</label>
+                  <button type="button" onClick={() => setActiveTargetField('explanationEn')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${activeTargetField === 'explanationEn' ? 'bg-blue-600 text-white' : 'text-blue-600 bg-blue-50'}`}>
+                    {activeTargetField === 'explanationEn' ? '● Active Target' : 'Set as Target'}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">उत्तर का स्पष्टीकरण (Hindi)</label>
-                  <textarea
-                    rows={2}
-                    value={qExplanationHi}
-                    onChange={e => setQExplanationHi(e.target.value)}
-                    placeholder="विस्तृत व्याख्या..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
-                  />
-                  {qExplanationHi.trim() && (
-                    <div className="mt-1 p-2 bg-white border border-blue-100 rounded-lg text-xs font-semibold text-slate-800">
-                      <MathRenderer text={qExplanationHi} />
-                    </div>
-                  )}
-                </div>
+                <textarea
+                  rows={3}
+                  value={qExplanationEn}
+                  onFocus={() => setActiveTargetField('explanationEn')}
+                  onChange={e => setQExplanationEn(e.target.value)}
+                  placeholder="Step-by-step solution..."
+                  className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none"
+                />
+                {qExplanationEn.trim() && (
+                  <div className="p-2.5 bg-white border rounded-xl">
+                    <MathRenderer text={qExplanationEn} />
+                  </div>
+                )}
               </div>
 
               <button
                 type="submit"
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Check className="w-4 h-4" />
-                {editingQuestionId ? 'Update Question' : 'Save Question to Vault'}
+                <Check className="w-4 h-4" /> Save Question Entry to Database
               </button>
 
             </form>
@@ -2381,299 +2315,37 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 3: EXCEL POWER IMPORTER */}
+      {/* EXCEL BULK IMPORTER MODAL */}
       {isBulkModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-start border-b border-slate-100 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black">
-                    <FileSpreadsheet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">
-                      Excel Power Importer (Default Standard)
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Import hundreds of questions via Excel copy-paste or direct CSV file upload with formula and diagram mapping.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownloadExcelTemplate}
-                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
-                  title="Download standard Excel spreadsheet template"
-                >
-                  <FileDown className="w-4 h-4 text-emerald-700" />
-                  <span>Download Excel Template (.CSV)</span>
-                </button>
-
-                <button onClick={() => setIsBulkModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Excel Power Importer
+              </h3>
+              <button onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-
-            <div className="flex items-center justify-between gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200">
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => setBulkMode('paste')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    bulkMode === 'paste' 
-                      ? 'bg-slate-900 text-white shadow-xs' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  1. Paste Excel Cells (Ctrl + V)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBulkMode('file')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    bulkMode === 'file' 
-                      ? 'bg-slate-900 text-white shadow-xs' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  2. Upload Saved .CSV File
-                </button>
-              </div>
-
-              <span className="text-[11px] text-slate-400 font-bold hidden sm:inline">
-                Supports Columns A to T (LaTeX, GDrive links, A-D keys)
-              </span>
-            </div>
-
-            {bulkMode === 'paste' ? (
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  Select your questions in Excel / Google Sheets ➔ Copy (Ctrl + C) ➔ Paste Below (Ctrl + V):
-                </label>
-                <textarea
-                  rows={7}
-                  value={pasteData}
-                  onChange={e => {
-                    setPasteData(e.target.value);
-                    parseBulkInputText(e.target.value);
-                  }}
-                  placeholder="Paste your copied Excel cells here... Headers will be automatically detected and skipped."
-                  className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono text-xs outline-none focus:border-slate-800 focus:bg-white"
-                />
-              </div>
-            ) : (
-              <div className="p-8 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl text-center space-y-3 bg-slate-50 transition">
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  ref={bulkFileRef}
-                  onChange={handleFileUploadCSV}
-                  className="hidden"
-                />
-                <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center mx-auto text-emerald-600 shadow-xs">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800">
-                    Upload your completed CSV spreadsheet
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    Save your Excel file as CSV (Comma delimited) and select it here.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => bulkFileRef.current?.click()}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-                >
-                  Select CSV File from Computer
-                </button>
-              </div>
-            )}
-
-            {bulkParseError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-bold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{bulkParseError}</span>
-              </div>
-            )}
-
-            {bulkParsedQuestions.length > 0 && (
-              <div className="space-y-3 bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Validation Successful: {bulkParsedQuestions.length} Questions Ready to Import
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-white px-2.5 py-0.5 rounded border border-emerald-200">
-                    All Schema Columns Matched
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto max-h-48 border border-emerald-200 rounded-xl bg-white">
-                  <table className="w-full text-left text-[11px] border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 font-bold">
-                      <tr className="border-b border-slate-200">
-                        <th className="py-2 px-3">#</th>
-                        <th className="py-2 px-3">Destination</th>
-                        <th className="py-2 px-3">Class / Exam</th>
-                        <th className="py-2 px-3">Subject & Topic</th>
-                        <th className="py-2 px-3">Question Preview</th>
-                        <th className="py-2 px-3">Answer Key</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
-                      {bulkParsedQuestions.slice(0, 5).map((pq, idx) => (
-                        <tr key={idx}>
-                          <td className="py-2 px-3 font-bold text-slate-900">{idx + 1}</td>
-                          <td className="py-2 px-3">
-                            <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[9px] font-bold">
-                              {pq.segment}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3">{pq.className} ➔ {pq.examName}</td>
-                          <td className="py-2 px-3">{pq.subjectName} ({pq.topicName})</td>
-                          <td className="py-2 px-3 font-bold text-slate-900 truncate max-w-xs">{pq.questionEn}</td>
-                          <td className="py-2 px-3 font-black text-emerald-700">
-                            Opt {String.fromCharCode(65 + pq.correctOption)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {bulkParsedQuestions.length > 5 && (
-                  <p className="text-[10px] text-slate-500 text-center font-medium">
-                    + Showing first 5 of {bulkParsedQuestions.length} questions. All rows will be imported.
-                  </p>
-                )}
-              </div>
-            )}
-
+            <textarea
+              rows={8}
+              value={pasteData}
+              onChange={e => { setPasteData(e.target.value); parseBulkInputText(e.target.value); }}
+              placeholder="Paste Excel tab-separated rows here..."
+              className="w-full p-3 bg-slate-50 border rounded-2xl font-mono text-xs outline-none"
+            />
+            {bulkParseError && <div className="p-2 bg-rose-50 text-rose-800 text-xs font-bold rounded-lg">{bulkParseError}</div>}
             <button
               type="button"
               disabled={bulkParsedQuestions.length === 0 || isImportingBulk}
               onClick={handleExecuteBulkImport}
-              className={`w-full h-12 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-sm ${
-                bulkParsedQuestions.length > 0 && !isImportingBulk
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              className={`w-full h-11 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${
+                bulkParsedQuestions.length > 0 ? 'bg-emerald-600 text-white cursor-pointer' : 'bg-slate-200 text-slate-400'
               }`}
             >
               {isImportingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-              <span>
-                {isImportingBulk 
-                  ? 'Importing into Database...' 
-                  : bulkParsedQuestions.length > 0 
-                    ? `Confirm & Upload ${bulkParsedQuestions.length} Questions Live` 
-                    : 'Paste or Upload Questions to Begin'}
-              </span>
+              <span>Confirm & Upload {bulkParsedQuestions.length} Questions</span>
             </button>
-
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: AUTO-PUSH PIPELINE */}
-      {isAutoPushModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-emerald-600" />
-                Auto-Push Olympiad ➔ PYQ/Practice
-              </h3>
-              <button onClick={() => setIsAutoPushModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Transfer quarantined Olympiad questions into the Free Practice Bank or official PYQ Archive after a contest.
-            </p>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Examination or Subject:</label>
-                <div className="relative">
-                  <select
-                    value={pushTargetExam}
-                    onChange={e => setPushTargetExam(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Exam or Subject --</option>
-                    {taxonomyList.filter(t => t.level === 'EXAM' || t.level === 'SUBJECT').map(item => (
-                      <option key={item.id} value={item.nameEn}>{item.nameEn} ({item.level})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Transfer Destination:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPushTargetSegment('PRACTICE')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                      pushTargetSegment === 'PRACTICE' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    Free Practice Bank
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPushTargetSegment('PYQ')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                      pushTargetSegment === 'PYQ' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 border-slate-200 text-slate-700'
-                    }`}
-                  >
-                    PYQ Archive
-                  </button>
-                </div>
-              </div>
-
-              {pushTargetSegment === 'PYQ' && (
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Assign PYQ Year:</label>
-                  <input
-                    type="text"
-                    value={pushPyqYear}
-                    onChange={e => setPushPyqYear(e.target.value)}
-                    className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none"
-                    placeholder="e.g. 2026"
-                  />
-                </div>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={async () => {
-                if (!pushTargetExam) return alert("Select an Exam or Subject.");
-                if (!confirm(`Push all Olympiad questions in "${pushTargetExam}" to ${pushTargetSegment}?`)) return;
-                try {
-                  const count = await autoPushOlympiadQuestions(pushTargetExam, pushTargetSegment, pushPyqYear);
-                  alert(`Transferred ${count} questions to ${pushTargetSegment}!`);
-                  loadAllData();
-                  setIsAutoPushModalOpen(false);
-                } catch (err: any) {
-                  alert("Error in auto-push pipeline: " + err.message);
-                }
-              }}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4" /> Execute Transfer Now
-            </button>
-
           </div>
         </div>
       )}
