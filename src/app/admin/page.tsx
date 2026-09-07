@@ -12,7 +12,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
   Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
-  Sigma, Pi, Target
+  Sigma, Pi, Target, ArrowUpDown
 } from 'lucide-react';
 
 import { 
@@ -135,7 +135,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State with Full Manual Taxonomy Control
+  // Olympiad Creation Modal State
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -156,7 +156,6 @@ export default function AbhyaasMasterTower() {
   
   const [newOlySubject, setNewOlySubject] = useState<string>('');
   const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
-
   const [newOlyTopic, setNewOlyTopic] = useState<string>('');
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
@@ -305,7 +304,7 @@ export default function AbhyaasMasterTower() {
   };
 
   // =========================================================================
-  // MASTER INSERTER FOR DROPDOWN TARGET SECTION
+  // MASTER INSERTER FOR EXACT TARGET DROPDOWN SECTION
   // =========================================================================
   const insertIntoTargetField = (textToInsert: string) => {
     if (insertTargetField === 'qStatementEn') setQStatementEn(prev => prev + textToInsert);
@@ -1188,11 +1187,11 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       <div>
-                        <div className="font-bold text-sm text-slate-900 leading-relaxed">
+                        <div className="font-bold text-sm text-slate-900 leading-loose">
                           <MathRenderer text={q.questionEn} />
                         </div>
                         {q.questionHi && (
-                          <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                          <div className="text-xs text-slate-600 mt-1 leading-loose">
                             <MathRenderer text={q.questionHi} />
                           </div>
                         )}
@@ -1272,7 +1271,7 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
-                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-relaxed">
+                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-loose">
                           <strong className="font-black">💡 Solution:</strong>{' '}
                           <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
                         </div>
@@ -2065,7 +2064,7 @@ export default function AbhyaasMasterTower() {
               </div>
 
               {/* ========================================================================= */}
-              {/* MASTER INSERTER TOOLBAR WITH EXACT TARGET DROPDOWN */}
+              {/* MASTER CONTROL BAR WITH EXACT TARGET DROPDOWN & ALIGNMENT CONTROLS */}
               {/* ========================================================================= */}
               <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3 shadow-md">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
@@ -2093,12 +2092,13 @@ export default function AbhyaasMasterTower() {
                   </select>
                 </div>
 
+                {/* Ribbon Tabs */}
                 <div className="flex gap-1 overflow-x-auto pt-1">
                   {[
-                    { id: 'home', label: 'Home' },
-                    { id: 'insert', label: 'Insert' },
-                    { id: 'equations', label: '📐 Equations' },
-                    { id: 'symbols', label: 'Ω Symbols' }
+                    { id: 'home', label: 'Home (Font, Align, Gap)' },
+                    { id: 'insert', label: 'Insert (Tables, Shapes)' },
+                    { id: 'equations', label: '📐 Equations (Presets)' },
+                    { id: 'symbols', label: 'Ω Math Symbols' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -2113,21 +2113,29 @@ export default function AbhyaasMasterTower() {
                   ))}
                 </div>
 
+                {/* Ribbon Tab Content */}
                 <div className="pt-2">
                   {ribbonTab === 'home' && (
-                    <div className="flex flex-wrap gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
                       <button type="button" onClick={() => insertIntoTargetField('**text**')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Bold</button>
                       <button type="button" onClick={() => insertIntoTargetField('*text*')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer">Italic</button>
                       <button type="button" onClick={() => insertIntoTargetField('$X_{2}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
                       <button type="button" onClick={() => insertIntoTargetField('$X^{2}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
                       <button type="button" onClick={() => insertIntoTargetField('$\\frac{a}{b}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
+                      
+                      <span className="text-slate-600">|</span>
+                      {/* Alignment & Spacing Buttons */}
+                      <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="left">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Left"><AlignLeft className="w-3.5 h-3.5"/> Left</button>
+                      <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="center">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Center"><AlignCenter className="w-3.5 h-3.5"/> Center</button>
+                      <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="right">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Right"><AlignRight className="w-3.5 h-3.5"/> Right</button>
+                      <button type="button" onClick={() => insertIntoTargetField('\n\n<br/><br/>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold flex items-center gap-1 cursor-pointer" title="Add Gap / Line Break"><ArrowUpDown className="w-3.5 h-3.5"/> Extra Gap</button>
                     </div>
                   )}
 
                   {ribbonTab === 'insert' && (
                     <div className="flex flex-wrap gap-2 text-xs">
                       <button type="button" onClick={() => insertIntoTargetField('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n> **💡 Note:** ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold cursor-pointer">Note Box</button>
+                      <button type="button" onClick={() => insertIntoTargetField('\n> **💡 Note Box:** ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold cursor-pointer">Note Box</button>
                     </div>
                   )}
 
@@ -2136,7 +2144,7 @@ export default function AbhyaasMasterTower() {
                       {[
                         { label: 'Area of Circle', formula: '$A = \\pi r^2$' },
                         { label: 'Quadratic Formula', formula: '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$' },
-                        { label: 'Pythagorean', formula: '$a^2 + b^2 = c^2$' },
+                        { label: 'Pythagorean Theorem', formula: '$a^2 + b^2 = c^2$' },
                         { label: 'Binomial Theorem', formula: '$(x + a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} a^k$' },
                         { label: 'Fourier Series', formula: '$f(x) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} (a_n \\cos nx + b_n \\sin nx)$' },
                         { label: 'Taylor Expansion', formula: '$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x-a)^n$' },
@@ -2152,7 +2160,7 @@ export default function AbhyaasMasterTower() {
 
                   {ribbonTab === 'symbols' && (
                     <div className="flex flex-wrap gap-1 text-xs font-mono">
-                      {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in'].map((sym, i) => (
+                      {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\omega', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in'].map((sym, i) => (
                         <button key={i} type="button" onClick={() => insertIntoTargetField(` $${sym}$ `)} className="px-2 py-0.5 bg-slate-800 hover:bg-purple-600 rounded text-xs font-bold cursor-pointer">
                           {sym}
                         </button>
@@ -2173,16 +2181,26 @@ export default function AbhyaasMasterTower() {
 
               {/* Question Statement En */}
               <div className="space-y-1 text-xs">
-                <label className="font-bold text-slate-700">Question Statement (English)*</label>
-                <textarea rows={3} value={qStatementEn} onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }} placeholder="Enter English question..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500 font-sans" required />
-                {qStatementEn.trim() && <div className="p-3 bg-white border rounded-xl overflow-x-auto"><MathRenderer text={qStatementEn} /></div>}
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-700">Question Statement (English)*</label>
+                  <button type="button" onClick={() => setInsertTargetField('qStatementEn')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qStatementEn' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                    {insertTargetField === 'qStatementEn' ? '✓ Target Set' : 'Set Target'}
+                  </button>
+                </div>
+                <textarea rows={3} value={qStatementEn} onFocus={() => setInsertTargetField('qStatementEn')} onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }} placeholder="Enter English question..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500 font-sans" required />
+                {qStatementEn.trim() && <div className="p-3 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qStatementEn} /></div>}
               </div>
 
               {/* Question Statement Hi */}
               <div className="space-y-1 text-xs">
-                <label className="font-bold text-slate-700">Question Statement (Hindi)</label>
-                <textarea rows={3} value={qStatementHi} onChange={e => setQStatementHi(e.target.value)} placeholder="हिंदी में प्रश्न..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none font-sans" />
-                {qStatementHi.trim() && <div className="p-3 bg-white border rounded-xl overflow-x-auto"><MathRenderer text={qStatementHi} /></div>}
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-700">Question Statement (Hindi)</label>
+                  <button type="button" onClick={() => setInsertTargetField('qStatementHi')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qStatementHi' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                    {insertTargetField === 'qStatementHi' ? '✓ Target Set' : 'Set Target'}
+                  </button>
+                </div>
+                <textarea rows={3} value={qStatementHi} onFocus={() => setInsertTargetField('qStatementHi')} onChange={e => setQStatementHi(e.target.value)} placeholder="हिंदी में प्रश्न..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none font-sans" />
+                {qStatementHi.trim() && <div className="p-3 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qStatementHi} /></div>}
               </div>
 
               {/* Diagram URL */}
@@ -2206,18 +2224,32 @@ export default function AbhyaasMasterTower() {
                 <div className="space-y-3">
                   {[0, 1, 2, 3].map(i => (
                     <div key={i} className="p-3 bg-white border rounded-2xl space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                        <span className="font-black text-slate-700 w-16">Option {String.fromCharCode(65 + i)}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
+                          <span className="font-black text-slate-700 w-16">Option {String.fromCharCode(65 + i)}</span>
+                        </div>
                       </div>
                       <div className="grid sm:grid-cols-2 gap-2">
                         <div>
-                          <input type="text" value={qOptionsEn[i]} onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }} placeholder={`Option ${String.fromCharCode(65 + i)} (English)`} className="w-full h-9 px-2 bg-slate-50 border rounded-lg text-xs outline-none" required />
-                          {qOptionsEn[i].trim() && <div className="text-[11px] font-bold mt-1 overflow-x-auto"><MathRenderer text={qOptionsEn[i]} /></div>}
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] text-slate-400 font-bold">English</span>
+                            <button type="button" onClick={() => setInsertTargetField(`qOptionsEn${i}`)} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${insertTargetField === `qOptionsEn${i}` ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                              {insertTargetField === `qOptionsEn${i}` ? 'Target' : 'Set Target'}
+                            </button>
+                          </div>
+                          <input type="text" value={qOptionsEn[i]} onFocus={() => setInsertTargetField(`qOptionsEn${i}`)} onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }} placeholder={`Option ${String.fromCharCode(65 + i)} (En)`} className="w-full h-9 px-2 bg-slate-50 border rounded-lg text-xs outline-none" required />
+                          {qOptionsEn[i].trim() && <div className="text-[11px] font-bold mt-1 overflow-x-auto leading-loose"><MathRenderer text={qOptionsEn[i]} /></div>}
                         </div>
                         <div>
-                          <input type="text" value={qOptionsHi[i]} onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }} placeholder={`Option ${String.fromCharCode(65 + i)} (Hindi)`} className="w-full h-9 px-2 bg-slate-50 border rounded-lg text-xs outline-none" />
-                          {qOptionsHi[i].trim() && <div className="text-[11px] font-bold mt-1 overflow-x-auto"><MathRenderer text={qOptionsHi[i]} /></div>}
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] text-slate-400 font-bold">Hindi</span>
+                            <button type="button" onClick={() => setInsertTargetField(`qOptionsHi${i}`)} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${insertTargetField === `qOptionsHi${i}` ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                              {insertTargetField === `qOptionsHi${i}` ? 'Target' : 'Set Target'}
+                            </button>
+                          </div>
+                          <input type="text" value={qOptionsHi[i]} onFocus={() => setInsertTargetField(`qOptionsHi${i}`)} onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }} placeholder={`Option ${String.fromCharCode(65 + i)} (Hi)`} className="w-full h-9 px-2 bg-slate-50 border rounded-lg text-xs outline-none" />
+                          {qOptionsHi[i].trim() && <div className="text-[11px] font-bold mt-1 overflow-x-auto leading-loose"><MathRenderer text={qOptionsHi[i]} /></div>}
                         </div>
                       </div>
                     </div>
@@ -2228,14 +2260,24 @@ export default function AbhyaasMasterTower() {
               {/* Detailed Explanations */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Detailed Explanation (English)</label>
-                  <textarea rows={3} value={qExplanationEn} onChange={e => setQExplanationEn(e.target.value)} placeholder="English solution..." className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none" />
-                  {qExplanationEn.trim() && <div className="p-2 bg-white border rounded-xl overflow-x-auto"><MathRenderer text={qExplanationEn} /></div>}
+                  <div className="flex justify-between items-center">
+                    <label className="font-bold text-slate-700">Detailed Explanation (English)</label>
+                    <button type="button" onClick={() => setInsertTargetField('qExplanationEn')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qExplanationEn' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      {insertTargetField === 'qExplanationEn' ? '✓ Target Set' : 'Set Target'}
+                    </button>
+                  </div>
+                  <textarea rows={3} value={qExplanationEn} onFocus={() => setInsertTargetField('qExplanationEn')} onChange={e => setQExplanationEn(e.target.value)} placeholder="English solution..." className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none" />
+                  {qExplanationEn.trim() && <div className="p-2 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qExplanationEn} /></div>}
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Detailed Explanation (Hindi)</label>
-                  <textarea rows={3} value={qExplanationHi} onChange={e => setQExplanationHi(e.target.value)} placeholder="हिंदी स्पष्टीकरण..." className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none" />
-                  {qExplanationHi.trim() && <div className="p-2 bg-white border rounded-xl overflow-x-auto"><MathRenderer text={qExplanationHi} /></div>}
+                  <div className="flex justify-between items-center">
+                    <label className="font-bold text-slate-700">Detailed Explanation (Hindi)</label>
+                    <button type="button" onClick={() => setInsertTargetField('qExplanationHi')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qExplanationHi' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      {insertTargetField === 'qExplanationHi' ? '✓ Target Set' : 'Set Target'}
+                    </button>
+                  </div>
+                  <textarea rows={3} value={qExplanationHi} onFocus={() => setInsertTargetField('qExplanationHi')} onChange={e => setQExplanationHi(e.target.value)} placeholder="हिंदी स्पष्टीकरण..." className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none" />
+                  {qExplanationHi.trim() && <div className="p-2 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qExplanationHi} /></div>}
                 </div>
               </div>
 
