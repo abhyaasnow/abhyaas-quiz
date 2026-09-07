@@ -135,7 +135,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State
+  // Olympiad Creation Modal State with Full Manual Taxonomy Control
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -156,6 +156,7 @@ export default function AbhyaasMasterTower() {
   
   const [newOlySubject, setNewOlySubject] = useState<string>('');
   const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
+
   const [newOlyTopic, setNewOlyTopic] = useState<string>('');
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
@@ -2064,7 +2065,7 @@ export default function AbhyaasMasterTower() {
               </div>
 
               {/* ========================================================================= */}
-              {/* MASTER CONTROL BAR WITH EXACT TARGET DROPDOWN & ALIGNMENT CONTROLS */}
+              {/* MASTER CONTROL BAR WITH EXACT 12 TARGET OPTIONS & ALIGNMENT TOOLS */}
               {/* ========================================================================= */}
               <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3 shadow-md">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
@@ -2113,7 +2114,7 @@ export default function AbhyaasMasterTower() {
                   ))}
                 </div>
 
-                {/* Ribbon Tab Content */}
+                {/* Ribbon Content */}
                 <div className="pt-2">
                   {ribbonTab === 'home' && (
                     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -2122,13 +2123,13 @@ export default function AbhyaasMasterTower() {
                       <button type="button" onClick={() => insertIntoTargetField('$X_{2}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
                       <button type="button" onClick={() => insertIntoTargetField('$X^{2}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
                       <button type="button" onClick={() => insertIntoTargetField('$\\frac{a}{b}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
-                      
+
                       <span className="text-slate-600">|</span>
-                      {/* Alignment & Spacing Buttons */}
+                      {/* Alignment & Spacing Controls */}
                       <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="left">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Left"><AlignLeft className="w-3.5 h-3.5"/> Left</button>
                       <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="center">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Center"><AlignCenter className="w-3.5 h-3.5"/> Center</button>
                       <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="right">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Right"><AlignRight className="w-3.5 h-3.5"/> Right</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n\n<br/><br/>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold flex items-center gap-1 cursor-pointer" title="Add Gap / Line Break"><ArrowUpDown className="w-3.5 h-3.5"/> Extra Gap</button>
+                      <button type="button" onClick={() => insertIntoTargetField('\n\n<br/><br/>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold flex items-center gap-1 cursor-pointer" title="Add Line Break"><ArrowUpDown className="w-3.5 h-3.5"/> Extra Gap</button>
                     </div>
                   )}
 
@@ -2176,7 +2177,7 @@ export default function AbhyaasMasterTower() {
                   <span>✨ Visual Math Keyboard (Inserts into selected section above)</span>
                   <button type="button" disabled={!visualEquation.trim()} onClick={() => { insertIntoTargetField(` $${visualEquation}$ `); setVisualEquation(''); }} className="px-3 py-1 bg-emerald-600 text-white rounded-lg cursor-pointer">Insert into Selected Section</button>
                 </div>
-                <VisualMathInput value={visualEquation} onChange={setVisualEquation} />
+                <VisualMathInput value={visualEquation} onChange={visualEquation => setVisualEquation(visualEquation)} />
               </div>
 
               {/* Question Statement En */}
@@ -2218,17 +2219,15 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D (English & Hindi) */}
+              {/* Options A - D (English & Hindi) with Target Selector */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
                 <div className="space-y-3">
                   {[0, 1, 2, 3].map(i => (
                     <div key={i} className="p-3 bg-white border rounded-2xl space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                          <span className="font-black text-slate-700 w-16">Option {String.fromCharCode(65 + i)}</span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
+                        <span className="font-black text-slate-700 w-16">Option {String.fromCharCode(65 + i)}</span>
                       </div>
                       <div className="grid sm:grid-cols-2 gap-2">
                         <div>
