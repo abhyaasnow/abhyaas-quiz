@@ -135,7 +135,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State with Full Manual Taxonomy Control
+  // Olympiad Creation Modal State
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -156,7 +156,6 @@ export default function AbhyaasMasterTower() {
   
   const [newOlySubject, setNewOlySubject] = useState<string>('');
   const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
-
   const [newOlyTopic, setNewOlyTopic] = useState<string>('');
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
@@ -1179,7 +1178,7 @@ export default function AbhyaasMasterTower() {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
+                            onClick={() => handleMoveToRecycleBin(q.id)}
                             className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Move to Recycle Bin"
                           >
