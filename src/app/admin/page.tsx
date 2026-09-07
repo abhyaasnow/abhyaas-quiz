@@ -117,9 +117,7 @@ function parseCSVProperly(text: string): string[][] {
   return rows;
 }
 
-// =========================================================================
-// UNIVERSAL COMPONENT WITH EXCEL RIBBON TOOLBAR & MATH KEYS
-// =========================================================================
+// Safe Standalone Component for Question Form Fields with Excel Ribbon
 function RichTextField({
   label,
   value,
@@ -1017,8 +1015,8 @@ export default function AbhyaasMasterTower() {
   const olyAvailableExams = taxonomyList.filter(t => t.level === 'EXAM' && (!olyClassNode || t.parentId === olyClassNode.id));
   const olyExamNode = olyAvailableExams.find(e => e.nameEn === newOlyExam);
   const olyAvailableSubjects = taxonomyList.filter(t => t.level === 'SUBJECT' && (!olyExamNode || t.parentId === olyExamNode.id));
-  const olySubjectNode = olyAvailableSubjects.find(s => s.nameEn === olyExamNode?.id);
-  const olyAvailableTopics = taxonomyList.filter(t => t.level === 'TOPIC');
+  const olySubjectNode = olyAvailableSubjects.find(s => s.nameEn === newOlySubject);
+  const olyAvailableTopics = taxonomyList.filter(t => t.level === 'TOPIC' && (!olySubjectNode || t.parentId === olySubjectNode.id));
 
   const activeQuestions = questionsList.filter(q => !q.isArchived);
   const archivedQuestions = questionsList.filter(q => q.isArchived);
@@ -2012,49 +2010,6 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
-                <div className="space-y-2">
-                  {newOlySyllabus.map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
-                      <div>
-                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
-                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
-                      </div>
-                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid sm:grid-cols-3 gap-2 pt-2">
-                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                </div>
-                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
-              </div>
-
-              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {newOlyRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
-                      <span>• {rule}</span>
-                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
-                    value={newRuleInput}
-                    onChange={e => setNewRuleInput(e.target.value)}
-                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
-                  />
-                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
@@ -2257,8 +2212,20 @@ export default function AbhyaasMasterTower() {
               </div>
 
               {/* UNIVERSAL RICH FIELDS WITH RIBBON */}
-              {renderFieldWithRibbon("Question Statement (English)*", qStatementEn, setQStatementEn, "Enter question statement in English...", 3)}
-              {renderFieldWithRibbon("प्रश्न विवरण (हिंदी अनुवाद)", qStatementHi, setQStatementHi, "हिंदी में प्रश्न दर्ज करें...", 3)}
+              <RichTextField 
+                label="Question Statement (English)*" 
+                value={qStatementEn} 
+                setValue={setQStatementEn} 
+                placeholder="Enter question statement in English..." 
+                rows={3} 
+              />
+              <RichTextField 
+                label="प्रश्न विवरण (हिंदी अनुवाद)" 
+                value={qStatementHi} 
+                setValue={setQStatementHi} 
+                placeholder="हिंदी में प्रश्न दर्ज करें..." 
+                rows={3} 
+              />
 
               {/* Diagram Attachment */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
@@ -2291,15 +2258,29 @@ export default function AbhyaasMasterTower() {
                         />
                         <span className="font-black text-slate-700 w-16">Opt {String.fromCharCode(65 + i)}</span>
                       </div>
-                      {renderFieldWithRibbon(`Option ${String.fromCharCode(65 + i)} (En)`, qOptionsEn[i], (val) => {
-                        const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o);
-                      }, `Option ${String.fromCharCode(65 + i)} text...`, 1)}
+                      <RichTextField 
+                        label={`Option ${String.fromCharCode(65 + i)} (En)`} 
+                        value={qOptionsEn[i]} 
+                        setValue={(val: string) => { 
+                          const o = [...qOptionsEn]; 
+                          o[i] = val; 
+                          setQOptionsEn(o); 
+                        }} 
+                        placeholder={`Option ${String.fromCharCode(65 + i)} text...`} 
+                        rows={1} 
+                      />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {renderFieldWithRibbon("Detailed Explainer Solution (English)", qExplanationEn, setQExplanationEn, "Step-by-step mathematical proof or solution...", 3)}
+              <RichTextField 
+                label="Detailed Explainer Solution (English)" 
+                value={qExplanationEn} 
+                setValue={setQExplanationEn} 
+                placeholder="Step-by-step mathematical proof or solution..." 
+                rows={3} 
+              />
 
               <button
                 type="submit"
