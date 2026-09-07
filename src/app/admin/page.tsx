@@ -305,9 +305,10 @@ export default function AbhyaasMasterTower() {
   };
 
   // =========================================================================
-  // MASTER INSERTER FOR EXACT TARGET DROPDOWN SECTION
+  // MASTER INSERTER FOR EXACT TARGET DROPDOWN SECTION (Supports 1 or 2 args)
   // =========================================================================
-  const insertIntoTargetField = (textToInsert: string) => {
+  const insertIntoTargetField = (prefix: string, suffix: string = '') => {
+    const textToInsert = prefix + suffix;
     if (insertTargetField === 'qStatementEn') setQStatementEn(prev => prev + textToInsert);
     else if (insertTargetField === 'qStatementHi') setQStatementHi(prev => prev + textToInsert);
     else if (insertTargetField === 'qOptionsEn0') { const o = [...qOptionsEn]; o[0] += textToInsert; setQOptionsEn(o); }
@@ -817,7 +818,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  const handleMoveToRecycleBin = async (id: string, text: string) => {
+  const handleMoveToRecycleBin = async (id: string, text?: string) => {
     if (!confirm(`Move question to Recycle Bin?`)) return;
     try {
       await archiveQuestion(id);
@@ -2177,7 +2178,7 @@ export default function AbhyaasMasterTower() {
                   <span>✨ Visual Math Keyboard (Inserts into selected section above)</span>
                   <button type="button" disabled={!visualEquation.trim()} onClick={() => { insertIntoTargetField(` $${visualEquation}$ `); setVisualEquation(''); }} className="px-3 py-1 bg-emerald-600 text-white rounded-lg cursor-pointer">Insert into Selected Section</button>
                 </div>
-                <VisualMathInput value={visualEquation} onChange={visualEquation => setVisualEquation(visualEquation)} />
+                <VisualMathInput value={visualEquation} onChange={setVisualEquation} />
               </div>
 
               {/* Question Statement En */}
@@ -2219,7 +2220,7 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D (English & Hindi) with Target Selector */}
+              {/* Options A - D (English & Hindi) */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
                 <div className="space-y-3">
