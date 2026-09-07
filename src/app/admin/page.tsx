@@ -182,7 +182,7 @@ export default function AbhyaasMasterTower() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
 
-  // Bulk Importer States (Excel-First Upgrade)
+  // Bulk Importer States
   const [bulkMode, setBulkMode] = useState<'paste' | 'file'>('paste');
   const [pasteData, setPasteData] = useState('');
   const [bulkParsedQuestions, setBulkParsedQuestions] = useState<QuestionData[]>([]);
@@ -318,12 +318,10 @@ export default function AbhyaasMasterTower() {
 
     try {
       let rows: string[][] = [];
-      // If it contains tabs, treat as Excel TSV copy-paste
       if (rawText.includes('\t')) {
         const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
         rows = lines.map(line => line.split('\t').map(c => c.trim()));
       } else {
-        // Otherwise parse as standard CSV
         rows = parseCSVProperly(rawText);
       }
 
@@ -333,7 +331,6 @@ export default function AbhyaasMasterTower() {
         const row = rows[i];
         if (row.length < 7) continue;
 
-        // Skip Header Row if detected
         const col0 = (row[0] || '').toLowerCase();
         const col6 = (row[6] || '').toLowerCase();
         if (col0.includes('segment') || col6.includes('question') || col0.includes('class')) {
@@ -346,6 +343,7 @@ export default function AbhyaasMasterTower() {
         const newId = `q-bulk-${Date.now()}-${i}`;
         const correctIndex = parseExcelCorrectOption(row[16]);
 
+        // YAHAN BADLAV KIYA GAYA HAI: formatScientific hata kar raw LaTeX safe rakha gaya hai
         parsed.push({
           id: newId,
           docId: newId,
@@ -359,24 +357,24 @@ export default function AbhyaasMasterTower() {
           class: row[1] || 'Civil Services / Competitive',
           topic: row[4] || 'General Topic',
           pyqYear: row[5] || '',
-          questionEn: formatScientific(row[6] || ''),
-          questionHi: formatScientific(row[7] || row[6] || ''),
+          questionEn: (row[6] || '').trim(),
+          questionHi: (row[7] || row[6] || '').trim(),
           optionsEn: [
-            formatScientific(row[8] || ''),
-            formatScientific(row[9] || ''),
-            formatScientific(row[10] || ''),
-            formatScientific(row[11] || '')
+            (row[8] || '').trim(),
+            (row[9] || '').trim(),
+            (row[10] || '').trim(),
+            (row[11] || '').trim()
           ],
           optionsHi: [
-            formatScientific(row[12] || row[8] || ''),
-            formatScientific(row[13] || row[9] || ''),
-            formatScientific(row[14] || row[10] || ''),
-            formatScientific(row[15] || row[11] || '')
+            (row[12] || row[8] || '').trim(),
+            (row[13] || row[9] || '').trim(),
+            (row[14] || row[10] || '').trim(),
+            (row[15] || row[11] || '').trim()
           ],
           optionsDiagrams: ['', '', '', ''],
           correctOption: correctIndex,
-          explanationEn: formatScientific(row[17] || ''),
-          explanationHi: formatScientific(row[18] || row[17] || ''),
+          explanationEn: (row[17] || '').trim(),
+          explanationHi: (row[18] || row[17] || '').trim(),
           diagramUrl: row[19] || '',
           attachmentType: parseAttachment(row[19] || '').type,
           isArchived: false,
@@ -424,44 +422,22 @@ export default function AbhyaasMasterTower() {
         "PRACTICE",
         "Engineering & Technology (JEE / B.Tech)",
         "IIT JEE (Advanced / Mains)",
-        "Physics & Mechanics",
-        "Rotational Dynamics",
-        "2024",
-        "A solid sphere of mass M and radius R rolls without slipping down an incline of angle θ. Find linear acceleration.",
-        "द्रव्यमान M और त्रिज्या R का एक ठोस गोला कोण θ वाले आनत तल पर बिना फिसले लुढ़कता है। रेखीय त्वरण ज्ञात कीजिए।",
-        "(5/7) g sin θ",
-        "(2/3) g sin θ",
-        "(1/2) g sin θ",
-        "g sin θ",
-        "(5/7) g sin θ",
-        "(2/3) g sin θ",
-        "(1/2) g sin θ",
-        "g sin θ",
-        "A",
-        "Using a = (g sin θ) / (1 + I/MR²). For solid sphere, I = (2/5)MR², so a = (5/7) g sin θ.",
-        "सूत्र a = (g sin θ) / (1 + I/MR²) का प्रयोग करने पर, ठोस गोले के लिए I = (2/5)MR², अतः a = (5/7) g sin θ।",
-        ""
-      ],
-      [
-        "PRACTICE",
-        "Graduate Aptitude (SSC / Banking / CGL)",
-        "SSC CGL & Banking Mains",
-        "Quantitative Aptitude & CSAT",
-        "Profit and Loss",
-        "2024",
-        "A shopkeeper marks goods 25% above CP and gives 10% discount on MP. Find net profit %.",
-        "एक दुकानदार वस्तुओं पर क्रय मूल्य से 25% अधिक अंकित करता है और 10% छूट देता है। शुद्ध लाभ % ज्ञात कीजिए।",
-        "12.5%",
-        "15.0%",
-        "10.0%",
-        "14.5%",
-        "12.5%",
-        "15.0%",
-        "10.0%",
-        "14.5%",
-        "1",
-        "Let CP = 100. MP = 125. SP = 125 * 0.9 = 112.5. Profit % = 12.5%.",
-        "माना CP = 100। MP = 125। SP = 125 * 0.9 = 112.5। लाभ = 12.5%।",
+        "Mathematics & Quantitative Calculus",
+        "Advanced Calculus & Mathematical Physics",
+        "2026",
+        "Evaluate the definite integral: $I = \\int_{0}^{\\pi} \\frac{x \\sin x}{1 + \\cos^2 x} \\, dx$.",
+        "निश्चित समाकल $I = \\int_{0}^{\\pi} \\frac{x \\sin x}{1 + \\cos^2 x} \\, dx$ का मान ज्ञात कीजिए।",
+        "$\\frac{\\pi^2}{2}$",
+        "$\\frac{\\pi^2}{4}$",
+        "$\\frac{\\pi}{4}$",
+        "$\\frac{\\pi^2}{8}$",
+        "$\\frac{\\pi^2}{2}$",
+        "$\\frac{\\pi^2}{4}$",
+        "$\\frac{\\pi}{4}$",
+        "$\\frac{\\pi^2}{8}$",
+        "B",
+        "Applying King's property $\\int_0^a f(x)\\,dx = \\int_0^a f(a-x)\\,dx$: $I = \\frac{\\pi^2}{4}$.",
+        "गुणधर्म का उपयोग करने पर $I = \\frac{\\pi^2}{4}$ प्राप्त होता है।",
         ""
       ]
     ];
@@ -514,7 +490,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Question Bulk Selection Handlers (Tab 1)
   const handleToggleSelectAllQuestions = () => {
     if (selectedQuestionIds.length === filteredActiveQuestions.length) {
       setSelectedQuestionIds([]);
@@ -543,7 +518,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Syllabus handler
   const handleAddSyllabusItem = () => {
     if (!newSubjName.trim()) return alert("Enter Subject Name");
     setNewOlySyllabus(prev => [
@@ -554,7 +528,6 @@ export default function AbhyaasMasterTower() {
     setNewSubjTopics('');
   };
 
-  // Rule handlers
   const handleAddRule = () => {
     if (!newRuleInput.trim()) return;
     setNewOlyRules(prev => [...prev, newRuleInput.trim()]);
@@ -565,7 +538,6 @@ export default function AbhyaasMasterTower() {
     setNewOlyRules(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Olympiad Bulk Selection Handlers
   const handleToggleSelectAllOlys = () => {
     if (selectedOlyIds.length === olympiadsList.length) {
       setSelectedOlyIds([]);
@@ -610,27 +582,6 @@ export default function AbhyaasMasterTower() {
     if (!finalExam) return alert("Please select or enter the Target Examination.");
     if (!finalSubject) return alert("Please select or enter the Target Subject.");
 
-    if (newOlyClass === 'OTHER' && finalClass) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-c`, level: 'CLASS', nameEn: finalClass };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
-    }
-    if (newOlyExam === 'OTHER' && finalExam) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-e`, level: 'EXAM', nameEn: finalExam };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
-    }
-    if (newOlySubject === 'OTHER' && finalSubject) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-s`, level: 'SUBJECT', nameEn: finalSubject };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
-    }
-    if (newOlyTopic === 'OTHER' && finalTopic) {
-      const node: TaxonomyNode = { id: `tax-${Date.now()}-t`, level: 'TOPIC', nameEn: finalTopic };
-      saveTaxonomyNode(node);
-      setTaxonomyList(prev => [node, ...prev]);
-    }
-
     const newOly: OlympiadTournament = {
       id: `oly-${Date.now()}`,
       title: newOlyTitle.trim(),
@@ -661,7 +612,7 @@ export default function AbhyaasMasterTower() {
       setIsOlympiadModalOpen(false);
       setNewOlyTitle('');
       setNewOlyDesc('');
-      alert("🎉 Olympiad Tournament Created! It is now live on the /olympiad frontend.");
+      alert("🎉 Olympiad Tournament Created!");
     } catch (err: any) {
       alert("Error creating tournament: " + err.message);
     }
@@ -669,11 +620,7 @@ export default function AbhyaasMasterTower() {
 
   const handleVivaAction = async (participantId: string, action: 'PASSED' | 'FAILED', candidateName: string) => {
     const grantWon = action === 'PASSED' ? 5000 : 0;
-    const confirmMsg = action === 'PASSED' 
-      ? `Approve Viva for ${candidateName} and allocate ₹${grantWon} Grant?` 
-      : `Disqualify ${candidateName} and cascade grant to next rank?`;
-
-    if (!confirm(confirmMsg)) return;
+    if (!confirm(`Approve Viva for ${candidateName}?`)) return;
 
     try {
       await updateParticipantViva(participantId, action, grantWon);
@@ -751,10 +698,7 @@ export default function AbhyaasMasterTower() {
   const handleLocalFileAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      return alert("File size should be less than 5MB.");
-    }
+    if (file.size > 5 * 1024 * 1024) return alert("File size should be less than 5MB.");
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -868,7 +812,7 @@ export default function AbhyaasMasterTower() {
   };
 
   const handleMoveToRecycleBin = async (id: string, text: string) => {
-    if (!confirm(`Move question "${text.slice(0, 40)}..." to Recycle Bin?`)) return;
+    if (!confirm(`Move question to Recycle Bin?`)) return;
     try {
       await archiveQuestion(id);
       setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
@@ -882,31 +826,31 @@ export default function AbhyaasMasterTower() {
     try {
       await restoreQuestion(id);
       setQuestionsList(prev => prev.map(q => q.id === id ? { ...q, isArchived: false, status: 'ACTIVE' } : q));
-      alert("Question restored back to Active Question Bank!");
+      alert("Question restored!");
     } catch (err: any) {
-      alert("Error restoring question: " + err.message);
+      alert("Error restoring: " + err.message);
     }
   };
 
   const handlePermanentDelete = async (q: QuestionData) => {
-    if (!confirm("🚨 PERMANENT DELETE: Are you absolutely sure? This will be permanently erased from Firestore!")) return;
+    if (!confirm("🚨 PERMANENT DELETE?")) return;
     try {
       await permanentlyDeleteQuestion(q.id, q.altId);
       setQuestionsList(prev => prev.filter(item => item.id !== q.id));
-      alert("Question permanently erased from database!");
+      alert("Deleted permanently!");
     } catch (err: any) {
-      alert("Error deleting from database: " + err.message);
+      alert("Error: " + err.message);
     }
   };
 
   const handleWipeAllRecycleBin = async () => {
-    if (!confirm("🚨 DANGER: Wipe ALL questions currently in the Recycle Bin permanently?")) return;
+    if (!confirm("🚨 Wipe ALL from Recycle Bin?")) return;
     try {
       const count = await wipeAllRecycleBin();
       setQuestionsList(prev => prev.filter(q => !q.isArchived));
-      alert(`Permanently erased ${count} questions from database!`);
+      alert(`Wiped ${count} questions!`);
     } catch (err: any) {
-      alert("Error wiping recycle bin: " + err.message);
+      alert("Error: " + err.message);
     }
   };
 
@@ -1237,6 +1181,7 @@ export default function AbhyaasMasterTower() {
                         </div>
                       </div>
 
+                      {/* Question Text Preview */}
                       <div>
                         <div className="font-bold text-sm text-slate-900 leading-relaxed">
                           <MathRenderer text={q.questionEn} />
@@ -1337,7 +1282,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE (PRESERVED 100%) */}
+        {/* TAB 2: OLYMPIAD ARENA STUDIO & VIVA QUEUE */}
         {/* ========================================================================= */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1522,7 +1467,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: CATEGORY & HIERARCHY TREE (PRESERVED 100%) */}
+        {/* TAB 3: CATEGORY & HIERARCHY TREE */}
         {/* ========================================================================= */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1638,7 +1583,7 @@ export default function AbhyaasMasterTower() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: RECYCLE BIN (PRESERVED 100%) */}
+        {/* TAB 4: RECYCLE BIN */}
         {/* ========================================================================= */}
         {adminTab === 'recycle_bin' && (
           <div className="space-y-6 animate-in fade-in">
@@ -1707,9 +1652,7 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: CREATE CUSTOM OLYMPIAD (PRESERVED 100%) */}
-      {/* ========================================================================= */}
+      {/* MODAL 1: CREATE CUSTOM OLYMPIAD */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -1999,9 +1942,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 2: SINGLE QUESTION STUDIO (PRESERVED 100%) */}
-      {/* ========================================================================= */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -2112,7 +2053,7 @@ export default function AbhyaasMasterTower() {
                   {qExam === 'OTHER' && (
                     <input
                       type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
                     />
                   )}
                 </div>
@@ -2440,9 +2381,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 3: EXCEL POWER IMPORTER (UPGRADED WITH TEMPLATE DOWNLOAD & PREVIEW) */}
-      {/* ========================================================================= */}
+      {/* MODAL 3: EXCEL POWER IMPORTER */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
@@ -2481,7 +2420,6 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
-            {/* Mode Switcher: Direct Copy-Paste vs File Upload */}
             <div className="flex items-center justify-between gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200">
               <div className="flex gap-1">
                 <button
@@ -2513,7 +2451,6 @@ export default function AbhyaasMasterTower() {
               </span>
             </div>
 
-            {/* Input Box based on Mode */}
             {bulkMode === 'paste' ? (
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700">
@@ -2560,7 +2497,6 @@ export default function AbhyaasMasterTower() {
               </div>
             )}
 
-            {/* Parsing Feedback & Validation Preview */}
             {bulkParseError && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-bold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -2580,7 +2516,6 @@ export default function AbhyaasMasterTower() {
                   </span>
                 </div>
 
-                {/* Preview Table of First 3 Rows */}
                 <div className="overflow-x-auto max-h-48 border border-emerald-200 rounded-xl bg-white">
                   <table className="w-full text-left text-[11px] border-collapse">
                     <thead className="bg-slate-100 text-slate-700 font-bold">
@@ -2622,7 +2557,6 @@ export default function AbhyaasMasterTower() {
               </div>
             )}
 
-            {/* Execute Import Button */}
             <button
               type="button"
               disabled={bulkParsedQuestions.length === 0 || isImportingBulk}
@@ -2647,9 +2581,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 4: AUTO-PUSH PIPELINE (PRESERVED 100%) */}
-      {/* ========================================================================= */}
+      {/* MODAL 4: AUTO-PUSH PIPELINE */}
       {isAutoPushModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
@@ -2659,7 +2591,7 @@ export default function AbhyaasMasterTower() {
                 Auto-Push Olympiad ➔ PYQ/Practice
               </h3>
               <button onClick={() => setIsAutoPushModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
