@@ -11,8 +11,9 @@ import {
 
 import { 
   getTaxonomyNodes, getAllQuestions, 
-  TaxonomyNode, QuestionData, formatScientific 
+  TaxonomyNode, QuestionData 
 } from '@/lib/db';
+import MathRenderer from '@/components/MathRenderer';
 
 export default function DynamicPracticeBank() {
   const [mounted, setMounted] = useState(false);
@@ -64,13 +65,12 @@ export default function DynamicPracticeBank() {
     loadLivePracticeData();
   }, []);
 
-  // 1. DYNAMIC SUB-CATEGORIES (Extracted strictly from database Taxonomy + Active Questions)
+  // 1. DYNAMIC SUB-CATEGORIES
   const subCategoryOptions = useMemo(() => {
     if (selectedDimension === 'ALL') return [];
 
     const itemsSet = new Set<string>();
 
-    // From Taxonomy Nodes (Created in Admin Tab 3)
     taxonomy.forEach(node => {
       if (selectedDimension === 'EXAM' && node.level === 'EXAM') itemsSet.add(node.nameEn);
       if (selectedDimension === 'CLASS' && (node.level === 'CLASS' || node.level === 'DOMAIN')) itemsSet.add(node.nameEn);
@@ -78,7 +78,6 @@ export default function DynamicPracticeBank() {
       if (selectedDimension === 'TOPIC' && node.level === 'TOPIC') itemsSet.add(node.nameEn);
     });
 
-    // From Questions Vault (Created in Admin Tab 1)
     questions.forEach(q => {
       if (selectedDimension === 'EXAM' && (q.examName || q.category)) itemsSet.add(q.examName || q.category);
       if (selectedDimension === 'CLASS' && (q.className || q.class)) itemsSet.add(q.className || q.class);
@@ -92,12 +91,10 @@ export default function DynamicPracticeBank() {
   // 2. FILTERED QUESTIONS ENGINE
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
-      // Segment filter
       if (selectedSegment !== 'ALL' && q.segment !== selectedSegment) {
         return false;
       }
 
-      // Dimension & Sub-Category filter
       if (selectedDimension !== 'ALL' && selectedSubCategory !== 'ALL') {
         const target = selectedSubCategory.toLowerCase();
         let matched = false;
@@ -115,7 +112,6 @@ export default function DynamicPracticeBank() {
         if (!matched) return false;
       }
 
-      // Search Query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesStatement = (q.questionEn || '').toLowerCase().includes(query) || (q.questionHi || '').toLowerCase().includes(query);
@@ -208,9 +204,7 @@ export default function DynamicPracticeBank() {
             </div>
           </div>
 
-          {/* ========================================================================= */}
           {/* LEVEL 1: ACADEMIC DIMENSION SELECTOR */}
-          {/* ========================================================================= */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-2">
@@ -262,9 +256,7 @@ export default function DynamicPracticeBank() {
             </div>
           </div>
 
-          {/* ========================================================================= */}
-          {/* LEVEL 2: DYNAMIC SUB-CATEGORIES (PULLED 100% FROM DATABASE) */}
-          {/* ========================================================================= */}
+          {/* LEVEL 2: DYNAMIC SUB-CATEGORIES */}
           {selectedDimension !== 'ALL' && (
             <div className="pt-4 border-t border-slate-100 space-y-3 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
@@ -288,7 +280,7 @@ export default function DynamicPracticeBank() {
 
               {subCategoryOptions.length === 0 ? (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-xs text-slate-400 font-medium">
-                  No {selectedDimension.toLowerCase()} items found in the database. Add questions or entities in Admin to display them here.
+                  No {selectedDimension.toLowerCase()} items found in the database.
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -315,8 +307,8 @@ export default function DynamicPracticeBank() {
                             : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <span>{sub}</span>
-                        {isSelected && <Check className="w-3 h-3" />}
+                        <MathRenderer text={sub} />
+                        {isSelected && <Check className="w-3 h-3 ml-1" />}
                       </button>
                     );
                   })}
@@ -325,9 +317,7 @@ export default function DynamicPracticeBank() {
             </div>
           )}
 
-          {/* ========================================================================= */}
           {/* LEVEL 3: DRILL MODE TOGGLE (PRACTICE VS PYQ) & SEARCH */}
-          {/* ========================================================================= */}
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold w-fit">
               <button
@@ -371,9 +361,7 @@ export default function DynamicPracticeBank() {
         </div>
       </div>
 
-      {/* ========================================================================= */}
       {/* LEVEL 4: STRUCTURED PRACTICE DRILL MODULES */}
-      {/* ========================================================================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
         
         {totalFilteredQuestionsCount === 0 ? (
@@ -400,7 +388,7 @@ export default function DynamicPracticeBank() {
                     </div>
                     <div>
                       <h3 className="font-bold text-base text-slate-900">
-                        {formatScientific(subject)}
+                        <MathRenderer text={subject} />
                       </h3>
                       <p className="text-[11px] text-slate-400 font-medium">
                         {subjectQuestionsCount} Question{subjectQuestionsCount === 1 ? '' : 's'} across {Object.keys(topicGroups).length} Topic{Object.keys(topicGroups).length === 1 ? '' : 's'}
@@ -427,7 +415,7 @@ export default function DynamicPracticeBank() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
                             <h4 className="font-bold text-sm text-slate-900 leading-snug">
-                              {formatScientific(topic)}
+                              <MathRenderer text={topic} />
                             </h4>
                             <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                               Available Questions: <strong className="text-slate-800">{totalCount}</strong>
@@ -439,7 +427,7 @@ export default function DynamicPracticeBank() {
                           </span>
                         </div>
 
-                        {/* Partitioned Test Sets (10 Questions Per Set) */}
+                        {/* Partitioned Test Sets */}
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {Array.from({ length: testCount }).map((_, testIdx) => {
                             const testNum = testIdx + 1;

@@ -12,73 +12,101 @@ interface MathRendererProps {
 export default function MathRenderer({ text = '', className = '' }: MathRendererProps) {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. अगर किसी पुराने डेटा में \le ft टूटा हुआ हो, तो उसे जोड़ें
+  // 1. KaTeX crash karne wale Unicode symbols ko sanitize karein
   let cleanText = text
     .replace(/\\le\s+ft/g, '\\left')
-    .replace(/\\ri\s+ght/g, '\\right');
+    .replace(/\\ri\s+ght/g, '\\right')
+    .replace(/→/g, '\\to ')
+    .replace(/≤/g, '\\le ')
+    .replace(/≥/g, '\\ge ')
+    .replace(/±/g, '\\pm ')
+    .replace(/≠/g, '\\ne ')
+    .replace(/∞/g, '\\infty ');
 
-  // 2. जब सवाल में $ ... $ या $$ ... $$ लगे हों (Standard Math)
-  if (cleanText.includes('$')) {
-    const parts = cleanText.split(/(\$\$[\s\S]*?\$\$|\$[^\$]+?\$)/g);
+  // 2. Normal text ko Markdown (Bold, Italics, Line Breaks) ke sath render karne ka engine
+  const renderTextWithFormatting = (plainStr: string, baseKey: string | number) => {
+    // Newlines (\n) ko preserve karein taaki Enter dabane par lines alag rahein
+    const lines = plainStr.split('\n');
+
     return (
-      <span className={`inline leading-relaxed ${className}`}>
-        {parts.map((part, idx) => {
-          if (!part) return null;
+      <span key={baseKey}>
+        {lines.map((line, lIdx) => {
+          // Bold formatting: **bold**
+          const boldParts = line.split(/(\*\*[^*]+?\*\*)/g);
 
-          if (part.startsWith('$$') && part.endsWith('$$')) {
-            const math = part.slice(2, -2).trim();
-            return (
-              <span key={idx} className="block my-2 text-center overflow-x-auto">
-                <BlockMath math={math} errorColor="#e11d48" />
-              </span>
-            );
-          }
-
-          if (part.startsWith('$') && part.endsWith('$')) {
-            const math = part.slice(1, -1).trim();
-            return (
-              <span key={idx} className="inline-block mx-1.5 align-middle">
-                <InlineMath math={math} errorColor="#e11d48" />
-              </span>
-            );
-          }
-
-          // साधारण टेक्स्ट: स्पेस और शब्दों को बिल्कुल सुरक्षित रखें
-          return <span key={idx}>{part}</span>;
+          return (
+            <React.Fragment key={lIdx}>
+              {boldParts.map((bPart, bIdx) => {
+                if (bPart.startsWith('**') && bPart.endsWith('**')) {
+                  return (
+                    <strong key={bIdx} className="font-extrabold text-slate-950">
+                      {bPart.slice(2, -2)}
+                    </strong>
+                  );
+                }
+                return <span key={bIdx}>{bPart}</span>;
+              })}
+              {/* Har Enter ke bad line break lagayein */}
+              {lIdx < lines.length - 1 && <br />}
+            </React.Fragment>
+          );
         })}
       </span>
     );
+  };
+
+  // 3. Agar string mein $ ya $$ hai (Standard LaTeX Parsing)
+  if (cleanText.includes('$')) {
+    const parts = cleanText.split(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g);
+
+    return (
+      <div className={`leading-[2.2] text-slate-900 ${className}`}>
+        {parts.map((part, idx) => {
+          if (!part) return null;
+
+          // Block Math: $$ ... $$ (UPSC Paper Style Centered Display)
+          if (part.startsWith('$$') && part.endsWith('$$')) {
+            const math = part.slice(2, -2).trim();
+            return (
+              <div key={idx} className="my-3 py-1 overflow-x-auto text-center">
+                <BlockMath math={math} errorColor="#ef4444" />
+              </div>
+            );
+          }
+
+          // Inline Math: $ ... $ (Text ke sath bilkul barabar align)
+          if (part.startsWith('$') && part.endsWith('$')) {
+            const math = part.slice(1, -1).trim();
+            return (
+              <span key={idx} className="inline-block mx-0.5 align-baseline">
+                <InlineMath math={math} errorColor="#ef4444" />
+              </span>
+            );
+          }
+
+          // Plain text with bold and newline support
+          return renderTextWithFormatting(part, idx);
+        })}
+      </div>
+    );
   }
 
-  // 3. अगर $ न हो और पूरा विकल्प केवल एक फॉर्मूला हो (जैसे ऑप्शन्स: \frac{1+\sqrt{29}}{2} या \sqrt{7})
+  // 4. Fallback: Agar kisi purane question mein $ na ho aur poora text ek formula ho
   const trimmed = cleanText.trim();
   const hasMultipleWords = /[\u0900-\u097F]/.test(trimmed) || /[a-zA-Z]{3,}\s+[a-zA-Z]{3,}/.test(trimmed);
 
   if (!hasMultipleWords && trimmed.includes('\\')) {
     return (
-      <span className={`inline-block mx-1 align-middle ${className}`}>
+      <span className={`inline-block mx-0.5 align-baseline ${className}`}>
         <InlineMath math={trimmed} renderError={() => <span>{trimmed}</span>} />
       </span>
     );
   }
 
-  // 4. अगर बिना $ के वाक्य में कोई फॉर्मूला आ जाए, तो सिर्फ फॉर्मूले को पकड़ें, पूरे वाक्य को नहीं
-  const strictTokenRegex = /(\\[a-zA-Z]+(?:\{[^{}]*\}|\[[^\[\]]*\])*(?:_\{\w+\}|\^\w+|_\w+|\^\{\w+\})*)/g;
-  const mixedParts = cleanText.split(strictTokenRegex);
-
+  // 5. Normal text with line breaks
   return (
-    <span className={`inline leading-relaxed ${className}`}>
-      {mixedParts.map((segment, idx) => {
-        if (!segment) return null;
-        if (segment.startsWith('\\')) {
-          return (
-            <span key={idx} className="inline-block mx-1.5 align-middle">
-              <InlineMath math={segment.trim()} renderError={() => <span>{segment}</span>} />
-            </span>
-          );
-        }
-        return <span key={idx}>{segment}</span>;
-      })}
-    </span>
+    <div className={`leading-[2.2] text-slate-900 ${className}`}>
+      {renderTextWithFormatting(cleanText, 'plain-root')}
+    </div>
   );
 }

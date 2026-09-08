@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, Clock, CheckCircle2, XCircle, AlertCircle, 
-  RotateCcw, Sparkles, Languages, Award, Share2, HelpCircle 
+  RotateCcw, Sparkles, Languages, Award, Share2, HelpCircle,
+  FileText, ExternalLink
 } from 'lucide-react';
 
-import { getAllQuestions, QuestionData } from '@/lib/db';
+import { getAllQuestions, QuestionData, parseAttachment } from '@/lib/db';
 import MathRenderer from '@/components/MathRenderer';
 
 export interface QuestionItem {
@@ -16,6 +17,8 @@ export interface QuestionItem {
   category: string;
   subject: string;
   topic: string;
+  segment: string;
+  pyqYear?: string;
   questionEn: string;
   questionHi: string;
   optionsEn: string[];
@@ -31,6 +34,8 @@ function QuizEngine() {
   const categoryParam = searchParams.get('category') || '';
   const subjectParam = searchParams.get('subject') || '';
   const topicParam = searchParams.get('topic') || '';
+  const segmentParam = searchParams.get('segment') || 'ALL';
+  const setParam = parseInt(searchParams.get('set') || '1', 10);
 
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
@@ -45,8 +50,12 @@ function QuizEngine() {
       try {
         const all = await getAllQuestions();
         
-        // Only active questions (exclude recycle bin and quarantined Olympiad)
+        // Active non-archived questions
         let filtered = all.filter(q => q.segment !== 'OLYMPIAD' && !q.isArchived);
+
+        if (segmentParam && segmentParam !== 'ALL') {
+          filtered = filtered.filter(q => q.segment === segmentParam);
+        }
 
         if (categoryParam) {
           const matchExam = filtered.filter(q => 
@@ -74,11 +83,19 @@ function QuizEngine() {
 
         const sourceList = filtered.length > 0 ? filtered : all.filter(q => !q.isArchived);
 
-        const mappedItems: QuestionItem[] = sourceList.map(q => ({
+        // Partition into 10-Question sets if requested
+        const startIndex = (setParam - 1) * 10;
+        const pagedList = sourceList.length > 10 
+          ? sourceList.slice(startIndex, startIndex + 10) 
+          : sourceList;
+
+        const mappedItems: QuestionItem[] = pagedList.map(q => ({
           id: String(q.id),
           category: String(q.examName || q.category || 'General Studies'),
           subject: String(q.subjectName || q.subject || 'General Studies'),
-          topic: String(q.topicName || q.topic || 'General'),
+          topic: String(q.topicName || q.topic || 'General Topic'),
+          segment: String(q.segment || 'PRACTICE'),
+          pyqYear: q.pyqYear || '',
           questionEn: String(q.questionEn || 'Question text missing'),
           questionHi: String(q.questionHi || q.questionEn || ''),
           optionsEn: Array.isArray(q.optionsEn) ? q.optionsEn : ['', '', '', ''],
@@ -90,7 +107,7 @@ function QuizEngine() {
         }));
 
         setQuestions(mappedItems);
-        setTimeLeft(Math.max(mappedItems.length * 60, 300));
+        setTimeLeft(Math.max(mappedItems.length * 90, 300));
       } catch (err) {
         console.error("Failed to load questions:", err);
       } finally {
@@ -99,7 +116,7 @@ function QuizEngine() {
     }
 
     loadTestQuestions();
-  }, [categoryParam, subjectParam, topicParam]);
+  }, [categoryParam, subjectParam, topicParam, segmentParam, setParam]);
 
   useEffect(() => {
     if (isSubmitted || timeLeft <= 0 || loading) return;
@@ -140,8 +157,10 @@ function QuizEngine() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p className="text-slate-600 font-bold text-xs">Preparing Speed Drill...</p>
+        <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p className="text-slate-600 font-bold text-xs uppercase tracking-widest">
+          Synchronizing Assessment Sheet...
+        </p>
       </div>
     );
   }
@@ -165,18 +184,20 @@ function QuizEngine() {
 
   const scoreStats = calculateScore();
   const currentQ = questions[currentIndex];
+  const att = parseAttachment(currentQ.diagramUrl);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-24">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
+      {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/practice" className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900">
+          <Link href="/practice" className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" /> Exit Drill
           </Link>
 
           <div className="text-center hidden sm:block">
-            <p className="text-xs font-black text-slate-900">{categoryParam || currentQ.category}</p>
-            <p className="text-[10px] text-slate-500 font-bold">{subjectParam || currentQ.subject}</p>
+            <p className="text-xs font-black text-slate-900 truncate max-w-xs">{currentQ.subject}</p>
+            <p className="text-[10px] text-slate-500 font-bold truncate max-w-xs">{currentQ.topic}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -199,6 +220,7 @@ function QuizEngine() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 pt-6 space-y-6">
+        {/* Scorecard after submission */}
         {isSubmitted && (
           <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 animate-in fade-in">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
@@ -207,10 +229,12 @@ function QuizEngine() {
                   Drill Completed
                 </span>
                 <h2 className="text-2xl font-black mt-2">Performance Assessment</h2>
-                <p className="text-xs text-slate-400">Civil Services Marking Standard (+2.00 / -0.66)</p>
+                <p className="text-xs text-slate-400">Marking Standard: +2.00 / -0.66</p>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-black text-emerald-400">{scoreStats.marks} <span className="text-xs text-slate-400 font-normal">/ {questions.length * 2}</span></p>
+                <p className="text-3xl font-black text-emerald-400">
+                  {scoreStats.marks} <span className="text-xs text-slate-400 font-normal">/ {questions.length * 2}</span>
+                </p>
                 <p className="text-xs text-slate-400 mt-0.5">Total Score</p>
               </div>
             </div>
@@ -232,7 +256,7 @@ function QuizEngine() {
           </div>
         )}
 
-        {/* Question Numbers Strip */}
+        {/* Question Numbers Navigation Bar */}
         <div className="flex gap-2 overflow-x-auto pb-2">
           {questions.map((_, i) => {
             const isAnswered = selectedAnswers[i] !== undefined;
@@ -261,23 +285,27 @@ function QuizEngine() {
           })}
         </div>
 
-        {/* Question Card */}
+        {/* Main Question Card */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-          
-          {/* Guaranteed Category Header Pill */}
+          {/* Metadata Pill */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
                 {currentQ.category}
               </span>
+              {currentQ.pyqYear && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
+                  PYQ {currentQ.pyqYear}
+                </span>
+              )}
               <span className="text-xs font-bold text-slate-600">
-                {currentQ.subject} {currentQ.topic ? `• ${currentQ.topic}` : ''}
+                {currentQ.subject} • {currentQ.topic}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-xs font-black text-slate-400">
-                Q.{currentIndex + 1} / {questions.length}
+                Q.{currentIndex + 1} of {questions.length}
               </span>
               <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
                 +2.00 / -0.66
@@ -285,25 +313,54 @@ function QuizEngine() {
             </div>
           </div>
 
-          {/* Statement */}
+          {/* Question Statement (Rendered via Universal MathRenderer) */}
           <div className="space-y-2">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+            <div className="text-base sm:text-lg font-bold text-slate-900 leading-[2.2]">
               <MathRenderer text={useHindi && currentQ.questionHi ? currentQ.questionHi : currentQ.questionEn} />
-            </h3>
-            <div className="text-xs text-slate-500 font-medium">
-              <MathRenderer text={useHindi ? currentQ.questionEn : currentQ.questionHi} />
             </div>
+            {((useHindi && currentQ.questionEn) || (!useHindi && currentQ.questionHi)) && (
+              <div className="text-xs text-slate-500 font-medium leading-[2.0] pt-1">
+                <MathRenderer text={useHindi ? currentQ.questionEn : currentQ.questionHi} />
+              </div>
+            )}
           </div>
 
-          {/* Diagram / Map */}
-          {currentQ.diagramUrl && (
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full">
-              <img src={currentQ.diagramUrl} alt="Diagram" className="max-h-64 object-contain rounded-xl" />
+          {/* Diagram, Circuits, Biology Illustrations or Maps */}
+          {att.type !== 'NONE' && (
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
+              {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
+                <img 
+                  src={att.directUrl} 
+                  alt="Question Illustration" 
+                  referrerPolicy="no-referrer"
+                  className="max-h-72 w-auto min-w-[260px] max-w-full object-contain rounded-xl bg-white p-2 border" 
+                />
+              )}
+
+              {(att.type === 'PDF' || (att.type === 'GDRIVE' && att.rawUrl.includes('.pdf'))) && (
+                <div className="flex items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 min-w-[280px]">
+                  <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 font-black">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-xs text-slate-900">Reference Document (.PDF)</p>
+                    <p className="text-[10px] text-slate-400">Click to preview document</p>
+                  </div>
+                  <a 
+                    href={att.previewUrl || att.directUrl} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex items-center gap-1 transition"
+                  >
+                    View PDF <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Options */}
-          <div className="space-y-3">
+          {/* Options A, B, C, D */}
+          <div className="space-y-3 pt-2">
             {[0, 1, 2, 3].map(optIdx => {
               const optText = useHindi && currentQ.optionsHi?.[optIdx] ? currentQ.optionsHi[optIdx] : currentQ.optionsEn[optIdx];
               const optAltText = useHindi ? currentQ.optionsEn?.[optIdx] : currentQ.optionsHi?.[optIdx];
@@ -312,10 +369,10 @@ function QuizEngine() {
 
               let cardStyle = 'bg-white border-slate-200 hover:border-slate-300';
               if (isSubmitted) {
-                if (isCorrectAnswer) cardStyle = 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500 text-emerald-950 font-bold';
+                if (isCorrectAnswer) cardStyle = 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-950 font-bold';
                 else if (isSelected && !isCorrectAnswer) cardStyle = 'bg-rose-50 border-rose-400 text-rose-950 font-bold';
               } else if (isSelected) {
-                cardStyle = 'bg-blue-50 border-blue-600 ring-1 ring-blue-600 text-blue-950 font-bold';
+                cardStyle = 'bg-blue-50 border-blue-600 ring-2 ring-blue-500/20 text-blue-950 font-bold';
               }
 
               return (
@@ -324,23 +381,24 @@ function QuizEngine() {
                   onClick={() => handleSelectOption(currentIndex, optIdx)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${cardStyle}`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3.5">
                     <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
-                      isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                      isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
                       {String.fromCharCode(65 + optIdx)}
                     </span>
                     <div>
-                      <div className="text-sm font-medium">
-                        <MathRenderer text={optText || `Option ${optIdx + 1}`} />
+                      <div className="text-sm font-semibold leading-relaxed">
+                        <MathRenderer text={optText || `Option ${String.fromCharCode(65 + optIdx)}`} />
                       </div>
                       {optAltText && optAltText !== optText && (
-                        <div className="text-[11px] text-slate-400 mt-0.5">
+                        <div className="text-[11px] text-slate-400 mt-0.5 leading-normal">
                           <MathRenderer text={optAltText} />
                         </div>
                       )}
                     </div>
                   </div>
+
                   {isSubmitted && isCorrectAnswer && (
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                   )}
@@ -352,18 +410,18 @@ function QuizEngine() {
             })}
           </div>
 
-          {/* Solution Analysis */}
+          {/* UPSC-Grade Detailed Solution Analysis (Visible after submission) */}
           {isSubmitted && (
-            <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-2 text-xs leading-relaxed animate-in fade-in">
-              <div className="flex items-center gap-1.5 text-blue-950 font-black">
+            <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3 text-xs leading-[2.2] animate-in fade-in">
+              <div className="flex items-center gap-1.5 text-blue-950 font-black text-xs uppercase tracking-wider">
                 <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>विस्तृत समाधान / DETAILED SOLUTION:</span>
+                <span>विस्तृत समाधान / Detailed Solution:</span>
               </div>
-              <div className="text-slate-800 font-medium">
+              <div className="text-slate-900 font-medium">
                 <MathRenderer text={useHindi && currentQ.explanationHi ? currentQ.explanationHi : currentQ.explanationEn} />
               </div>
               {currentQ.explanationHi && currentQ.explanationEn && (
-                <div className="text-slate-500 pt-1 border-t border-blue-200/60">
+                <div className="text-slate-600 pt-2 border-t border-blue-200/60 font-medium">
                   <MathRenderer text={useHindi ? currentQ.explanationEn : currentQ.explanationHi} />
                 </div>
               )}
