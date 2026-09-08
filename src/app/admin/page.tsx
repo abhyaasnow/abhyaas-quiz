@@ -119,11 +119,11 @@ function parseCSVProperly(text: string): string[][] {
 }
 
 // =========================================================================
-// SMART LATEX SANITIZER & MARKDOWN-MATH RENDERER
+// SMART LATEX SANITIZER & BULLETPROOF RE-DOLLARIZER
 // =========================================================================
 function sanitizeLatex(text: string): string {
   if (!text) return '';
-  return text
+  let s = text
     .replace(/→/g, '\\to ')
     .replace(/←/g, '\\leftarrow ')
     .replace(/↔/g, '\\leftrightarrow ')
@@ -134,11 +134,15 @@ function sanitizeLatex(text: string): string {
     .replace(/±/g, '\\pm ')
     .replace(/×/g, '\\times ')
     .replace(/÷/g, '\\div ')
-    .replace(/∞/g, '\\infty ')
-    .replace(/\\\[/g, '$$')
-    .replace(/\\\]/g, '$$')
-    .replace(/\\\(/g, '$')
-    .replace(/\\\)/g, '$');
+    .replace(/∞/g, '\\infty ');
+
+  // If LaTeX commands exist without $, auto-wrap them so they NEVER break
+  if (!s.includes('$')) {
+    if (/(\\lim|\\frac|\\int|\\mathbb|\\to|\\sum|\\sqrt|\\alpha|\\beta|\\theta|\\pi)/.test(s)) {
+      s = `$${s.trim()}$`;
+    }
+  }
+  return s;
 }
 
 function formatMarkdownHtml(str: string): string {
@@ -151,7 +155,6 @@ function formatMarkdownHtml(str: string): string {
     .replace(/&lt;strong&gt;(.*?)&lt;\/strong&gt;/gi, '<strong>$1</strong>')
     .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/gi, '<u>$1</u>')
     .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/gi, '<em>$1</em>')
-    .replace(/&lt;em&gt;(.*?)&lt;\/em&gt;/gi, '<em>$1</em>')
     .replace(/&lt;br\s*\/?&gt;/gi, '<br />')
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-slate-950">$1</strong>')
     .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
@@ -190,7 +193,7 @@ export function FormattedMathText({ text }: { text: string }) {
 }
 
 // =========================================================================
-// UNIVERSAL MATH & LATEX COMPONENT (SELECTION BOLD + LIVE SPLIT VIEW)
+// UNIVERSAL MATH BOX WITH TRUE BOLD AND SPLIT LIVE CONVERSION
 // =========================================================================
 function UniversalMathBox({
   label,
@@ -252,7 +255,6 @@ function UniversalMathBox({
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
             }`}
-            title="Edit and preview formatted equations simultaneously"
           >
             <Columns className="w-3.5 h-3.5" />
             <span>Split View (Live)</span>
@@ -311,16 +313,16 @@ function UniversalMathBox({
           <div className="p-2 text-xs">
             {ribbonTab === 'home' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer" title="Wrap selection in bold"><b>B</b> Bold</button>
-                <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer" title="Wrap selection in italic"><i>I</i> Italic</button>
+                <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer"><b>B</b> Bold</button>
+                <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer"><i>I</i> Italic</button>
                 <button type="button" onClick={() => wrapOrInsert('<u>', '</u>', 'underlined text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded underline cursor-pointer"><u>U</u> Underline</button>
                 <button type="button" onClick={() => wrapOrInsert('$X_{', '}$', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
                 <button type="button" onClick={() => wrapOrInsert('$X^{', '}$', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
                 <button type="button" onClick={() => wrapOrInsert('$\\displaystyle\\frac{', '}{b}$', 'a')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
                 <button type="button" onClick={() => wrapOrInsert('$\\sqrt{', '}$', 'x')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Square Root</button>
                 <span className="text-slate-700">|</span>
-                <button type="button" onClick={() => wrapOrInsert('\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-bold cursor-pointer" title="Insert single line break">↵ New Line</button>
-                <button type="button" onClick={() => wrapOrInsert('\n\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="Insert paragraph space">¶ New Para</button>
+                <button type="button" onClick={() => wrapOrInsert('\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-bold cursor-pointer" title="Single line break">↵ New Line</button>
+                <button type="button" onClick={() => wrapOrInsert('\n\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="New paragraph">¶ New Para</button>
                 <button type="button" onClick={() => wrapOrInsert('\n$$\n', '\n$$\n', 'f(x) = ...')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-bold cursor-pointer">Center Eq</button>
               </div>
             )}
@@ -408,9 +410,7 @@ function UniversalMathBox({
           </div>
           <div>
             <span className="text-[10px] font-black uppercase text-emerald-600 block mb-1">Live Converted Math (Bold & Paragraphs Live):</span>
-            <div 
-              className="w-full p-3 bg-white border border-emerald-300 rounded-xl text-xs text-slate-900 leading-[2.2] overflow-x-auto min-h-[90px] shadow-2xs"
-            >
+            <div className="w-full p-3 bg-white border border-emerald-300 rounded-xl text-xs text-slate-900 leading-[2.2] overflow-x-auto min-h-[90px] shadow-2xs">
               {value.trim() ? <FormattedMathText text={value} /> : <span className="text-slate-400 italic">Formatted math & bold text will render here...</span>}
             </div>
           </div>
@@ -683,24 +683,24 @@ export default function AbhyaasMasterTower() {
           class: row[1] || 'Civil Services / Competitive',
           topic: row[4] || 'General Topic',
           pyqYear: row[5] || '',
-          questionEn: (row[6] || '').trim(),
-          questionHi: (row[7] || row[6] || '').trim(),
+          questionEn: sanitizeLatex((row[6] || '').trim()),
+          questionHi: sanitizeLatex((row[7] || row[6] || '').trim()),
           optionsEn: [
-            (row[8] || '').trim(),
-            (row[9] || '').trim(),
-            (row[10] || '').trim(),
-            (row[11] || '').trim()
+            sanitizeLatex((row[8] || '').trim()),
+            sanitizeLatex((row[9] || '').trim()),
+            sanitizeLatex((row[10] || '').trim()),
+            sanitizeLatex((row[11] || '').trim())
           ],
           optionsHi: [
-            (row[12] || row[8] || '').trim(),
-            (row[13] || row[9] || '').trim(),
-            (row[14] || row[10] || '').trim(),
-            (row[15] || row[11] || '').trim()
+            sanitizeLatex((row[12] || row[8] || '').trim()),
+            sanitizeLatex((row[13] || row[9] || '').trim()),
+            sanitizeLatex((row[14] || row[10] || '').trim()),
+            sanitizeLatex((row[15] || row[11] || '').trim())
           ],
           optionsDiagrams: ['', '', '', ''],
           correctOption: correctIndex,
-          explanationEn: (row[17] || '').trim(),
-          explanationHi: (row[18] || row[17] || '').trim(),
+          explanationEn: sanitizeLatex((row[17] || '').trim()),
+          explanationHi: sanitizeLatex((row[18] || row[17] || '').trim()),
           diagramUrl: row[19] || '',
           attachmentType: parseAttachment(row[19] || '').type,
           isArchived: false,
@@ -1071,6 +1071,7 @@ export default function AbhyaasMasterTower() {
 
     const parsedAtt = parseAttachment(qDiagramUrl);
 
+    // Save with guaranteed LaTeX protection
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
@@ -2098,7 +2099,7 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setNewOlyTopic(e.target.value)}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
-                      <option value="">-- Choose Topic --</option>
+                      <option value="">-- Choose Topic (Optional) --</option>
                       {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
                     </select>
@@ -2369,7 +2370,7 @@ export default function AbhyaasMasterTower() {
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type English question or formula. Press Enter to start new lines/paragraphs..."
+                placeholder="Type English question or formula. Use Enter for new lines..."
                 rows={3}
                 required={true}
               />
@@ -2438,7 +2439,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Detailed Explanations with True Bold & Line Breaks */}
+              {/* Detailed Explanations with Line Breaks Preserved */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <UniversalMathBox
                   label="Detailed Explanation (English)"

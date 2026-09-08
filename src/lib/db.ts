@@ -43,7 +43,7 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
     return {
       type: 'GDRIVE',
       rawUrl: clean,
-      directUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+      directUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`,
       previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
       isDrive: true
     };
@@ -79,67 +79,12 @@ export function parseAttachment(url: string | null | undefined): ParsedAttachmen
   return { type: 'NONE', rawUrl: clean, directUrl: '', isDrive: false };
 }
 
-// ==================== UNIVERSAL SCIENTIFIC & LATEX ENGINE ====================
-const SUB_MAP: Record<string, string> = {
-  '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
-  '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
-  '+': '₊', '-': '₋'
-};
-
-const SUP_MAP: Record<string, string> = {
-  '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
-  '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-  '+': '⁺', '-': '⁻'
-};
-
-const GREEK_LATEX_MAP: Record<string, string> = {
-  '\\sigma': 'σ', '\\pi': 'π', '\\Delta': 'Δ', '\\delta': 'δ',
-  '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\theta': 'θ',
-  '\\lambda': 'λ', '\\mu': 'μ', '\\omega': 'ω', '\\Omega': 'Ω',
-  '\\times': '×', '\\pm': '±', '\\neq': '≠', '\\leq': '≤',
-  '\\le': '≤', '\\geq': '≥', '\\ge': '≥', '\\approx': '≈',
-  '\\infty': '∞', '\\rightarrow': '→', '\\to': '→', '\\rightleftharpoons': '⇌'
-};
-
-const ELEMENTS = "He|Li|Be|Ne|Na|Mg|Al|Si|Cl|Ar|Ca|Sc|Ti|Cr|Mn|Fe|Co|Ni|Cu|Zn|Ga|Ge|As|Se|Br|Kr|Rb|Sr|Zr|Nb|Mo|Tc|Ru|Rh|Pd|Ag|Cd|In|Sn|Sb|Te|Xe|Cs|Ba|La|Ce|Pr|Nd|Pm|Sm|Eu|Gd|Tb|Dy|Ho|Er|Tm|Yb|Lu|Hf|Ta|Re|Os|Ir|Pt|Au|Hg|Tl|Pb|Bi|Po|At|Rn|Fr|Ra|Ac|Th|Pa|Np|Pu|Am|Cm|Bk|Cf|Es|Fm|Md|No|Lr|H|B|C|N|O|F|P|S|K|V|Y|I|W|U";
-
+// ==================== UNIVERSAL SCIENTIFIC & LATEX PRESERVER ====================
 export function formatScientific(text: string): string {
   if (!text || typeof text !== 'string') return text || '';
-
-  let res = text;
-
-  Object.keys(GREEK_LATEX_MAP).forEach(k => {
-    const escaped = k.replace(/\\/g, '\\\\');
-    res = res.replace(new RegExp(escaped, 'g'), GREEK_LATEX_MAP[k]);
-  });
-
-  res = res.replace(/\\text\{([^}]+)\}/g, '$1');
-
-  res = res.replace(/\^\{?([0-9+-]+)\}?/g, (_, digits) => {
-    return digits.split('').map((d: string) => SUP_MAP[d] || d).join('');
-  });
-
-  res = res.replace(/_\{?([0-9+-]+)\}?/g, (_, digits) => {
-    return digits.split('').map((d: string) => SUB_MAP[d] || d).join('');
-  });
-
-  res = res.replace(/\$([^\$]+)\$/g, '$1');
-  res = res.replace(/\$/g, '');
-
-  const formulaRegex = new RegExp(`\\b(?:\\d+)?(?:(?:${ELEMENTS})\\d*)+(?:[+-])?\\b`, 'g');
-  const elemRegex = new RegExp(`(${ELEMENTS})(\\d+)`, 'g');
-
-  res = res.replace(formulaRegex, (token) => {
-    if (!/\d/.test(token)) return token;
-    return token.replace(elemRegex, (_, elem, digits) => {
-      const subDigits = digits.split('').map((d: string) => SUB_MAP[d] || d).join('');
-      return elem + subDigits;
-    });
-  });
-
-  res = res.replace(/->/g, '→').replace(/<->/g, '⇌').replace(/<=/g, '≤').replace(/>=/g, '≥');
-
-  return res;
+  // Unicode arrow '→' crashes KaTeX in math mode, normalize it to standard \to
+  // Dollar ($) signs and LaTeX formulas are preserved 100% intact
+  return text.replace(/→/g, '\\to ');
 }
 
 // ==================== 1. TAXONOMY / HIERARCHY ====================
@@ -297,13 +242,13 @@ export async function createQuestion(q: QuestionData): Promise<void> {
 export async function updateQuestion(id: string, q: Partial<QuestionData>): Promise<void> {
   const docRef = doc(db, 'questions', id);
   const payload: any = { ...q, updatedAt: Timestamp.now() };
-  if (q.questionEn) payload.questionEn = formatScientific(q.questionEn);
-  if (q.questionHi) payload.questionHi = formatScientific(q.questionHi);
+  if (q.questionEn !== undefined) payload.questionEn = formatScientific(q.questionEn);
+  if (q.questionHi !== undefined) payload.questionHi = formatScientific(q.questionHi);
   if (q.optionsEn) payload.optionsEn = q.optionsEn.map(o => formatScientific(o));
   if (q.optionsHi) payload.optionsHi = q.optionsHi.map(o => formatScientific(o));
   if (q.optionsDiagrams) payload.optionsDiagrams = q.optionsDiagrams;
-  if (q.explanationEn) payload.explanationEn = formatScientific(q.explanationEn);
-  if (q.explanationHi) payload.explanationHi = formatScientific(q.explanationHi);
+  if (q.explanationEn !== undefined) payload.explanationEn = formatScientific(q.explanationEn);
+  if (q.explanationHi !== undefined) payload.explanationHi = formatScientific(q.explanationHi);
   if (q.examName) payload.category = q.examName;
   if (q.subjectName) payload.subject = q.subjectName;
 
@@ -413,20 +358,20 @@ export interface OlympiadTournament {
   title: string;
   titleHi?: string;
   descriptionEn?: string;
-  fee: number;                      // Manual Fee input (e.g. 49, 99, 1499, etc.)
-  totalGrantPool: string;           // e.g. "₹25,000"
-  totalSlots: number;               // e.g. 500
-  bookedSlots: number;              // Real-time slots booked
-  durationMinutes: number;          // e.g. 45
-  questionsCount: number;           // e.g. 50
+  fee: number;
+  totalGrantPool: string;
+  totalSlots: number;
+  bookedSlots: number;
+  durationMinutes: number;
+  questionsCount: number;
   targetClass: string;
   targetExam: string;
   targetSubject: string;
   categorySection: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'GRAND' | 'SPECIAL';
   streamType: 'UPSC_PSC' | 'ENGINEERING' | 'MEDICAL' | 'SSC_BANKING' | 'LAW' | 'FOUNDATION' | 'GENERAL';
-  startDateTime: string;            // Exact ISO string e.g., "2026-09-13T10:00"
+  startDateTime: string;
   scheduleText?: string;
-  rules: string[];                  // Editable list of rules
+  rules: string[];
   syllabus: { subject: string; questions: number; topics?: string }[];
   status: OlympiadStatus;
   createdAt: any;
