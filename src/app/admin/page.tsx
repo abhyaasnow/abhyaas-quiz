@@ -12,7 +12,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
   Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
-  Sigma, Pi, Target, ArrowUpDown, RefreshHorizontal
+  Sigma, Pi, Target, ArrowUpDown
 } from 'lucide-react';
 
 import { 
@@ -135,7 +135,6 @@ function UniversalMathBox({
   rows?: number;
   required?: boolean;
 }) {
-  // Mode: 'latex' = editable source code, 'math' = Word/PowerPoint style visual professional equation
   const [viewMode, setViewMode] = useState<'latex' | 'math'>('latex');
   const [ribbonTab, setRibbonTab] = useState<'home' | 'equations' | 'symbols' | 'keyboard'>('home');
   const [visualEquation, setVisualEquation] = useState('');
@@ -914,7 +913,6 @@ export default function AbhyaasMasterTower() {
   const openCreateQuestionModal = () => {
     setEditingQuestionId(null);
     setDuplicateWarning(null);
-    setVisualEquation('');
     setQStatementEn(''); setQStatementHi('');
     setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
     setQOptionsDiagrams(['', '', '', '']);
@@ -926,7 +924,6 @@ export default function AbhyaasMasterTower() {
   const openEditQuestionModal = (q: QuestionData) => {
     setEditingQuestionId(q.id);
     setDuplicateWarning(null);
-    setVisualEquation('');
     setQClass(q.className || q.class || '');
     setQExam(q.examName || q.category || '');
     setQSubject(q.subjectName || q.subject || '');
@@ -1986,6 +1983,300 @@ export default function AbhyaasMasterTower() {
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
                       <option value="">-- Choose Topic --</option>
+                      {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
+                    </select>
+                    {newOlyTopic === 'OTHER' && (
+                      <input
+                        type="text"
+                        placeholder="Type custom topic (e.g. Fundamental Rights, Thermodynamics)"
+                        value={newOlyTopicCustom}
+                        onChange={e => setNewOlyTopicCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Manual Fee (₹)*</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="49"
+                    value={newOlyFee}
+                    onChange={e => setNewOlyFee(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-600"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-400 mt-0.5">Enter 0 for Free Entry</p>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Fellowship Pool*</label>
+                  <input
+                    type="text"
+                    placeholder="₹15,000"
+                    value={newOlyGrantPool}
+                    onChange={e => setNewOlyGrantPool(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Slots Capacity*</label>
+                  <input
+                    type="number"
+                    min="10"
+                    value={newOlySlots}
+                    onChange={e => setNewOlySlots(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Duration (Mins)*</label>
+                  <input
+                    type="number"
+                    value={newOlyDuration}
+                    onChange={e => setNewOlyDuration(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                  Scheduled Date & Start Time (Calendar & Clock 2026–2099)*
+                </label>
+                <input
+                  type="datetime-local"
+                  min="2026-01-01T00:00"
+                  max="2099-12-31T23:59"
+                  value={newOlyDateTime}
+                  onChange={e => setNewOlyDateTime(e.target.value)}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800 cursor-pointer"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Examination Description / Overview</label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe examination standards, syllabus coverage, and learning outcomes..."
+                  value={newOlyDesc}
+                  onChange={e => setNewOlyDesc(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
+                <div className="space-y-2">
+                  {newOlySyllabus.map((s, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
+                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
+                      </div>
+                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2 pt-2">
+                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                </div>
+                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
+              </div>
+
+              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {newOlyRules.map((rule, idx) => (
+                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
+                      <span>• {rule}</span>
+                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
+                    value={newRuleInput}
+                    onChange={e => setNewRuleInput(e.target.value)}
+                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
+                  />
+                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
+              >
+                <Trophy className="w-4 h-4" /> Save & Publish Olympiad Live
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: SINGLE QUESTION STUDIO (WITH UNIVERSAL WORD/EXCEL CONVERTIBLE MATH BOXES) */}
+      {isQuestionModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-slate-900">
+                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Type formulas in LaTeX or Visual Keyboard, then click "LaTeX ➔ Math" to convert just like Word/PowerPoint!
+                </p>
+              </div>
+              <button
+                onClick={() => setIsQuestionModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuestion} className="space-y-5">
+              
+              {duplicateWarning && (
+                <div className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-rose-50 border-rose-300 text-rose-800">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <span>{duplicateWarning}</span>
+                </div>
+              )}
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <label className="block text-xs font-black uppercase text-slate-500">
+                  Target Destination / Vault*
+                </label>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
+                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
+                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
+                  ].map(s => (
+                    <button
+                      type="button"
+                      key={s.id}
+                      onClick={() => setQSegment(s.id as QuestionSegment)}
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                        qSegment === s.id 
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <p className="font-black text-xs">{s.title}</p>
+                      <p className={`text-[10px] mt-0.5 ${qSegment === s.id ? 'text-blue-100' : 'text-slate-400'}`}>
+                        {s.desc}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                {qSegment === 'PYQ' && (
+                  <div className="pt-2 flex items-center gap-3">
+                    <label className="text-xs font-bold text-slate-700">Exam Year (PYQ):</label>
+                    <input
+                      type="text"
+                      value={qPyqYear}
+                      onChange={e => setQPyqYear(e.target.value)}
+                      placeholder="e.g. 2026"
+                      className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold w-32 outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
+                  <div className="relative">
+                    <select
+                      value={qClass}
+                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Class --</option>
+                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qClass === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
+                  <div className="relative">
+                    <select
+                      value={qExam}
+                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Exam --</option>
+                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qExam === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
+                  <div className="relative">
+                    <select
+                      value={qSubject}
+                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Subject --</option>
+                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qSubject === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
+                  <div className="relative">
+                    <select
+                      value={qTopic}
+                      onChange={e => setQTopic(e.target.value)}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Topic --</option>
                       {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
                     </select>
@@ -2000,14 +2291,12 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* ========================================================================= */}
-              {/* UNIVERSAL INPUT FIELDS POWERED BY WORD/EXCEL STYLE LATEX ⇄ MATH BOXES */}
-              {/* ========================================================================= */}
+              {/* UNIVERSAL MATH INPUT FIELDS (POWERED BY WORD/EXCEL STYLE CONVERTIBLE ENGINE) */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Enter English question statement (e.g. Find the limit $\lim_{n \to \infty} \frac{x^n-1}{x^n+1}$)..."
+                placeholder="Type English question or formula (e.g. Find the limit $\lim_{n \to \infty} \frac{x^n - 1}{x^n + 1}$)..."
                 rows={3}
                 required={true}
               />
@@ -2016,7 +2305,7 @@ export default function AbhyaasMasterTower() {
                 label="प्रश्न विवरण (हिंदी अनुवाद)"
                 value={qStatementHi}
                 onChange={setQStatementHi}
-                placeholder="हिंदी में प्रश्न दर्ज करें (जैसे: फलन $f(x)$ के असांतत्य के बिंदु ज्ञात कीजिए)..."
+                placeholder="हिंदी प्रश्न या सूत्र लिखें..."
                 rows={3}
               />
 
@@ -2024,7 +2313,7 @@ export default function AbhyaasMasterTower() {
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
-                  placeholder="Paste diagram image URL or drive link..."
+                  placeholder="Paste diagram image URL or external link..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
                   className="w-full h-9 px-3 bg-white border rounded-lg font-mono text-xs outline-none"
@@ -2035,7 +2324,7 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D (English & Hindi) with Full LaTeX ⇄ Math Support */}
+              {/* Options A - D with Individual Word/PowerPoint LaTeX ⇄ Math Converters */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
                 <div className="space-y-4">
@@ -2059,7 +2348,7 @@ export default function AbhyaasMasterTower() {
                           label={`Option ${String.fromCharCode(65 + i)} (English)`}
                           value={qOptionsEn[i]}
                           onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} English equation or text...`}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} English formula or text...`}
                           rows={1}
                           required={true}
                         />
@@ -2067,7 +2356,7 @@ export default function AbhyaasMasterTower() {
                           label={`Option ${String.fromCharCode(65 + i)} (Hindi)`}
                           value={qOptionsHi[i]}
                           onChange={val => { const o = [...qOptionsHi]; o[i] = val; setQOptionsHi(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi equation or text...`}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi formula or text...`}
                           rows={1}
                         />
                       </div>
@@ -2076,7 +2365,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Detailed Explanations (English & Hindi) with Full LaTeX ⇄ Math Support */}
+              {/* Detailed Explanations with Full Convertible Math Support */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <UniversalMathBox
                   label="Detailed Explanation (English)"
