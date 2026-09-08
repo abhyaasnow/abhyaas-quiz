@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import 'katex/dist/katex.min.css';
 import {
   Plus, Trash2, Edit3, Eye, LogOut, KeyRound,
   Layers, ChevronDown, Check, X,
@@ -118,7 +119,78 @@ function parseCSVProperly(text: string): string[][] {
 }
 
 // =========================================================================
-// UNIVERSAL MATH & LATEX COMPONENT (SELECTION-AWARE BOLD + PRE-WRAP PARAGRAPHS)
+// SMART LATEX SANITIZER & MARKDOWN-MATH RENDERER
+// =========================================================================
+function sanitizeLatex(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/→/g, '\\to ')
+    .replace(/←/g, '\\leftarrow ')
+    .replace(/↔/g, '\\leftrightarrow ')
+    .replace(/⇒/g, '\\implies ')
+    .replace(/≤/g, '\\le ')
+    .replace(/≥/g, '\\ge ')
+    .replace(/≠/g, '\\ne ')
+    .replace(/±/g, '\\pm ')
+    .replace(/×/g, '\\times ')
+    .replace(/÷/g, '\\div ')
+    .replace(/∞/g, '\\infty ')
+    .replace(/\\\[/g, '$$')
+    .replace(/\\\]/g, '$$')
+    .replace(/\\\(/g, '$')
+    .replace(/\\\)/g, '$');
+}
+
+function formatMarkdownHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gi, '<strong>$1</strong>')
+    .replace(/&lt;strong&gt;(.*?)&lt;\/strong&gt;/gi, '<strong>$1</strong>')
+    .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/gi, '<u>$1</u>')
+    .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/gi, '<em>$1</em>')
+    .replace(/&lt;em&gt;(.*?)&lt;\/em&gt;/gi, '<em>$1</em>')
+    .replace(/&lt;br\s*\/?&gt;/gi, '<br />')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-slate-950">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+    .replace(/\n/g, '<br />');
+}
+
+export function FormattedMathText({ text }: { text: string }) {
+  if (!text) return null;
+  const clean = sanitizeLatex(text);
+  const parts = clean.split(/(\$\$[\s\S]*?\$\$|\$[^\$]+?\$)/g);
+
+  return (
+    <span className="leading-[2.2] inline">
+      {parts.map((part, idx) => {
+        if (!part) return null;
+        if (part.startsWith('$$') && part.endsWith('$$')) {
+          return (
+            <span key={idx} className="block my-2 overflow-x-auto">
+              <MathRenderer text={part} />
+            </span>
+          );
+        }
+        if (part.startsWith('$') && part.endsWith('$')) {
+          return (
+            <span key={idx} className="inline-block mx-0.5">
+              <MathRenderer text={part} />
+            </span>
+          );
+        }
+        return (
+          <span key={idx} dangerouslySetInnerHTML={{ __html: formatMarkdownHtml(part) }} />
+        );
+      })}
+    </span>
+  );
+}
+
+// =========================================================================
+// UNIVERSAL MATH & LATEX COMPONENT (SELECTION BOLD + LIVE SPLIT VIEW)
 // =========================================================================
 function UniversalMathBox({
   label,
@@ -140,7 +212,6 @@ function UniversalMathBox({
   const [visualEquation, setVisualEquation] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Selection-Aware Inserter (Wraps highlighted text properly without replacing it with ****)
   const wrapOrInsert = (prefix: string, suffix: string = '', defaultPlaceholder: string = '') => {
     const el = textareaRef.current;
     if (!el) {
@@ -169,7 +240,6 @@ function UniversalMathBox({
 
   return (
     <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-      {/* Header with Title and Mode Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
         <label className="text-xs font-black text-slate-800">{label}</label>
         
@@ -216,12 +286,11 @@ function UniversalMathBox({
         </div>
       </div>
 
-      {/* Ribbon Toolbar Bar */}
       {viewMode !== 'math' && (
         <div className="bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-800 shadow-xs">
           <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto">
             {[
-              { id: 'home', label: 'Home (Font, Powers)' },
+              { id: 'home', label: 'Home (Font, Bold, Gap)' },
               { id: 'equations', label: '📐 Equations (Presets)' },
               { id: 'symbols', label: 'Ω Symbols' },
               { id: 'keyboard', label: '✨ Visual Keyboard' }
@@ -242,17 +311,17 @@ function UniversalMathBox({
           <div className="p-2 text-xs">
             {ribbonTab === 'home' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer" title="Wrap selection in bold">Bold</button>
-                <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer" title="Wrap selection in italic">Italic</button>
-                <button type="button" onClick={() => wrapOrInsert('<u>', '</u>', 'underlined text')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded underline cursor-pointer">Underline</button>
+                <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer" title="Wrap selection in bold"><b>B</b> Bold</button>
+                <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer" title="Wrap selection in italic"><i>I</i> Italic</button>
+                <button type="button" onClick={() => wrapOrInsert('<u>', '</u>', 'underlined text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded underline cursor-pointer"><u>U</u> Underline</button>
                 <button type="button" onClick={() => wrapOrInsert('$X_{', '}$', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
                 <button type="button" onClick={() => wrapOrInsert('$X^{', '}$', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
                 <button type="button" onClick={() => wrapOrInsert('$\\displaystyle\\frac{', '}{b}$', 'a')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
                 <button type="button" onClick={() => wrapOrInsert('$\\sqrt{', '}$', 'x')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Square Root</button>
                 <span className="text-slate-700">|</span>
-                <button type="button" onClick={() => wrapOrInsert('\n', '')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-bold cursor-pointer" title="Insert line break">↵ New Line</button>
-                <button type="button" onClick={() => wrapOrInsert('\n\n', '')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="Insert new paragraph">¶ New Para</button>
-                <button type="button" onClick={() => wrapOrInsert('\n$$\n', '\n$$\n', 'f(x) = ...')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-bold cursor-pointer" title="Center display equation">Center Eq</button>
+                <button type="button" onClick={() => wrapOrInsert('\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-bold cursor-pointer" title="Insert single line break">↵ New Line</button>
+                <button type="button" onClick={() => wrapOrInsert('\n\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="Insert paragraph space">¶ New Para</button>
+                <button type="button" onClick={() => wrapOrInsert('\n$$\n', '\n$$\n', 'f(x) = ...')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-bold cursor-pointer">Center Eq</button>
               </div>
             )}
 
@@ -282,7 +351,7 @@ function UniversalMathBox({
 
             {ribbonTab === 'symbols' && (
               <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
-                {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\omega', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in', '\\notin', '\\subset'].map((sym, i) => (
+                {['\\to', '\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\omega', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\ne', '\\approx', '\\in', '\\notin'].map((sym, i) => (
                   <button
                     key={i}
                     type="button"
@@ -325,7 +394,7 @@ function UniversalMathBox({
       {viewMode === 'split' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <span className="text-[10px] font-black uppercase text-slate-500 block mb-1">Source / Text Input (Press Enter for new line):</span>
+            <span className="text-[10px] font-black uppercase text-slate-500 block mb-1">Source / Input (Press Enter for new line):</span>
             <textarea
               ref={textareaRef}
               rows={rows}
@@ -338,12 +407,11 @@ function UniversalMathBox({
             />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase text-emerald-600 block mb-1">Live Converted Math (Paragraphs & Formulas):</span>
+            <span className="text-[10px] font-black uppercase text-emerald-600 block mb-1">Live Converted Math (Bold & Paragraphs Live):</span>
             <div 
               className="w-full p-3 bg-white border border-emerald-300 rounded-xl text-xs text-slate-900 leading-[2.2] overflow-x-auto min-h-[90px] shadow-2xs"
-              style={{ whiteSpace: 'pre-wrap' }}
             >
-              {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">Live formatted equations will render here...</span>}
+              {value.trim() ? <FormattedMathText text={value} /> : <span className="text-slate-400 italic">Formatted math & bold text will render here...</span>}
             </div>
           </div>
         </div>
@@ -361,7 +429,6 @@ function UniversalMathBox({
           />
         </div>
       ) : (
-        /* Word/PowerPoint Style Converted Visual View (Click to Edit) */
         <div 
           onClick={() => setViewMode('split')}
           className="p-4 bg-white border-2 border-emerald-500 rounded-xl shadow-xs space-y-2 min-h-[90px] overflow-x-auto cursor-pointer group hover:border-blue-500 transition"
@@ -375,11 +442,8 @@ function UniversalMathBox({
               <Edit3 className="w-3 h-3" /> Click anywhere to Edit
             </span>
           </div>
-          <div 
-            className="text-sm font-semibold text-slate-900 leading-[2.4]"
-            style={{ whiteSpace: 'pre-wrap' }}
-          >
-            {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">No content typed yet.</span>}
+          <div className="text-sm font-semibold text-slate-900 leading-[2.4]">
+            {value.trim() ? <FormattedMathText text={value} /> : <span className="text-slate-400 italic">No content typed yet.</span>}
           </div>
         </div>
       )}
@@ -688,7 +752,7 @@ export default function AbhyaasMasterTower() {
         "Advanced Calculus & Mathematical Physics",
         "2026",
         "Evaluate the definite integral: $I = \\int_{0}^{\\pi} \\frac{x \\sin x}{1 + \\cos^2 x} \\, dx$.",
-        "निश्चित समाकल $I = \\int_{0}^{\\pi} \\frac{x \\sin x}{1 + \\cos^2 x} \\, dx$ का मान ज्ञात कीजिए।",
+        "निश्चित समाकल का मान ज्ञात कीजिए।",
         "$\\frac{\\pi^2}{2}$",
         "$\\frac{\\pi^2}{4}$",
         "$\\frac{\\pi}{4}$",
@@ -699,7 +763,7 @@ export default function AbhyaasMasterTower() {
         "$\\frac{\\pi^2}{8}$",
         "B",
         "Applying King's property $\\int_0^a f(x)\\,dx = \\int_0^a f(a-x)\\,dx$: $I = \\frac{\\pi^2}{4}$.",
-        "गुणधर्म का उपयोग करने पर $I = \\frac{\\pi^2}{4}$ प्राप्त होता है।",
+        "गुणधर्म का उपयोग करने पर हल प्राप्त होता है।",
         ""
       ]
     ];
@@ -1020,14 +1084,14 @@ export default function AbhyaasMasterTower() {
       topic: finalTopic || 'General',
       segment: qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
-      questionEn: qStatementEn.trim(),
-      questionHi: qStatementHi.trim() || qStatementEn.trim(),
-      optionsEn: qOptionsEn.map(o => o.trim()),
-      optionsHi: qOptionsHi.map(o => o.trim()),
+      questionEn: sanitizeLatex(qStatementEn.trim()),
+      questionHi: sanitizeLatex(qStatementHi.trim() || qStatementEn.trim()),
+      optionsEn: qOptionsEn.map(o => sanitizeLatex(o.trim())),
+      optionsHi: qOptionsHi.map(o => sanitizeLatex(o.trim())),
       optionsDiagrams: qOptionsDiagrams,
       correctOption: qCorrectOpt,
-      explanationEn: qExplanationEn.trim(),
-      explanationHi: qExplanationHi.trim(),
+      explanationEn: sanitizeLatex(qExplanationEn.trim()),
+      explanationHi: sanitizeLatex(qExplanationHi.trim()),
       diagramUrl: qDiagramUrl.trim(),
       attachmentType: parsedAtt.type,
       isArchived: false,
@@ -1355,7 +1419,7 @@ export default function AbhyaasMasterTower() {
               )}
             </div>
 
-            {/* Questions Stream (Always Rendered through MathRenderer with Pre-wrap) */}
+            {/* Questions Stream (Formatted with true Bold and KaTeX rendering) */}
             <div className="space-y-3">
               {filteredActiveQuestions.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
@@ -1422,16 +1486,12 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       <div>
-                        <div 
-                          className="font-bold text-sm text-slate-900 leading-[2.2] whitespace-pre-wrap"
-                        >
-                          <MathRenderer text={q.questionEn} />
+                        <div className="font-bold text-sm text-slate-900 leading-[2.2]">
+                          <FormattedMathText text={q.questionEn} />
                         </div>
                         {q.questionHi && (
-                          <div 
-                            className="text-xs text-slate-600 mt-1 leading-[2.2] whitespace-pre-wrap"
-                          >
-                            <MathRenderer text={q.questionHi} />
+                          <div className="text-xs text-slate-600 mt-1 leading-[2.2]">
+                            <FormattedMathText text={q.questionHi} />
                           </div>
                         )}
                       </div>
@@ -1489,8 +1549,8 @@ export default function AbhyaasMasterTower() {
                                 }`}>
                                   {String.fromCharCode(65 + i)}
                                 </span>
-                                <div className="truncate leading-loose whitespace-pre-wrap">
-                                  <MathRenderer text={opt} />
+                                <div className="truncate leading-loose">
+                                  <FormattedMathText text={opt} />
                                 </div>
                               </div>
 
@@ -1510,9 +1570,9 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
-                        <div className="p-3.5 bg-blue-50/70 rounded-xl text-xs text-blue-950 border border-blue-100 leading-[2.2] whitespace-pre-wrap">
+                        <div className="p-3.5 bg-blue-50/70 rounded-xl text-xs text-blue-950 border border-blue-100 leading-[2.2]">
                           <strong className="font-black text-blue-900 block mb-1">💡 Solution & Explanation:</strong>
-                          <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
+                          <FormattedMathText text={q.explanationEn || q.explanationHi || ''} />
                         </div>
                       )}
                     </div>
@@ -1878,16 +1938,12 @@ export default function AbhyaasMasterTower() {
                         </button>
                       </div>
                     </div>
-                    <div 
-                      className="text-sm font-bold text-slate-800 line-through opacity-80 whitespace-pre-wrap leading-[2.2]"
-                    >
-                      <MathRenderer text={q.questionEn} />
+                    <div className="text-sm font-bold text-slate-800 line-through opacity-80 leading-[2.2]">
+                      <FormattedMathText text={q.questionEn} />
                     </div>
                     {q.questionHi && (
-                      <div 
-                        className="text-xs text-slate-500 whitespace-pre-wrap leading-[2.2]"
-                      >
-                        <MathRenderer text={q.questionHi} />
+                      <div className="text-xs text-slate-500 leading-[2.2]">
+                        <FormattedMathText text={q.questionHi} />
                       </div>
                     )}
                   </div>
@@ -2156,7 +2212,7 @@ export default function AbhyaasMasterTower() {
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Type equations & paragraphs with full Enter/Space support. Live preview renders on the right.
+                  Equations, true bold text, and paragraphs update simultaneously in Split View.
                 </p>
               </div>
               <button
@@ -2308,12 +2364,12 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* UNIVERSAL INPUT FIELDS WITH PRESERVED LINE BREAKS & SPLIT VIEW */}
+              {/* UNIVERSAL INPUT FIELDS WITH TRUE BOLD & SPLIT VIEW */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type English question or formula. Use Enter for new lines..."
+                placeholder="Type English question or formula. Press Enter to start new lines/paragraphs..."
                 rows={3}
                 required={true}
               />
@@ -2382,7 +2438,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Detailed Explanations with Line Breaks Preserved */}
+              {/* Detailed Explanations with True Bold & Line Breaks */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <UniversalMathBox
                   label="Detailed Explanation (English)"
