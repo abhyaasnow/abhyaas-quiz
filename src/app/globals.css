@@ -71,3 +71,31 @@ body {
 .katex .vlist-t2 {
   min-height: 2.4em !important;
 }
+/* ========================================================================= */
+/* PERMANENT FIX FOR NESTED FRACTIONS & SYMBOL OVERLAPS (PI / X STRIKE FIX)  */
+/* ========================================================================= */
+
+/* Jab koi fraction kisi dusre fraction ke andar ho (Script/ScriptScript style) */
+.katex .scriptstyle .mfrac, 
+.katex .scriptscriptstyle .mfrac {
+  padding: 0.25em 0 !important;
+  margin: 0 0.1em !important;
+}
+
+.katex .scriptstyle .mfrac .frac-line, 
+.katex .scriptscriptstyle .mfrac .frac-line {
+  border-bottom-width: 1.2px !important;
+  margin-top: 0.25em !important;
+  margin-bottom: 0.25em !important;
+}
+
+/* Pi (\pi) ya numerator ke upar wale symbols ko line se safe door rakhna */
+.katex .scriptstyle .mfrac > span > span:first-child,
+.katex .scriptscriptstyle .mfrac > span > span:first-child {
+  padding-bottom: 0.2em !important;
+}
+
+.katex .scriptstyle .mfrac > span > span:last-child,
+.katex .scriptscriptstyle .mfrac > span > span:last-child {
+  padding-top: 0.2em !important;
+}
