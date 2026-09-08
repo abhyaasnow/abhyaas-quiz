@@ -118,7 +118,7 @@ function parseCSVProperly(text: string): string[][] {
 }
 
 // =========================================================================
-// GMAIL-STYLE INLINE IMAGE & RICH CONTENT EDITOR COMPONENT
+// GMAIL-STYLE INLINE IMAGE & RESIZABLE RICH CONTENT EDITOR
 // =========================================================================
 function GmailInlineEditor({
   label,
@@ -133,9 +133,14 @@ function GmailInlineEditor({
   placeholder: string;
   minHeight?: string;
 }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
-  const isInternalChange = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isInternalChange = useRef(false);
+
+  // Selected Image state for Gmail-style bounding box & handles
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+  const [overlayBox, setOverlayBox] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && !isInternalChange.current) {
@@ -145,10 +150,39 @@ function GmailInlineEditor({
     }
   }, [value]);
 
+  const updateOverlay = () => {
+    if (!selectedImg || !containerRef.current || !editorRef.current?.contains(selectedImg)) {
+      setOverlayBox(null);
+      setSelectedImg(null);
+      return;
+    }
+    const cRect = containerRef.current.getBoundingClientRect();
+    const iRect = selectedImg.getBoundingClientRect();
+    setOverlayBox({
+      top: iRect.top - cRect.top,
+      left: iRect.left - cRect.left,
+      width: iRect.width,
+      height: iRect.height
+    });
+  };
+
+  useEffect(() => {
+    updateOverlay();
+    const handleScrollOrResize = () => updateOverlay();
+    window.addEventListener('resize', handleScrollOrResize);
+    const ed = editorRef.current;
+    if (ed) ed.addEventListener('scroll', handleScrollOrResize);
+    return () => {
+      window.removeEventListener('resize', handleScrollOrResize);
+      if (ed) ed.removeEventListener('scroll', handleScrollOrResize);
+    };
+  }, [selectedImg]);
+
   const handleInput = () => {
     if (editorRef.current) {
       isInternalChange.current = true;
       onChange(editorRef.current.innerHTML);
+      updateOverlay();
       setTimeout(() => {
         isInternalChange.current = false;
       }, 0);
@@ -167,7 +201,7 @@ function GmailInlineEditor({
         const reader = new FileReader();
         reader.onload = (loadEvent) => {
           const base64Url = loadEvent.target?.result as string;
-          const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 120px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 3px 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" alt="inline image" />&nbsp;`;
+          const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 140px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 4px 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" alt="inline image" />&nbsp;`;
           document.execCommand('insertHTML', false, imgHtml);
           handleInput();
         };
@@ -177,7 +211,74 @@ function GmailInlineEditor({
     }
   };
 
-  // Upload image from button
+  // Click handler to select image like Gmail
+  const handleContainerClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      setSelectedImg(target as HTMLImageElement);
+    } else if (!target.closest('.gmail-overlay-toolbar')) {
+      setSelectedImg(null);
+      setOverlayBox(null);
+    }
+  };
+
+  // Manual Drag to Resize Handler (Corner Handle)
+  const handleCornerDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!selectedImg) return;
+
+    const startX = e.clientX;
+    const startW = selectedImg.offsetWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startW + deltaX);
+      selectedImg.style.width = `${newWidth}px`;
+      selectedImg.style.height = 'auto';
+      selectedImg.style.maxWidth = '100%';
+      updateOverlay();
+      handleInput();
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  // Quick Preset Actions from Toolbar
+  const applySize = (size: 'small' | 'best_fit' | 'original') => {
+    if (!selectedImg) return;
+    if (size === 'small') {
+      selectedImg.style.width = '180px';
+      selectedImg.style.maxWidth = '100%';
+      selectedImg.style.height = 'auto';
+    } else if (size === 'best_fit') {
+      selectedImg.style.width = '100%';
+      selectedImg.style.maxWidth = '520px';
+      selectedImg.style.height = 'auto';
+    } else if (size === 'original') {
+      selectedImg.style.width = 'auto';
+      selectedImg.style.maxWidth = 'none';
+      selectedImg.style.height = 'auto';
+    }
+    updateOverlay();
+    handleInput();
+  };
+
+  const removeSelectedImage = () => {
+    if (!selectedImg) return;
+    selectedImg.remove();
+    setSelectedImg(null);
+    setOverlayBox(null);
+    handleInput();
+  };
+
+  // Quick upload from file dialog
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -186,7 +287,7 @@ function GmailInlineEditor({
       const base64Url = loadEvent.target?.result as string;
       if (editorRef.current) {
         editorRef.current.focus();
-        const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 120px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 3px 6px; border: 1px solid #cbd5e1; border-radius: 8px;" alt="inline image" />&nbsp;`;
+        const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 140px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 4px 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" alt="inline image" />&nbsp;`;
         document.execCommand('insertHTML', false, imgHtml);
         handleInput();
       }
@@ -202,24 +303,16 @@ function GmailInlineEditor({
     }
   };
 
-  const insertSnippet = (snippet: string) => {
-    if (editorRef.current) {
-      editorRef.current.focus();
-      document.execCommand('insertHTML', false, snippet);
-      handleInput();
-    }
-  };
-
   return (
-    <div className="space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+    <div ref={containerRef} onClick={handleContainerClick} className="relative space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="text-xs font-black text-slate-700">{label}</label>
         <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-          💡 Paste screenshots / formulas directly anywhere inline!
+          💡 Click any pasted image to resize or delete like Gmail
         </span>
       </div>
 
-      {/* Gmail-Style Quick Toolbar */}
+      {/* Editor Formatting Bar */}
       <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 text-white p-1.5 rounded-xl text-xs shadow-xs">
         <button type="button" onClick={() => exec('bold')} className="px-2 py-1 hover:bg-slate-800 rounded font-bold cursor-pointer" title="Bold">B</button>
         <button type="button" onClick={() => exec('italic')} className="px-2 py-1 hover:bg-slate-800 rounded italic cursor-pointer" title="Italic">I</button>
@@ -233,12 +326,9 @@ function GmailInlineEditor({
         <button type="button" onClick={() => fileInputRef.current?.click()} className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold flex items-center gap-1 cursor-pointer text-[11px]" title="Insert Image File">
           <ImageIcon className="w-3.5 h-3.5" /> + Image
         </button>
-        <button type="button" onClick={() => insertSnippet(' 🔲 ')} className="px-2 py-1 hover:bg-slate-800 rounded text-amber-300 cursor-pointer" title="Box">🔲 Box</button>
-        <button type="button" onClick={() => insertSnippet(' ➔ ')} className="px-2 py-1 hover:bg-slate-800 rounded text-emerald-300 cursor-pointer" title="Arrow">➔ Arrow</button>
-        <button type="button" onClick={() => insertSnippet('<br/><hr style="margin: 8px 0; border: none; border-top: 1px solid #cbd5e1;"/><br/>')} className="px-2 py-1 hover:bg-slate-800 rounded text-purple-300 cursor-pointer" title="Divider">── Line</button>
       </div>
 
-      {/* Editable Div Area */}
+      {/* Editable Area */}
       <div
         ref={editorRef}
         contentEditable={true}
@@ -247,6 +337,70 @@ function GmailInlineEditor({
         className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-600 font-sans leading-loose text-slate-900 overflow-y-auto"
         style={{ minHeight, wordBreak: 'break-word' }}
       />
+
+      {/* ========================================================================= */}
+      {/* GMAIL RESIZE OVERLAY & FLOATING ACTION TOOLBAR */}
+      {/* ========================================================================= */}
+      {overlayBox && selectedImg && (
+        <div
+          className="absolute pointer-events-none z-20"
+          style={{
+            top: overlayBox.top,
+            left: overlayBox.left,
+            width: overlayBox.width,
+            height: overlayBox.height
+          }}
+        >
+          {/* Blue Bounding Box */}
+          <div className="w-full h-full border-2 border-blue-600 relative pointer-events-none">
+            {/* 4 Corner Square Handles */}
+            <div className="w-2.5 h-2.5 bg-blue-600 border border-white absolute -top-1.5 -left-1.5 cursor-nwse-resize pointer-events-auto" />
+            <div className="w-2.5 h-2.5 bg-blue-600 border border-white absolute -top-1.5 -right-1.5 cursor-nesw-resize pointer-events-auto" />
+            <div className="w-2.5 h-2.5 bg-blue-600 border border-white absolute -bottom-1.5 -left-1.5 cursor-nesw-resize pointer-events-auto" />
+            {/* Bottom-Right Handle: interactive drag handle */}
+            <div
+              onMouseDown={handleCornerDrag}
+              className="w-3 h-3 bg-blue-600 border border-white absolute -bottom-1.5 -right-1.5 cursor-nwse-resize pointer-events-auto shadow-md"
+              title="Drag to resize"
+            />
+          </div>
+
+          {/* Gmail Floating Action Toolbar: Small | Best fit | Original size | Remove */}
+          <div className="gmail-overlay-toolbar pointer-events-auto absolute left-0 top-full mt-2 bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl rounded-lg px-3 py-1.5 flex items-center gap-2 text-[11px] font-bold text-blue-700 whitespace-nowrap z-30">
+            <button
+              type="button"
+              onClick={() => applySize('small')}
+              className="hover:underline hover:text-blue-900 cursor-pointer"
+            >
+              Small
+            </button>
+            <span className="text-slate-300">|</span>
+            <button
+              type="button"
+              onClick={() => applySize('best_fit')}
+              className="hover:underline hover:text-blue-900 cursor-pointer"
+            >
+              Best fit
+            </button>
+            <span className="text-slate-300">|</span>
+            <button
+              type="button"
+              onClick={() => applySize('original')}
+              className="hover:underline hover:text-blue-900 cursor-pointer"
+            >
+              Original size
+            </button>
+            <span className="text-slate-300">|</span>
+            <button
+              type="button"
+              onClick={removeSelectedImage}
+              className="text-rose-600 hover:underline hover:text-rose-800 cursor-pointer"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -269,7 +423,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State with Full Manual Taxonomy Control
+  // Olympiad Creation Modal State
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -290,7 +444,6 @@ export default function AbhyaasMasterTower() {
   
   const [newOlySubject, setNewOlySubject] = useState<string>('');
   const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
-
   const [newOlyTopic, setNewOlyTopic] = useState<string>('');
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
@@ -2073,7 +2226,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: SINGLE QUESTION STUDIO (GMAIL-STYLE RICH INLINE EDITOR) */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO (GMAIL-STYLE RICH INLINE EDITOR WITH RESIZER) */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
@@ -2083,7 +2236,7 @@ export default function AbhyaasMasterTower() {
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Gmail-Style Visual Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Paste images/equations directly into text flow, resize, and type around seamlessly.</p>
+                <p className="text-xs text-slate-500">Paste images/equations directly into text flow, resize with handles, and type around seamlessly.</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -2234,7 +2387,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* GMAIL-STYLE RICH INLINE FIELDS */}
+              {/* GMAIL-STYLE RESIZABLE INLINE FIELDS */}
               <GmailInlineEditor
                 label="Question Statement (English)*"
                 value={qStatementEn}
