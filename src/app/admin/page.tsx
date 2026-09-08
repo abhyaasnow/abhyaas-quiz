@@ -1298,20 +1298,20 @@ export default function AbhyaasMasterTower() {
 
                       {/* Question Text with HTML/Image Support */}
                       <div>
-                        {q.questionEn.includes('<') ? (
-                          <div dangerouslySetInnerHTML={{ __html: q.questionEn }} className="text-sm font-bold text-slate-900 leading-loose" />
+                        {(q.questionEn || '').includes('<') ? (
+                          <div dangerouslySetInnerHTML={{ __html: q.questionEn || '' }} className="text-sm font-bold text-slate-900 leading-loose" />
                         ) : (
                           <div className="font-bold text-sm text-slate-900 leading-loose">
-                            <MathRenderer text={q.questionEn} />
+                            <MathRenderer text={q.questionEn || ''} />
                           </div>
                         )}
 
                         {q.questionHi && (
-                          q.questionHi.includes('<') ? (
-                            <div dangerouslySetInnerHTML={{ __html: q.questionHi }} className="text-xs text-slate-600 mt-1 leading-loose" />
+                          (q.questionHi || '').includes('<') ? (
+                            <div dangerouslySetInnerHTML={{ __html: q.questionHi || '' }} className="text-xs text-slate-600 mt-1 leading-loose" />
                           ) : (
                             <div className="text-xs text-slate-600 mt-1 leading-loose">
-                              <MathRenderer text={q.questionHi} />
+                              <MathRenderer text={q.questionHi || ''} />
                             </div>
                           )
                         )}
@@ -1371,7 +1371,11 @@ export default function AbhyaasMasterTower() {
                                   {String.fromCharCode(65 + i)}
                                 </span>
                                 <div className="truncate">
-                                  {opt.includes('<') ? <span dangerouslySetInnerHTML={{ __html: opt }} /> : <MathRenderer text={opt} />}
+                                  {(opt || '').includes('<') ? (
+                                    <span dangerouslySetInnerHTML={{ __html: opt || '' }} />
+                                  ) : (
+                                    <MathRenderer text={opt || ''} />
+                                  )}
                                 </div>
                               </div>
 
@@ -1393,8 +1397,8 @@ export default function AbhyaasMasterTower() {
                       {(q.explanationEn || q.explanationHi) && (
                         <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-loose">
                           <strong className="font-black">💡 Solution:</strong>{' '}
-                          {(q.explanationEn || q.explanationHi).includes('<') ? (
-                            <span dangerouslySetInnerHTML={{ __html: q.explanationEn || q.explanationHi }} />
+                          {((q.explanationEn || q.explanationHi) || '').includes('<') ? (
+                            <span dangerouslySetInnerHTML={{ __html: (q.explanationEn || q.explanationHi) || '' }} />
                           ) : (
                             <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
                           )}
@@ -1923,7 +1927,7 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setNewOlyTopic(e.target.value)}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
-                      <option value="">-- Choose Topic --</option>
+                      <option value="">-- Choose Topic (Optional) --</option>
                       {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
                     </select>
