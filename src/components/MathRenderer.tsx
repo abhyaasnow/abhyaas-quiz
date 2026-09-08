@@ -91,11 +91,11 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
     return parts.map((part, pIdx) => {
       if (!part) return null;
 
-      // Block Math ($$...$$) -> Safe Display Box with robust top/bottom margins preventing text overlap
+      // Block Math ($$...$$) -> Safe Display Box with UPSC Spacing
       if (part.startsWith('$$') && part.endsWith('$$')) {
         const math = part.slice(2, -2).trim();
         return (
-          <div key={`${blockKey}-${pIdx}`} className="my-6 py-3 px-2 overflow-x-auto text-center w-full block-math-box">
+          <div key={`${blockKey}-${pIdx}`} className="my-6 py-4 px-2 overflow-x-auto text-center w-full block-math-box">
             <BlockMath math={math} errorColor="#ef4444" />
           </div>
         );
@@ -117,33 +117,40 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
   const lines = cleanText.split('\n');
 
   return (
-    <div className={`font-sans leading-[2.6] text-slate-900 ${className}`}>
-      {/* Universal KaTeX Box Model & Layout Engine */}
+    <div className={`font-sans leading-[2.8] text-slate-900 ${className}`}>
+      {/* UPSC-Grade Precision Fraction & Typography Engine */}
       <style>{`
         .katex-display {
           display: block !important;
-          margin: 1.8rem 0 !important;
-          padding: 0.75rem 0 !important;
+          margin: 2rem 0 !important;
+          padding: 1rem 0 !important;
           overflow-x: auto !important;
           overflow-y: visible !important;
         }
         .katex {
-          font-size: 1.12em !important;
+          font-size: 1.15em !important;
           text-rendering: optimizeLegibility !important;
         }
-        /* Numerator aur Denominator ke beech safe vertical distance */
+        /* -- PERFECT UPSC FRACTION PADDING & NUMERATOR/DENOMINATOR GAP FIX -- */
         .katex .mfrac {
-          padding: 0.2em 0 !important;
+          padding: 0 0.2em !important;
         }
-        .katex .mfrac > span > span {
-          padding-bottom: 0.15em !important;
-          padding-top: 0.15em !important;
+        .katex .mfrac .vlist-t2 {
+          margin-top: 0.15em !important;
+          margin-bottom: 0.15em !important;
+        }
+        .katex .mfrac .vlist-r > span:nth-child(1) {
+          margin-bottom: -0.2em !important;
+        }
+        .katex .mfrac .vlist-r > span:nth-child(3) {
+          margin-top: -0.15em !important;
         }
         .katex .mfrac .frac-line {
           border-bottom-width: 1.4px !important;
           border-color: currentColor !important;
+          min-height: 1.4px !important;
         }
-        /* Powers (exponents) aur limits ke liye extra breathing room */
+        /* Ensures superscripts (powers) have ideal vertical headroom */
         .katex .msupsub {
           text-align: left !important;
         }
@@ -153,13 +160,13 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
         const trimmed = line.trim();
 
         if (!trimmed) {
-          return <div key={lIdx} className="h-3" />;
+          return <div key={lIdx} className="h-4" />;
         }
 
         if (trimmed.startsWith('[center]') && trimmed.endsWith('[/center]')) {
           const inner = trimmed.slice(8, -9);
           return (
-            <div key={lIdx} className="text-center my-3 w-full">
+            <div key={lIdx} className="text-center my-4 w-full">
               {renderBlockContent(inner, lIdx)}
             </div>
           );
@@ -168,7 +175,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
         if (trimmed.startsWith('[right]') && trimmed.endsWith('[/right]')) {
           const inner = trimmed.slice(7, -8);
           return (
-            <div key={lIdx} className="text-right my-2 w-full">
+            <div key={lIdx} className="text-right my-3 w-full">
               {renderBlockContent(inner, lIdx)}
             </div>
           );
@@ -177,7 +184,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
         if (/^([•*-]\s+)/.test(trimmed)) {
           const bulletText = trimmed.replace(/^([•*-]\s+)/, '');
           return (
-            <div key={lIdx} className="flex items-start gap-2.5 my-1.5 pl-2">
+            <div key={lIdx} className="flex items-start gap-2.5 my-2 pl-2">
               <span className="text-blue-600 font-bold select-none text-base leading-tight">•</span>
               <div className="flex-1">
                 {renderBlockContent(bulletText, lIdx)}
@@ -191,7 +198,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
           const stepPrefix = numMatch[1];
           const stepText = trimmed.slice(stepPrefix.length);
           return (
-            <div key={lIdx} className="flex items-start gap-2 my-1.5 pl-1">
+            <div key={lIdx} className="flex items-start gap-2 my-2 pl-1">
               <span className="font-extrabold text-slate-900 select-none text-xs leading-relaxed">{stepPrefix}</span>
               <div className="flex-1">
                 {renderBlockContent(stepText, lIdx)}
@@ -201,7 +208,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
         }
 
         return (
-          <div key={lIdx} className="min-h-[1.6em] my-1">
+          <div key={lIdx} className="min-h-[1.8em] my-1.5">
             {renderBlockContent(line, lIdx)}
           </div>
         );
