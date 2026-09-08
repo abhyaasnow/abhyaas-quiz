@@ -117,6 +117,140 @@ function parseCSVProperly(text: string): string[][] {
   return rows;
 }
 
+// =========================================================================
+// GMAIL-STYLE INLINE IMAGE & RICH CONTENT EDITOR COMPONENT
+// =========================================================================
+function GmailInlineEditor({
+  label,
+  value,
+  onChange,
+  placeholder,
+  minHeight = '90px'
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  minHeight?: string;
+}) {
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const isInternalChange = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editorRef.current && !isInternalChange.current) {
+      if (editorRef.current.innerHTML !== (value || '')) {
+        editorRef.current.innerHTML = value || '';
+      }
+    }
+  }, [value]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      isInternalChange.current = true;
+      onChange(editorRef.current.innerHTML);
+      setTimeout(() => {
+        isInternalChange.current = false;
+      }, 0);
+    }
+  };
+
+  // Direct Clipboard Image Paste (Ctrl + V)
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+          const base64Url = loadEvent.target?.result as string;
+          const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 120px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 3px 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" alt="inline image" />&nbsp;`;
+          document.execCommand('insertHTML', false, imgHtml);
+          handleInput();
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+    }
+  };
+
+  // Upload image from button
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const base64Url = loadEvent.target?.result as string;
+      if (editorRef.current) {
+        editorRef.current.focus();
+        const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 120px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 3px 6px; border: 1px solid #cbd5e1; border-radius: 8px;" alt="inline image" />&nbsp;`;
+        document.execCommand('insertHTML', false, imgHtml);
+        handleInput();
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const exec = (cmd: string, val: string = '') => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand(cmd, false, val);
+      handleInput();
+    }
+  };
+
+  const insertSnippet = (snippet: string) => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand('insertHTML', false, snippet);
+      handleInput();
+    }
+  };
+
+  return (
+    <div className="space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label className="text-xs font-black text-slate-700">{label}</label>
+        <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+          💡 Paste screenshots / formulas directly anywhere inline!
+        </span>
+      </div>
+
+      {/* Gmail-Style Quick Toolbar */}
+      <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 text-white p-1.5 rounded-xl text-xs shadow-xs">
+        <button type="button" onClick={() => exec('bold')} className="px-2 py-1 hover:bg-slate-800 rounded font-bold cursor-pointer" title="Bold">B</button>
+        <button type="button" onClick={() => exec('italic')} className="px-2 py-1 hover:bg-slate-800 rounded italic cursor-pointer" title="Italic">I</button>
+        <button type="button" onClick={() => exec('underline')} className="px-2 py-1 hover:bg-slate-800 rounded underline cursor-pointer" title="Underline">U</button>
+        <span className="text-slate-700">|</span>
+        <button type="button" onClick={() => exec('justifyLeft')} className="px-2 py-1 hover:bg-slate-800 rounded text-slate-300 cursor-pointer" title="Align Left">Left</button>
+        <button type="button" onClick={() => exec('justifyCenter')} className="px-2 py-1 hover:bg-slate-800 rounded text-slate-300 cursor-pointer" title="Align Center">Center</button>
+        <button type="button" onClick={() => exec('justifyRight')} className="px-2 py-1 hover:bg-slate-800 rounded text-slate-300 cursor-pointer" title="Align Right">Right</button>
+        <span className="text-slate-700">|</span>
+        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
+        <button type="button" onClick={() => fileInputRef.current?.click()} className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold flex items-center gap-1 cursor-pointer text-[11px]" title="Insert Image File">
+          <ImageIcon className="w-3.5 h-3.5" /> + Image
+        </button>
+        <button type="button" onClick={() => insertSnippet(' 🔲 ')} className="px-2 py-1 hover:bg-slate-800 rounded text-amber-300 cursor-pointer" title="Box">🔲 Box</button>
+        <button type="button" onClick={() => insertSnippet(' ➔ ')} className="px-2 py-1 hover:bg-slate-800 rounded text-emerald-300 cursor-pointer" title="Arrow">➔ Arrow</button>
+        <button type="button" onClick={() => insertSnippet('<br/><hr style="margin: 8px 0; border: none; border-top: 1px solid #cbd5e1;"/><br/>')} className="px-2 py-1 hover:bg-slate-800 rounded text-purple-300 cursor-pointer" title="Divider">── Line</button>
+      </div>
+
+      {/* Editable Div Area */}
+      <div
+        ref={editorRef}
+        contentEditable={true}
+        onInput={handleInput}
+        onPaste={handlePaste}
+        className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-600 font-sans leading-loose text-slate-900 overflow-y-auto"
+        style={{ minHeight, wordBreak: 'break-word' }}
+      />
+    </div>
+  );
+}
+
 export default function AbhyaasMasterTower() {
   const [mounted, setMounted] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null);
@@ -135,7 +269,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State
+  // Olympiad Creation Modal State with Full Manual Taxonomy Control
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -156,6 +290,7 @@ export default function AbhyaasMasterTower() {
   
   const [newOlySubject, setNewOlySubject] = useState<string>('');
   const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
+
   const [newOlyTopic, setNewOlyTopic] = useState<string>('');
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
@@ -184,11 +319,6 @@ export default function AbhyaasMasterTower() {
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
-
-  // Master Target Dropdown & Ribbon Tabs for Question Studio
-  const [insertTargetField, setInsertTargetField] = useState<string>('qStatementEn');
-  const [ribbonTab, setRibbonTab] = useState<'home' | 'insert' | 'equations' | 'symbols'>('home');
-  const [visualEquation, setVisualEquation] = useState('');
 
   // Bulk Importer States
   const [bulkMode, setBulkMode] = useState<'paste' | 'file'>('paste');
@@ -301,25 +431,6 @@ export default function AbhyaasMasterTower() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('abhyaas_admin_auth');
-  };
-
-  // =========================================================================
-  // MASTER INSERTER FOR EXACT TARGET DROPDOWN SECTION (Supports 1 or 2 args)
-  // =========================================================================
-  const insertIntoTargetField = (prefix: string, suffix: string = '') => {
-    const textToInsert = prefix + suffix;
-    if (insertTargetField === 'qStatementEn') setQStatementEn(prev => prev + textToInsert);
-    else if (insertTargetField === 'qStatementHi') setQStatementHi(prev => prev + textToInsert);
-    else if (insertTargetField === 'qOptionsEn0') { const o = [...qOptionsEn]; o[0] += textToInsert; setQOptionsEn(o); }
-    else if (insertTargetField === 'qOptionsEn1') { const o = [...qOptionsEn]; o[1] += textToInsert; setQOptionsEn(o); }
-    else if (insertTargetField === 'qOptionsEn2') { const o = [...qOptionsEn]; o[2] += textToInsert; setQOptionsEn(o); }
-    else if (insertTargetField === 'qOptionsEn3') { const o = [...qOptionsEn]; o[3] += textToInsert; setQOptionsEn(o); }
-    else if (insertTargetField === 'qOptionsHi0') { const o = [...qOptionsHi]; o[0] += textToInsert; setQOptionsHi(o); }
-    else if (insertTargetField === 'qOptionsHi1') { const o = [...qOptionsHi]; o[1] += textToInsert; setQOptionsHi(o); }
-    else if (insertTargetField === 'qOptionsHi2') { const o = [...qOptionsHi]; o[2] += textToInsert; setQOptionsHi(o); }
-    else if (insertTargetField === 'qOptionsHi3') { const o = [...qOptionsHi]; o[3] += textToInsert; setQOptionsHi(o); }
-    else if (insertTargetField === 'qExplanationEn') setQExplanationEn(prev => prev + textToInsert);
-    else if (insertTargetField === 'qExplanationHi') setQExplanationHi(prev => prev + textToInsert);
   };
 
   // =========================================================================
@@ -729,7 +840,6 @@ export default function AbhyaasMasterTower() {
   const openCreateQuestionModal = () => {
     setEditingQuestionId(null);
     setDuplicateWarning(null);
-    setVisualEquation('');
     setQStatementEn(''); setQStatementHi('');
     setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
     setQOptionsDiagrams(['', '', '', '']);
@@ -741,7 +851,6 @@ export default function AbhyaasMasterTower() {
   const openEditQuestionModal = (q: QuestionData) => {
     setEditingQuestionId(q.id);
     setDuplicateWarning(null);
-    setVisualEquation('');
     setQClass(q.className || q.class || '');
     setQExam(q.examName || q.category || '');
     setQSubject(q.subjectName || q.subject || '');
@@ -1178,7 +1287,7 @@ export default function AbhyaasMasterTower() {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleMoveToRecycleBin(q.id)}
+                            onClick={() => handleMoveToRecycleBin(q.id, q.questionEn)}
                             className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Move to Recycle Bin"
                           >
@@ -1187,14 +1296,24 @@ export default function AbhyaasMasterTower() {
                         </div>
                       </div>
 
+                      {/* Question Text with HTML/Image Support */}
                       <div>
-                        <div className="font-bold text-sm text-slate-900 leading-loose">
-                          <MathRenderer text={q.questionEn} />
-                        </div>
-                        {q.questionHi && (
-                          <div className="text-xs text-slate-600 mt-1 leading-loose">
-                            <MathRenderer text={q.questionHi} />
+                        {q.questionEn.includes('<') ? (
+                          <div dangerouslySetInnerHTML={{ __html: q.questionEn }} className="text-sm font-bold text-slate-900 leading-loose" />
+                        ) : (
+                          <div className="font-bold text-sm text-slate-900 leading-loose">
+                            <MathRenderer text={q.questionEn} />
                           </div>
+                        )}
+
+                        {q.questionHi && (
+                          q.questionHi.includes('<') ? (
+                            <div dangerouslySetInnerHTML={{ __html: q.questionHi }} className="text-xs text-slate-600 mt-1 leading-loose" />
+                          ) : (
+                            <div className="text-xs text-slate-600 mt-1 leading-loose">
+                              <MathRenderer text={q.questionHi} />
+                            </div>
+                          )
                         )}
                       </div>
 
@@ -1252,7 +1371,7 @@ export default function AbhyaasMasterTower() {
                                   {String.fromCharCode(65 + i)}
                                 </span>
                                 <div className="truncate">
-                                  <MathRenderer text={opt} />
+                                  {opt.includes('<') ? <span dangerouslySetInnerHTML={{ __html: opt }} /> : <MathRenderer text={opt} />}
                                 </div>
                               </div>
 
@@ -1274,7 +1393,11 @@ export default function AbhyaasMasterTower() {
                       {(q.explanationEn || q.explanationHi) && (
                         <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-loose">
                           <strong className="font-black">💡 Solution:</strong>{' '}
-                          <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
+                          {(q.explanationEn || q.explanationHi).includes('<') ? (
+                            <span dangerouslySetInnerHTML={{ __html: q.explanationEn || q.explanationHi }} />
+                          ) : (
+                            <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
+                          )}
                         </div>
                       )}
                     </div>
@@ -1800,7 +1923,7 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setNewOlyTopic(e.target.value)}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
-                      <option value="">-- Choose Topic (Optional) --</option>
+                      <option value="">-- Choose Topic --</option>
                       {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
                     </select>
@@ -1892,6 +2015,49 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
+                <div className="space-y-2">
+                  {newOlySyllabus.map((s, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
+                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
+                      </div>
+                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2 pt-2">
+                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
+                </div>
+                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
+              </div>
+
+              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
+                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {newOlyRules.map((rule, idx) => (
+                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
+                      <span>• {rule}</span>
+                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
+                    value={newRuleInput}
+                    onChange={e => setNewRuleInput(e.target.value)}
+                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
+                  />
+                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
@@ -1903,7 +2069,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: SINGLE QUESTION STUDIO */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO (GMAIL-STYLE RICH INLINE EDITOR) */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
@@ -1911,9 +2077,9 @@ export default function AbhyaasMasterTower() {
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
+                  {editingQuestionId ? 'Edit Question Entry' : 'Gmail-Style Visual Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">Excel Ribbon Toolbar (Home, Insert, Equations, Symbols) + MathLive Editor</p>
+                <p className="text-xs text-slate-500">Paste images/equations directly into text flow, resize, and type around seamlessly.</p>
               </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -2064,155 +2230,28 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* ========================================================================= */}
-              {/* MASTER CONTROL BAR WITH EXACT 12 TARGET OPTIONS & ALIGNMENT TOOLS */}
-              {/* ========================================================================= */}
-              <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3 shadow-md">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">1. Insert in section:</span>
-                  </div>
-                  <select
-                    value={insertTargetField}
-                    onChange={e => setInsertTargetField(e.target.value)}
-                    className="h-10 px-3 bg-slate-800 border border-slate-700 text-white font-bold rounded-xl text-xs outline-none cursor-pointer"
-                  >
-                    <option value="qStatementEn">Question Statement (English)</option>
-                    <option value="qStatementHi">Question Statement (Hindi)</option>
-                    <option value="qOptionsEn0">Option A (English)</option>
-                    <option value="qOptionsEn1">Option B (English)</option>
-                    <option value="qOptionsEn2">Option C (English)</option>
-                    <option value="qOptionsEn3">Option D (English)</option>
-                    <option value="qOptionsHi0">Option A (Hindi)</option>
-                    <option value="qOptionsHi1">Option B (Hindi)</option>
-                    <option value="qOptionsHi2">Option C (Hindi)</option>
-                    <option value="qOptionsHi3">Option D (Hindi)</option>
-                    <option value="qExplanationEn">Detailed Explanation (English)</option>
-                    <option value="qExplanationHi">Detailed Explanation (Hindi)</option>
-                  </select>
-                </div>
+              {/* GMAIL-STYLE RICH INLINE FIELDS */}
+              <GmailInlineEditor
+                label="Question Statement (English)*"
+                value={qStatementEn}
+                onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
+                placeholder="Type your question or paste screenshots directly inside the sentence..."
+                minHeight="110px"
+              />
 
-                {/* Ribbon Tabs */}
-                <div className="flex gap-1 overflow-x-auto pt-1">
-                  {[
-                    { id: 'home', label: 'Home (Font, Align, Gap)' },
-                    { id: 'insert', label: 'Insert (Tables, Shapes)' },
-                    { id: 'equations', label: '📐 Equations (Presets)' },
-                    { id: 'symbols', label: 'Ω Math Symbols' }
-                  ].map(tab => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setRibbonTab(tab.id as any)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
-                        ribbonTab === tab.id ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+              <GmailInlineEditor
+                label="Question Statement (Hindi)"
+                value={qStatementHi}
+                onChange={val => setQStatementHi(val)}
+                placeholder="हिंदी प्रश्न लिखें या डायग्राम पेस्ट करें..."
+                minHeight="90px"
+              />
 
-                {/* Ribbon Content */}
-                <div className="pt-2">
-                  {ribbonTab === 'home' && (
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <button type="button" onClick={() => insertIntoTargetField('**text**')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Bold</button>
-                      <button type="button" onClick={() => insertIntoTargetField('*text*')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer">Italic</button>
-                      <button type="button" onClick={() => insertIntoTargetField('$X_{2}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
-                      <button type="button" onClick={() => insertIntoTargetField('$X^{2}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
-                      <button type="button" onClick={() => insertIntoTargetField('$\\frac{a}{b}$')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
-
-                      <span className="text-slate-600">|</span>
-                      {/* Alignment & Spacing Controls */}
-                      <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="left">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Left"><AlignLeft className="w-3.5 h-3.5"/> Left</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="center">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Center"><AlignCenter className="w-3.5 h-3.5"/> Center</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n\n<div align="right">\n\n', '\n\n</div>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-cyan-300 font-bold flex items-center gap-1 cursor-pointer" title="Align Right"><AlignRight className="w-3.5 h-3.5"/> Right</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n\n<br/><br/>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold flex items-center gap-1 cursor-pointer" title="Add Line Break"><ArrowUpDown className="w-3.5 h-3.5"/> Extra Gap</button>
-                    </div>
-                  )}
-
-                  {ribbonTab === 'insert' && (
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <button type="button" onClick={() => insertIntoTargetField('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n> **💡 Note Box:** ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 font-bold cursor-pointer">Note Box</button>
-                      <button type="button" onClick={() => insertIntoTargetField(' 🔲 ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Box 🔲</button>
-                      <button type="button" onClick={() => insertIntoTargetField(' ⬤ ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Circle ⬤</button>
-                      <button type="button" onClick={() => insertIntoTargetField(' ➔ ')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Arrow ➔</button>
-                      <button type="button" onClick={() => insertIntoTargetField('\n--- \n')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-emerald-300 font-bold cursor-pointer">Divider ───</button>
-                    </div>
-                  )}
-
-                  {ribbonTab === 'equations' && (
-                    <div className="flex flex-wrap gap-1.5 text-xs">
-                      {[
-                        { label: 'Area of Circle', formula: '$A = \\pi r^2$' },
-                        { label: 'Quadratic Formula', formula: '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$' },
-                        { label: 'Pythagorean Theorem', formula: '$a^2 + b^2 = c^2$' },
-                        { label: 'Binomial Theorem', formula: '$(x + a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} a^k$' },
-                        { label: 'Fourier Series', formula: '$f(x) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} (a_n \\cos nx + b_n \\sin nx)$' },
-                        { label: 'Taylor Expansion', formula: '$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x-a)^n$' },
-                        { label: 'Limit Expression', formula: '$\\lim_{n \\to \\infty} f(x)$' },
-                        { label: 'Trign Identity', formula: '$\\sin^2\\theta + \\cos^2\\theta = 1$' }
-                      ].map((eq, i) => (
-                        <button key={i} type="button" onClick={() => insertIntoTargetField(` ${eq.formula} `)} className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded text-[11px] font-mono font-bold cursor-pointer">
-                          {eq.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {ribbonTab === 'symbols' && (
-                    <div className="flex flex-wrap gap-1 text-xs font-mono">
-                      {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\omega', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in'].map((sym, i) => (
-                        <button key={i} type="button" onClick={() => insertIntoTargetField(` $${sym}$ `)} className="px-2 py-0.5 bg-slate-800 hover:bg-purple-600 rounded text-xs font-bold cursor-pointer">
-                          {sym}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Visual MathLive Input */}
-              <div className="p-3.5 bg-emerald-50/70 border-2 border-emerald-300 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between text-xs font-black text-emerald-950">
-                  <span>✨ Visual Math Keyboard (Inserts into selected section above)</span>
-                  <button type="button" disabled={!visualEquation.trim()} onClick={() => { insertIntoTargetField(` $${visualEquation}$ `); setVisualEquation(''); }} className="px-3 py-1 bg-emerald-600 text-white rounded-lg cursor-pointer">Insert into Selected Section</button>
-                </div>
-                <VisualMathInput value={visualEquation} onChange={setVisualEquation} />
-              </div>
-
-              {/* Question Statement En */}
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between items-center">
-                  <label className="font-bold text-slate-700">Question Statement (English)*</label>
-                  <button type="button" onClick={() => setInsertTargetField('qStatementEn')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qStatementEn' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                    {insertTargetField === 'qStatementEn' ? '✓ Target Set' : 'Set Target'}
-                  </button>
-                </div>
-                <textarea rows={3} value={qStatementEn} onFocus={() => setInsertTargetField('qStatementEn')} onChange={e => { setQStatementEn(e.target.value); checkDuplicates(e.target.value); }} placeholder="Enter English question..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500 font-sans" required />
-                {qStatementEn.trim() && <div className="p-3 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qStatementEn} /></div>}
-              </div>
-
-              {/* Question Statement Hi */}
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between items-center">
-                  <label className="font-bold text-slate-700">Question Statement (Hindi)</label>
-                  <button type="button" onClick={() => setInsertTargetField('qStatementHi')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qStatementHi' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                    {insertTargetField === 'qStatementHi' ? '✓ Target Set' : 'Set Target'}
-                  </button>
-                </div>
-                <textarea rows={3} value={qStatementHi} onFocus={() => setInsertTargetField('qStatementHi')} onChange={e => setQStatementHi(e.target.value)} placeholder="हिंदी में प्रश्न..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none font-sans" />
-                {qStatementHi.trim() && <div className="p-3 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qStatementHi} /></div>}
-              </div>
-
-              {/* Diagram URL */}
+              {/* Diagram URL (Standalone File / Drive URL) */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
-                  placeholder="Paste diagram image URL..."
+                  placeholder="Optional: Google Drive or external image URL..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
                   className="w-full h-9 px-3 bg-white border rounded-lg font-mono text-xs outline-none"
@@ -2223,37 +2262,31 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D (English & Hindi) */}
+              {/* Options A - D (English & Hindi) with Inline Paste Support */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {[0, 1, 2, 3].map(i => (
                     <div key={i} className="p-3 bg-white border rounded-2xl space-y-2">
                       <div className="flex items-center gap-2">
                         <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                        <span className="font-black text-slate-700 w-16">Option {String.fromCharCode(65 + i)}</span>
+                        <span className="font-black text-slate-700 w-24">Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct)' : ''}</span>
                       </div>
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] text-slate-400 font-bold">English</span>
-                            <button type="button" onClick={() => setInsertTargetField(`qOptionsEn${i}`)} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${insertTargetField === `qOptionsEn${i}` ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                              {insertTargetField === `qOptionsEn${i}` ? 'Target' : 'Set Target'}
-                            </button>
-                          </div>
-                          <input type="text" value={qOptionsEn[i]} onFocus={() => setInsertTargetField(`qOptionsEn${i}`)} onChange={e => { const o = [...qOptionsEn]; o[i] = e.target.value; setQOptionsEn(o); }} placeholder={`Option ${String.fromCharCode(65 + i)} (En)`} className="w-full h-9 px-2 bg-slate-50 border rounded-lg text-xs outline-none" required />
-                          {qOptionsEn[i].trim() && <div className="text-[11px] font-bold mt-1 overflow-x-auto leading-loose"><MathRenderer text={qOptionsEn[i]} /></div>}
-                        </div>
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] text-slate-400 font-bold">Hindi</span>
-                            <button type="button" onClick={() => setInsertTargetField(`qOptionsHi${i}`)} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${insertTargetField === `qOptionsHi${i}` ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                              {insertTargetField === `qOptionsHi${i}` ? 'Target' : 'Set Target'}
-                            </button>
-                          </div>
-                          <input type="text" value={qOptionsHi[i]} onFocus={() => setInsertTargetField(`qOptionsHi${i}`)} onChange={e => { const o = [...qOptionsHi]; o[i] = e.target.value; setQOptionsHi(o); }} placeholder={`Option ${String.fromCharCode(65 + i)} (Hi)`} className="w-full h-9 px-2 bg-slate-50 border rounded-lg text-xs outline-none" />
-                          {qOptionsHi[i].trim() && <div className="text-[11px] font-bold mt-1 overflow-x-auto leading-loose"><MathRenderer text={qOptionsHi[i]} /></div>}
-                        </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <GmailInlineEditor
+                          label={`Option ${String.fromCharCode(65 + i)} (English)`}
+                          value={qOptionsEn[i]}
+                          onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} English or paste image...`}
+                          minHeight="70px"
+                        />
+                        <GmailInlineEditor
+                          label={`Option ${String.fromCharCode(65 + i)} (Hindi)`}
+                          value={qOptionsHi[i]}
+                          onChange={val => { const o = [...qOptionsHi]; o[i] = val; setQOptionsHi(o); }}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi or paste image...`}
+                          minHeight="70px"
+                        />
                       </div>
                     </div>
                   ))}
@@ -2262,26 +2295,20 @@ export default function AbhyaasMasterTower() {
 
               {/* Detailed Explanations */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="font-bold text-slate-700">Detailed Explanation (English)</label>
-                    <button type="button" onClick={() => setInsertTargetField('qExplanationEn')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qExplanationEn' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                      {insertTargetField === 'qExplanationEn' ? '✓ Target Set' : 'Set Target'}
-                    </button>
-                  </div>
-                  <textarea rows={3} value={qExplanationEn} onFocus={() => setInsertTargetField('qExplanationEn')} onChange={e => setQExplanationEn(e.target.value)} placeholder="English solution..." className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none" />
-                  {qExplanationEn.trim() && <div className="p-2 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qExplanationEn} /></div>}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="font-bold text-slate-700">Detailed Explanation (Hindi)</label>
-                    <button type="button" onClick={() => setInsertTargetField('qExplanationHi')} className={`text-[10px] font-bold px-2 py-0.5 rounded ${insertTargetField === 'qExplanationHi' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                      {insertTargetField === 'qExplanationHi' ? '✓ Target Set' : 'Set Target'}
-                    </button>
-                  </div>
-                  <textarea rows={3} value={qExplanationHi} onFocus={() => setInsertTargetField('qExplanationHi')} onChange={e => setQExplanationHi(e.target.value)} placeholder="हिंदी स्पष्टीकरण..." className="w-full p-2.5 bg-slate-50 border rounded-xl outline-none" />
-                  {qExplanationHi.trim() && <div className="p-2 bg-white border rounded-xl overflow-x-auto leading-loose"><MathRenderer text={qExplanationHi} /></div>}
-                </div>
+                <GmailInlineEditor
+                  label="Detailed Explanation (English)"
+                  value={qExplanationEn}
+                  onChange={val => setQExplanationEn(val)}
+                  placeholder="English solution with text & inline pasted clippings..."
+                  minHeight="100px"
+                />
+                <GmailInlineEditor
+                  label="Detailed Explanation (Hindi)"
+                  value={qExplanationHi}
+                  onChange={val => setQExplanationHi(val)}
+                  placeholder="हिंदी समाधान..."
+                  minHeight="100px"
+                />
               </div>
 
               <button
