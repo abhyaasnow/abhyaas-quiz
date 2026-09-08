@@ -118,7 +118,7 @@ function parseCSVProperly(text: string): string[][] {
 }
 
 // =========================================================================
-// UNIVERSAL MATH & LATEX COMPONENT (WITH PARAGRAPH BREAKS & DIRECT EDITING)
+// UNIVERSAL MATH & LATEX COMPONENT (SELECTION-AWARE BOLD + PRE-WRAP PARAGRAPHS)
 // =========================================================================
 function UniversalMathBox({
   label,
@@ -135,27 +135,36 @@ function UniversalMathBox({
   rows?: number;
   required?: boolean;
 }) {
-  // 'split' = Live Edit + Visual Preview, 'latex' = Only Source, 'math' = Visual Converted View
   const [viewMode, setViewMode] = useState<'split' | 'latex' | 'math'>('split');
   const [ribbonTab, setRibbonTab] = useState<'home' | 'equations' | 'symbols' | 'keyboard'>('home');
   const [visualEquation, setVisualEquation] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const insertText = (prefix: string, suffix: string = '') => {
-    const textToInsert = prefix + suffix;
+  // Selection-Aware Inserter (Wraps highlighted text properly without replacing it with ****)
+  const wrapOrInsert = (prefix: string, suffix: string = '', defaultPlaceholder: string = '') => {
     const el = textareaRef.current;
     if (!el) {
-      onChange(value + textToInsert);
+      onChange(value + prefix + defaultPlaceholder + suffix);
       return;
     }
     const start = el.selectionStart || 0;
     const end = el.selectionEnd || 0;
-    const updated = value.substring(0, start) + textToInsert + value.substring(end);
+    const selectedText = value.substring(start, end);
+    const content = selectedText || defaultPlaceholder;
+    const replacement = prefix + content + suffix;
+    const updated = value.substring(0, start) + replacement + value.substring(end);
     onChange(updated);
+
     setTimeout(() => {
       el.focus();
-      el.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
-    }, 0);
+      if (selectedText) {
+        el.setSelectionRange(start, start + replacement.length);
+      } else if (defaultPlaceholder) {
+        el.setSelectionRange(start + prefix.length, start + prefix.length + defaultPlaceholder.length);
+      } else {
+        el.setSelectionRange(start + prefix.length, start + prefix.length);
+      }
+    }, 10);
   };
 
   return (
@@ -173,7 +182,7 @@ function UniversalMathBox({
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
             }`}
-            title="Edit and see visual equations simultaneously"
+            title="Edit and preview formatted equations simultaneously"
           >
             <Columns className="w-3.5 h-3.5" />
             <span>Split View (Live)</span>
@@ -202,12 +211,12 @@ function UniversalMathBox({
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>LaTeX ➔ Math (Convert)</span>
+            <span>LaTeX ➔ Math</span>
           </button>
         </div>
       </div>
 
-      {/* Ribbon Toolbar Bar (Available in Edit & Split Modes) */}
+      {/* Ribbon Toolbar Bar */}
       {viewMode !== 'math' && (
         <div className="bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-800 shadow-xs">
           <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto">
@@ -233,14 +242,17 @@ function UniversalMathBox({
           <div className="p-2 text-xs">
             {ribbonTab === 'home' && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <button type="button" onClick={() => insertText('**', '**')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Bold</button>
-                <button type="button" onClick={() => insertText('*', '*')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer">Italic</button>
-                <button type="button" onClick={() => insertText('$X_{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
-                <button type="button" onClick={() => insertText('$X^{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
-                <button type="button" onClick={() => insertText('$\\displaystyle\\frac{a}{b}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
-                <button type="button" onClick={() => insertText('$\\sqrt{x}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Square Root</button>
-                <button type="button" onClick={() => insertText('\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="Add empty line">↵ New Line / Para</button>
-                <button type="button" onClick={() => insertText('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
+                <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer" title="Wrap selection in bold">Bold</button>
+                <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer" title="Wrap selection in italic">Italic</button>
+                <button type="button" onClick={() => wrapOrInsert('<u>', '</u>', 'underlined text')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded underline cursor-pointer">Underline</button>
+                <button type="button" onClick={() => wrapOrInsert('$X_{', '}$', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
+                <button type="button" onClick={() => wrapOrInsert('$X^{', '}$', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
+                <button type="button" onClick={() => wrapOrInsert('$\\displaystyle\\frac{', '}{b}$', 'a')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
+                <button type="button" onClick={() => wrapOrInsert('$\\sqrt{', '}$', 'x')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Square Root</button>
+                <span className="text-slate-700">|</span>
+                <button type="button" onClick={() => wrapOrInsert('\n', '')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-bold cursor-pointer" title="Insert line break">↵ New Line</button>
+                <button type="button" onClick={() => wrapOrInsert('\n\n', '')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="Insert new paragraph">¶ New Para</button>
+                <button type="button" onClick={() => wrapOrInsert('\n$$\n', '\n$$\n', 'f(x) = ...')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-bold cursor-pointer" title="Center display equation">Center Eq</button>
               </div>
             )}
 
@@ -259,7 +271,7 @@ function UniversalMathBox({
                   <button
                     key={i}
                     type="button"
-                    onClick={() => insertText(` ${eq.formula} `)}
+                    onClick={() => wrapOrInsert(` ${eq.formula} `)}
                     className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded text-[11px] font-mono font-bold transition cursor-pointer"
                   >
                     {eq.label}
@@ -274,7 +286,7 @@ function UniversalMathBox({
                   <button
                     key={i}
                     type="button"
-                    onClick={() => insertText(` $${sym}$ `)}
+                    onClick={() => wrapOrInsert(` $${sym}$ `)}
                     className="px-2 py-0.5 bg-slate-800 hover:bg-purple-600 text-white rounded text-xs font-bold transition cursor-pointer"
                   >
                     {sym}
@@ -292,7 +304,7 @@ function UniversalMathBox({
                     disabled={!visualEquation.trim()}
                     onClick={() => {
                       if (!visualEquation.trim()) return;
-                      insertText(` $\\displaystyle ${visualEquation}$ `);
+                      wrapOrInsert(` $\\displaystyle ${visualEquation}$ `);
                       setVisualEquation('');
                     }}
                     className={`px-3 py-0.5 rounded text-[11px] font-bold transition ${
@@ -321,6 +333,7 @@ function UniversalMathBox({
               onChange={e => onChange(e.target.value)}
               placeholder={placeholder}
               className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed outline-none focus:border-blue-600 text-slate-900"
+              style={{ whiteSpace: 'pre-wrap' }}
               required={required}
             />
           </div>
@@ -343,6 +356,7 @@ function UniversalMathBox({
             onChange={e => onChange(e.target.value)}
             placeholder={placeholder}
             className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed outline-none focus:border-blue-600 text-slate-900"
+            style={{ whiteSpace: 'pre-wrap' }}
             required={required}
           />
         </div>
@@ -1341,7 +1355,7 @@ export default function AbhyaasMasterTower() {
               )}
             </div>
 
-            {/* Questions Stream */}
+            {/* Questions Stream (Always Rendered through MathRenderer with Pre-wrap) */}
             <div className="space-y-3">
               {filteredActiveQuestions.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
@@ -1409,15 +1423,13 @@ export default function AbhyaasMasterTower() {
 
                       <div>
                         <div 
-                          className="font-bold text-sm text-slate-900 leading-[2.2]"
-                          style={{ whiteSpace: 'pre-wrap' }}
+                          className="font-bold text-sm text-slate-900 leading-[2.2] whitespace-pre-wrap"
                         >
                           <MathRenderer text={q.questionEn} />
                         </div>
                         {q.questionHi && (
                           <div 
-                            className="text-xs text-slate-600 mt-1 leading-[2.2]"
-                            style={{ whiteSpace: 'pre-wrap' }}
+                            className="text-xs text-slate-600 mt-1 leading-[2.2] whitespace-pre-wrap"
                           >
                             <MathRenderer text={q.questionHi} />
                           </div>
@@ -1477,10 +1489,7 @@ export default function AbhyaasMasterTower() {
                                 }`}>
                                   {String.fromCharCode(65 + i)}
                                 </span>
-                                <div 
-                                  className="truncate leading-loose"
-                                  style={{ whiteSpace: 'pre-wrap' }}
-                                >
+                                <div className="truncate leading-loose whitespace-pre-wrap">
                                   <MathRenderer text={opt} />
                                 </div>
                               </div>
@@ -1501,11 +1510,8 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
-                        <div 
-                          className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-[2.2]"
-                          style={{ whiteSpace: 'pre-wrap' }}
-                        >
-                          <strong className="font-black">💡 Solution:</strong>{' '}
+                        <div className="p-3.5 bg-blue-50/70 rounded-xl text-xs text-blue-950 border border-blue-100 leading-[2.2] whitespace-pre-wrap">
+                          <strong className="font-black text-blue-900 block mb-1">💡 Solution & Explanation:</strong>
                           <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
                         </div>
                       )}
@@ -1873,15 +1879,13 @@ export default function AbhyaasMasterTower() {
                       </div>
                     </div>
                     <div 
-                      className="text-sm font-bold text-slate-800 line-through opacity-80"
-                      style={{ whiteSpace: 'pre-wrap' }}
+                      className="text-sm font-bold text-slate-800 line-through opacity-80 whitespace-pre-wrap leading-[2.2]"
                     >
                       <MathRenderer text={q.questionEn} />
                     </div>
                     {q.questionHi && (
                       <div 
-                        className="text-xs text-slate-500"
-                        style={{ whiteSpace: 'pre-wrap' }}
+                        className="text-xs text-slate-500 whitespace-pre-wrap leading-[2.2]"
                       >
                         <MathRenderer text={q.questionHi} />
                       </div>
@@ -2038,7 +2042,7 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setNewOlyTopic(e.target.value)}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
-                      <option value="">-- Choose Topic (Optional) --</option>
+                      <option value="">-- Choose Topic --</option>
                       {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
                     </select>
@@ -2130,49 +2134,6 @@ export default function AbhyaasMasterTower() {
                 />
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
-                <div className="space-y-2">
-                  {newOlySyllabus.map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
-                      <div>
-                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
-                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
-                      </div>
-                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid sm:grid-cols-3 gap-2 pt-2">
-                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                </div>
-                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
-              </div>
-
-              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {newOlyRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
-                      <span>• {rule}</span>
-                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
-                    value={newRuleInput}
-                    onChange={e => setNewRuleInput(e.target.value)}
-                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
-                  />
-                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
@@ -2195,7 +2156,7 @@ export default function AbhyaasMasterTower() {
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Split View provides live equations & line-break preview as you type. Click converted view to edit anytime.
+                  Type equations & paragraphs with full Enter/Space support. Live preview renders on the right.
                 </p>
               </div>
               <button
@@ -2352,7 +2313,7 @@ export default function AbhyaasMasterTower() {
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type question in English. Press Enter to start new lines/paragraphs..."
+                placeholder="Type English question or formula. Use Enter for new lines..."
                 rows={3}
                 required={true}
               />
@@ -2361,7 +2322,7 @@ export default function AbhyaasMasterTower() {
                 label="प्रश्न विवरण (हिंदी अनुवाद)"
                 value={qStatementHi}
                 onChange={setQStatementHi}
-                placeholder="हिंदी प्रश्न दर्ज करें। पैराग्राफ बदलने के लिए Enter दबाएं..."
+                placeholder="हिंदी में प्रश्न या सूत्र दर्ज करें..."
                 rows={3}
               />
 
@@ -2404,7 +2365,7 @@ export default function AbhyaasMasterTower() {
                           label={`Option ${String.fromCharCode(65 + i)} (English)`}
                           value={qOptionsEn[i]}
                           onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} English formula or text...`}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} English equation or text...`}
                           rows={1}
                           required={true}
                         />
@@ -2412,7 +2373,7 @@ export default function AbhyaasMasterTower() {
                           label={`Option ${String.fromCharCode(65 + i)} (Hindi)`}
                           value={qOptionsHi[i]}
                           onChange={val => { const o = [...qOptionsHi]; o[i] = val; setQOptionsHi(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi formula or text...`}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi equation or text...`}
                           rows={1}
                         />
                       </div>
