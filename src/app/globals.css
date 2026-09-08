@@ -1,6 +1,4 @@
 @import 'katex/dist/katex.min.css';
-
-
 @import "tailwindcss";
 
 :root {
@@ -27,28 +25,49 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-/* KaTeX Fraction Spacing & Power Overlap Fix */
+
+/* ========================================================================= */
+/* PERFECT UPSC-GRADE PERMANENT KATEX FRACTION & SPACING OVERRIDE            */
+/* ========================================================================= */
+
+/* Fraction container ko upar-neeche khula space dena */
 .katex .mfrac {
-  padding: 0.25em 0 !important;
+  padding: 0.4em 0 !important;
 }
 
-/* Numerator aur Denominator ke beech vertical gap */
-.katex .mfrac .vlist-t2 {
-  margin-bottom: 0.25em !important;
+/* Numerator (अंश) ko fraction line se upar uthana */
+.katex .mfrac > span > span:first-child {
+  padding-bottom: 0.3em !important;
 }
 
-.katex .mfrac .vlist-r:first-child {
-  margin-bottom: 0.2em !important;
+/* Denominator (हर) ko fraction line se neeche khકના */
+.katex .mfrac > span > span:last-child {
+  padding-top: 0.3em !important;
 }
 
-/* Fraction bar line ki motaai aur spacing */
+/* Fraction bar (बट्टे की लाइन) ki motaai aur safety margin */
 .katex .mfrac .frac-line {
-  border-bottom-width: 1.4px !important;
-  margin: 0.15em 0 !important;
+  border-bottom-width: 1.5px !important;
+  border-color: currentColor !important;
+  margin-top: 0.25em !important;
+  margin-bottom: 0.25em !important;
+  min-height: 1.5px !important;
 }
 
-/* Powers (exponents) ko upar se katne se rokne ke liye */
+/* Display equations ke liye safe bounding box aur visible overflow */
 .katex-display {
-  padding: 0.6rem 0 !important;
+  display: block !important;
+  margin: 1.8rem 0 !important;
+  padding: 0.8rem 0 !important;
+  overflow-x: auto !important;
   overflow-y: visible !important;
+}
+
+/* Superscripts (powers) aur limits ke liye proper vertical headroom */
+.katex .msupsub {
+  text-align: left !important;
+}
+
+.katex .vlist-t2 {
+  min-height: 2.4em !important;
 }
