@@ -12,101 +12,211 @@ interface MathRendererProps {
 export default function MathRenderer({ text = '', className = '' }: MathRendererProps) {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. KaTeX crash karne wale Unicode symbols ko sanitize karein
+  // 1. Typography & Symbol Pre-processing
   let cleanText = text
     .replace(/\\le\s+ft/g, '\\left')
     .replace(/\\ri\s+ght/g, '\\right')
     .replace(/→/g, '\\to ')
+    .replace(/←/g, '\\leftarrow ')
     .replace(/≤/g, '\\le ')
     .replace(/≥/g, '\\ge ')
     .replace(/±/g, '\\pm ')
     .replace(/≠/g, '\\ne ')
     .replace(/∞/g, '\\infty ');
 
-  // 2. Normal text ko Markdown (Bold, Italics, Line Breaks) ke sath render karne ka engine
-  const renderTextWithFormatting = (plainStr: string, baseKey: string | number) => {
-    // Newlines (\n) ko preserve karein taaki Enter dabane par lines alag rahein
-    const lines = plainStr.split('\n');
+  // 2. Math-Bolding Support: Automatically convert **$...$** to $\boldsymbol{...}$
+  cleanText = cleanText.replace(/\*\*\$([^\$]+?)\$\*\*/g, (_, math) => `$\\boldsymbol{${math.trim()}}$`);
+  cleanText = cleanText.replace(/\*\*\$\$([\s\S]+?)\$\$\*\*/g, (_, math) => `$$\\boldsymbol{${math.trim()}}$$`);
+
+  // Helper to render inline text with Bold, Italics, Colors, and Underlines
+  const renderInlineFormatted = (rawStr: string, keyPrefix: string | number) => {
+    // Check for color tags: [color=red]...[/color]
+    const colorTokens = rawStr.split(/(\[color=[a-zA-Z0-9#]+\][\s\S]*?\[\/color\])/g);
 
     return (
-      <span key={baseKey}>
-        {lines.map((line, lIdx) => {
-          // Bold formatting: **bold**
-          const boldParts = line.split(/(\*\*[^*]+?\*\*)/g);
+      <React.Fragment key={keyPrefix}>
+        {colorTokens.map((cToken, cIdx) => {
+          const colorMatch = cToken.match(/^\[color=([a-zA-Z0-9#]+)\]([\s\S]*?)\[\/color\]$/);
+          if (colorMatch) {
+            const [, colorVal, innerText] = colorMatch;
+            const colorClass = 
+              colorVal === 'red' ? 'text-rose-600 font-semibold' :
+              colorVal === 'blue' ? 'text-blue-600 font-semibold' :
+              colorVal === 'green' ? 'text-emerald-600 font-semibold' :
+              colorVal === 'amber' ? 'text-amber-600 font-semibold' :
+              colorVal === 'purple' ? 'text-purple-600 font-semibold' : '';
 
-          return (
-            <React.Fragment key={lIdx}>
-              {boldParts.map((bPart, bIdx) => {
-                if (bPart.startsWith('**') && bPart.endsWith('**')) {
-                  return (
-                    <strong key={bIdx} className="font-extrabold text-slate-950">
-                      {bPart.slice(2, -2)}
-                    </strong>
-                  );
-                }
-                return <span key={bIdx}>{bPart}</span>;
-              })}
-              {/* Har Enter ke bad line break lagayein */}
-              {lIdx < lines.length - 1 && <br />}
-            </React.Fragment>
-          );
-        })}
-      </span>
-    );
-  };
-
-  // 3. Agar string mein $ ya $$ hai (Standard LaTeX Parsing)
-  if (cleanText.includes('$')) {
-    const parts = cleanText.split(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g);
-
-    return (
-      <div className={`leading-[2.2] text-slate-900 ${className}`}>
-        {parts.map((part, idx) => {
-          if (!part) return null;
-
-          // Block Math: $$ ... $$ (UPSC Paper Style Centered Display)
-          if (part.startsWith('$$') && part.endsWith('$$')) {
-            const math = part.slice(2, -2).trim();
             return (
-              <div key={idx} className="my-3 py-1 overflow-x-auto text-center">
-                <BlockMath math={math} errorColor="#ef4444" />
-              </div>
-            );
-          }
-
-          // Inline Math: $ ... $ (Text ke sath bilkul barabar align)
-          if (part.startsWith('$') && part.endsWith('$')) {
-            const math = part.slice(1, -1).trim();
-            return (
-              <span key={idx} className="inline-block mx-0.5 align-baseline">
-                <InlineMath math={math} errorColor="#ef4444" />
+              <span key={cIdx} className={colorClass} style={!colorClass ? { color: colorVal } : undefined}>
+                {renderInlineFormatted(innerText, `${keyPrefix}-c-${cIdx}`)}
               </span>
             );
           }
 
-          // Plain text with bold and newline support
-          return renderTextWithFormatting(part, idx);
+          // Markdown Bold: **text**
+          const boldTokens = cToken.split(/(\*\*[^*]+?\*\*)/g);
+          return boldTokens.map((bToken, bIdx) => {
+            if (bToken.startsWith('**') && bToken.endsWith('**')) {
+              return (
+                <strong key={bIdx} className="font-extrabold text-slate-950">
+                  {bToken.slice(2, -2)}
+                </strong>
+              );
+            }
+
+            // Markdown Italic: *text*
+            const italicTokens = bToken.split(/(\*[^*]+?\*)/g);
+            return italicTokens.map((iToken, iIdx) => {
+              if (iToken.startsWith('*') && iToken.endsWith('*') && iToken.length > 2) {
+                return <em key={iIdx} className="italic">{iToken.slice(1, -1)}</em>;
+              }
+
+              // Underline: <u>text</u>
+              if (iToken.includes('<u>') && iToken.includes('</u>')) {
+                const uParts = iToken.split(/(<u>[\s\S]*?<\/u>)/g);
+                return uParts.map((uP, uIdx) => {
+                  if (uP.startsWith('<u>') && uP.endsWith('</u>')) {
+                    return <u key={uIdx} className="underline underline-offset-2">{uP.slice(3, -4)}</u>;
+                  }
+                  return <span key={uIdx}>{uP}</span>;
+                });
+              }
+
+              return <span key={iIdx}>{iToken}</span>;
+            });
+          });
         })}
-      </div>
+      </React.Fragment>
     );
-  }
+  };
 
-  // 4. Fallback: Agar kisi purane question mein $ na ho aur poora text ek formula ho
-  const trimmed = cleanText.trim();
-  const hasMultipleWords = /[\u0900-\u097F]/.test(trimmed) || /[a-zA-Z]{3,}\s+[a-zA-Z]{3,}/.test(trimmed);
+  // Helper to render parsed paragraphs, lists, alignments, and math
+  const renderBlockContent = (content: string, blockKey: string | number) => {
+    // Split into math parts ($$...$$ and $...$)
+    const parts = content.split(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g);
 
-  if (!hasMultipleWords && trimmed.includes('\\')) {
-    return (
-      <span className={`inline-block mx-0.5 align-baseline ${className}`}>
-        <InlineMath math={trimmed} renderError={() => <span>{trimmed}</span>} />
-      </span>
-    );
-  }
+    return parts.map((part, pIdx) => {
+      if (!part) return null;
 
-  // 5. Normal text with line breaks
+      // Block Math ($$...$$) -> UPSC Padded Display
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        const math = part.slice(2, -2).trim();
+        return (
+          <div key={`${blockKey}-${pIdx}`} className="my-3.5 py-1.5 overflow-x-auto text-center w-full">
+            <BlockMath math={math} errorColor="#ef4444" />
+          </div>
+        );
+      }
+
+      // Inline Math ($...$) -> Baseline Aligned
+      if (part.startsWith('$') && part.endsWith('$')) {
+        const math = part.slice(1, -1).trim();
+        return (
+          <span key={`${blockKey}-${pIdx}`} className="inline-block mx-0.5 align-baseline">
+            <InlineMath math={math} errorColor="#ef4444" />
+          </span>
+        );
+      }
+
+      // Prose Text
+      return renderInlineFormatted(part, `${blockKey}-${pIdx}`);
+    });
+  };
+
+  // 3. Process structural blocks (Alignment tags & Newline lists)
+  const lines = cleanText.split('\n');
+
   return (
-    <div className={`leading-[2.2] text-slate-900 ${className}`}>
-      {renderTextWithFormatting(cleanText, 'plain-root')}
+    <div className={`font-sans leading-[2.4] text-slate-900 ${className}`}>
+      {/* Scoped CSS to optimize fraction clearance and prevent power clipping */}
+      <style>{`
+        .katex-display {
+          margin: 1.1rem 0 !important;
+          padding: 0.35rem 0 !important;
+          overflow-x: auto !important;
+          overflow-y: visible !important;
+        }
+        .katex {
+          font-size: 1.07em !important;
+          text-rendering: auto !important;
+        }
+        .katex .mfrac .vlist-t2 {
+          margin-bottom: 0.18em !important;
+        }
+        .katex .mfrac .vlist-r:first-child {
+          margin-bottom: 0.12em !important;
+        }
+        .katex .mfrac .frac-line {
+          border-bottom-width: 1.3px !important;
+        }
+        .katex .msupsub {
+          text-align: left !important;
+        }
+      `}</style>
+
+      {lines.map((line, lIdx) => {
+        const trimmed = line.trim();
+
+        // Empty line -> Spacing between paragraphs
+        if (!trimmed) {
+          return <div key={lIdx} className="h-2" />;
+        }
+
+        // Center alignment tag: [center]...[/center]
+        if (trimmed.startsWith('[center]') && trimmed.endsWith('[/center]')) {
+          const inner = trimmed.slice(8, -9);
+          return (
+            <div key={lIdx} className="text-center my-2 w-full">
+              {renderBlockContent(inner, lIdx)}
+            </div>
+          );
+        }
+
+        // Right alignment tag: [right]...[/right]
+        if (trimmed.startsWith('[right]') && trimmed.endsWith('[/right]')) {
+          const inner = trimmed.slice(7, -8);
+          return (
+            <div key={lIdx} className="text-right my-1.5 w-full">
+              {renderBlockContent(inner, lIdx)}
+            </div>
+          );
+        }
+
+        // Bullet points: • or * or -
+        if (/^([•*-]\s+)/.test(trimmed)) {
+          const bulletText = trimmed.replace(/^([•*-]\s+)/, '');
+          return (
+            <div key={lIdx} className="flex items-start gap-2.5 my-1 pl-2">
+              <span className="text-blue-600 font-bold select-none text-base leading-tight">•</span>
+              <div className="flex-1">
+                {renderBlockContent(bulletText, lIdx)}
+              </div>
+            </div>
+          );
+        }
+
+        // Numbered steps: 1. or 2.
+        const numMatch = trimmed.match(/^(\d+[\.\)]\s+)/);
+        if (numMatch) {
+          const stepPrefix = numMatch[1];
+          const stepText = trimmed.slice(stepPrefix.length);
+          return (
+            <div key={lIdx} className="flex items-start gap-2 my-1 pl-1">
+              <span className="font-extrabold text-slate-900 select-none text-xs leading-relaxed">{stepPrefix}</span>
+              <div className="flex-1">
+                {renderBlockContent(stepText, lIdx)}
+              </div>
+            </div>
+          );
+        }
+
+        // Standard paragraph line
+        return (
+          <div key={lIdx} className="min-h-[1.5em]">
+            {renderBlockContent(line, lIdx)}
+          </div>
+        );
+      })}
     </div>
   );
 }

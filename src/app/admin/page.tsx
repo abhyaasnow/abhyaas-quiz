@@ -138,7 +138,7 @@ function sanitizeLatex(text: string): string {
 }
 
 // =========================================================================
-// UNIVERSAL QUESTION STUDIO BOX WITH REAL-TIME LIVE PREVIEW
+// UNIVERSAL QUESTION STUDIO BOX WITH FULL FORMATTING CONTROLS
 // =========================================================================
 function UniversalMathBox({
   label,
@@ -155,7 +155,7 @@ function UniversalMathBox({
   rows?: number;
   required?: boolean;
 }) {
-  const [ribbonTab, setRibbonTab] = useState<'home' | 'equations' | 'symbols' | 'keyboard'>('home');
+  const [ribbonTab, setRibbonTab] = useState<'home' | 'formatting' | 'equations' | 'symbols' | 'keyboard'>('home');
   const [visualEquation, setVisualEquation] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -185,16 +185,17 @@ function UniversalMathBox({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
         <label className="text-xs font-black text-slate-800">{label}</label>
         <span className="text-[10px] text-slate-400 font-medium">
-          Inline: <code className="bg-slate-200 px-1 rounded text-slate-700">$x$</code> | Centered Display: <code className="bg-slate-200 px-1 rounded text-slate-700">$$x$$</code>
+          Inline: <code className="bg-slate-200 px-1 rounded text-slate-700">$x$</code> | Centered: <code className="bg-slate-200 px-1 rounded text-slate-700">$$x$$</code>
         </span>
       </div>
 
       {/* Ribbon Toolbar */}
       <div className="bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-800 shadow-xs">
-        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto">
+        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto text-[11px]">
           {[
-            { id: 'home', label: 'Home (Font, Bold, Gap)' },
-            { id: 'equations', label: '📐 Equations (Presets)' },
+            { id: 'home', label: 'Home (Font, Bold)' },
+            { id: 'formatting', label: '🎨 Alignment & Colors' },
+            { id: 'equations', label: '📐 Equations' },
             { id: 'symbols', label: 'Ω Symbols' },
             { id: 'keyboard', label: '✨ Visual Keyboard' }
           ].map(tab => (
@@ -202,7 +203,7 @@ function UniversalMathBox({
               key={tab.id}
               type="button"
               onClick={() => setRibbonTab(tab.id as any)}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg whitespace-nowrap transition cursor-pointer ${
+              className={`px-2.5 py-1 font-bold rounded-lg whitespace-nowrap transition cursor-pointer ${
                 ribbonTab === tab.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -212,9 +213,10 @@ function UniversalMathBox({
         </div>
 
         <div className="p-2 text-xs">
+          {/* TAB 1: HOME */}
           {ribbonTab === 'home' && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer"><b>B</b> Bold</button>
+              <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer" title="Make bold (works for text & formulas)"><b>B</b> Bold</button>
               <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer"><i>I</i> Italic</button>
               <button type="button" onClick={() => wrapOrInsert('<u>', '</u>', 'underlined text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded underline cursor-pointer"><u>U</u> Underline</button>
               <span className="text-slate-700">|</span>
@@ -229,10 +231,50 @@ function UniversalMathBox({
             </div>
           )}
 
+          {/* TAB 2: ALIGNMENT & COLORS */}
+          {ribbonTab === 'formatting' && (
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-slate-400 font-bold mr-1">Align:</span>
+                <button type="button" onClick={() => wrapOrInsert('\n[center]\n', '\n[/center]\n', 'Centered content')} className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded font-bold cursor-pointer flex items-center gap-1">
+                  <AlignCenter className="w-3.5 h-3.5" /> Center Align
+                </button>
+                <button type="button" onClick={() => wrapOrInsert('\n[right]\n', '\n[/right]\n', 'Right-aligned text')} className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded font-bold cursor-pointer flex items-center gap-1">
+                  <AlignRight className="w-3.5 h-3.5" /> Right Align
+                </button>
+                <span className="text-slate-700 mx-1">|</span>
+                <span className="text-[10px] text-slate-400 font-bold mr-1">Lists:</span>
+                <button type="button" onClick={() => wrapOrInsert('\n• ', '', 'Point description')} className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded font-bold cursor-pointer flex items-center gap-1">
+                  <List className="w-3.5 h-3.5 text-blue-400" /> • Bullet
+                </button>
+                <button type="button" onClick={() => wrapOrInsert('\n1. ', '', 'First Step')} className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded font-bold cursor-pointer flex items-center gap-1">
+                  <ListOrdered className="w-3.5 h-3.5 text-blue-400" /> 1. Numbered Step
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800">
+                <span className="text-[10px] text-slate-400 font-bold mr-1">Colors:</span>
+                <button type="button" onClick={() => wrapOrInsert('[color=red]', '[/color]', 'important text')} className="px-2 py-0.5 bg-rose-950/80 border border-rose-600 text-rose-300 rounded font-bold cursor-pointer text-xs">
+                  Red Tag
+                </button>
+                <button type="button" onClick={() => wrapOrInsert('[color=blue]', '[/color]', 'highlighted term')} className="px-2 py-0.5 bg-blue-950/80 border border-blue-600 text-blue-300 rounded font-bold cursor-pointer text-xs">
+                  Blue Tag
+                </button>
+                <button type="button" onClick={() => wrapOrInsert('[color=green]', '[/color]', 'correct answer')} className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-600 text-emerald-300 rounded font-bold cursor-pointer text-xs">
+                  Green Tag
+                </button>
+                <button type="button" onClick={() => wrapOrInsert('[color=amber]', '[/color]', 'theorem or law')} className="px-2 py-0.5 bg-amber-950/80 border border-amber-600 text-amber-300 rounded font-bold cursor-pointer text-xs">
+                  Amber Tag
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: EQUATIONS */}
           {ribbonTab === 'equations' && (
             <div className="flex flex-wrap items-center gap-1.5">
               {[
-                { label: 'Limit', formula: '$$\\lim_{n \\to \\infty} \\frac{x^n - 1}{x^n + 1}$$' },
+                { label: 'Limit', formula: '$$\\lim_{n \\to \\infty} \\frac{(1 + \\sin \\frac{\\pi}{x})^n - 1}{(1 + \\sin \\frac{\\pi}{x})^n + 1}$$' },
                 { label: 'Definite Integral', formula: '$$\\int_{0}^{\\pi} f(x) \\, dx$$' },
                 { label: 'Summation', formula: '$$\\sum_{k=0}^{n} a_k$$' },
                 { label: 'Quadratic Formula', formula: '$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$' },
@@ -251,9 +293,10 @@ function UniversalMathBox({
             </div>
           )}
 
+          {/* TAB 4: SYMBOLS */}
           {ribbonTab === 'symbols' && (
             <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
-              {['\\to', '\\implies', '\\le', '\\ge', '\\ne', '\\pm', '\\infty', '\\pi', '\\alpha', '\\beta', '\\theta', '\\Delta', '\\sigma', '\\lambda', '\\in', '\\notin'].map((sym, i) => (
+              {['\\to', '\\implies', '\\le', '\\ge', '\\ne', '\\pm', '\\infty', '\\pi', '\\alpha', '\\beta', '\\theta', '\\Delta', '\\sigma', '\\lambda', '\\in', '\\notin', '\\boldsymbol{A}'].map((sym, i) => (
                 <button
                   key={i}
                   type="button"
@@ -266,6 +309,7 @@ function UniversalMathBox({
             </div>
           )}
 
+          {/* TAB 5: KEYBOARD */}
           {ribbonTab === 'keyboard' && (
             <div className="space-y-2 p-1">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
@@ -488,7 +532,7 @@ export default function AbhyaasMasterTower() {
   };
 
   // =========================================================================
-  // EXCEL-FIRST BULK IMPORT LOGIC & TEMPLATE GENERATOR
+  // EXCEL BULK IMPORTER LOGIC
   // =========================================================================
   const parseExcelCorrectOption = (val: string): number => {
     const clean = String(val || '').trim().toUpperCase();
@@ -584,86 +628,9 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  const handleDownloadExcelTemplate = () => {
-    const headers = [
-      "Segment (PRACTICE/PYQ/OLYMPIAD)",
-      "Class",
-      "Exam",
-      "Subject",
-      "Topic",
-      "PYQ Year",
-      "Question (English)",
-      "Question (Hindi)",
-      "Option A (En)",
-      "Option B (En)",
-      "Option C (En)",
-      "Option D (En)",
-      "Option A (Hi)",
-      "Option B (Hi)",
-      "Option C (Hi)",
-      "Option D (Hi)",
-      "Correct Option (1-4 or A-D)",
-      "Explanation (English)",
-      "Explanation (Hindi)",
-      "Diagram or GDrive URL"
-    ];
-
-    const sampleRows = [
-      [
-        "PRACTICE",
-        "Engineering & Technology (JEE / B.Tech)",
-        "IIT JEE (Advanced / Mains)",
-        "Mathematics & Quantitative Calculus",
-        "Advanced Calculus & Mathematical Physics",
-        "2026",
-        "Evaluate the definite integral: $I = \\int_{0}^{\\pi} \\frac{x \\sin x}{1 + \\cos^2 x} \\, dx$.",
-        "निश्चित समाकल का मान ज्ञात कीजिए।",
-        "$\\frac{\\pi^2}{2}$",
-        "$\\frac{\\pi^2}{4}$",
-        "$\\frac{\\pi}{4}$",
-        "$\\frac{\\pi^2}{8}$",
-        "$\\frac{\\pi^2}{2}$",
-        "$\\frac{\\pi^2}{4}$",
-        "$\\frac{\\pi}{4}$",
-        "$\\frac{\\pi^2}{8}$",
-        "B",
-        "Applying King's property $\\int_0^a f(x)\\,dx = \\int_0^a f(a-x)\\,dx$: $I = \\frac{\\pi^2}{4}$.",
-        "गुणधर्म का उपयोग करने पर हल प्राप्त होता है।",
-        ""
-      ]
-    ];
-
-    const csvContent = "\uFEFF" + [
-      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","),
-      ...sampleRows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(","))
-    ].join("\r\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Abhyaas_Standard_Question_Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleFileUploadCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = (evt.target?.result as string) || '';
-      setPasteData(text);
-      parseBulkInputText(text);
-    };
-    reader.readAsText(file);
-  };
-
   const handleExecuteBulkImport = async () => {
     if (bulkParsedQuestions.length === 0) {
-      return alert("No valid questions parsed. Please paste data or upload a template file first.");
+      return alert("No valid questions parsed. Please paste data first.");
     }
 
     setIsImportingBulk(true);
@@ -936,7 +903,7 @@ export default function AbhyaasMasterTower() {
 
     const parsedAtt = parseAttachment(qDiagramUrl);
 
-    // Save with pure sanitized LaTeX (dollar signs preserved, not wrapped globally)
+    // Save with pure sanitized LaTeX
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
@@ -2111,10 +2078,10 @@ export default function AbhyaasMasterTower() {
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
+                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Universal Question Studio'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  UPSC/NTA Typography: Type regular prose, wrap formulas in $...$ or $$...$$, real-time preview side-by-side.
+                  UPSC/NTA Standard: Bold, Alignment, Colors, Lists, and Live Split Preview as you type.
                 </p>
               </div>
               <button
@@ -2271,7 +2238,7 @@ export default function AbhyaasMasterTower() {
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type English question or formula. Example: Find the points of discontinuity of $f:(0,1) \to \mathbb{R}$..."
+                placeholder="Type question or formula. Example: Find the limit $$f(x) = \lim_{n \to \infty} \frac{(1+\sin\frac{\pi}{x})^n-1}{(1+\sin\frac{\pi}{x})^n+1}$$..."
                 rows={3}
                 required={true}
               />
@@ -2280,7 +2247,7 @@ export default function AbhyaasMasterTower() {
                 label="प्रश्न विवरण (हिंदी अनुवाद)"
                 value={qStatementHi}
                 onChange={setQStatementHi}
-                placeholder="हिंदी में प्रश्न या सूत्र दर्ज करें (जैसे: फलन $f:(0,1) \to \mathbb{R}$ के असांतत्य बिंदु ज्ञात कीजिए)..."
+                placeholder="हिंदी में प्रश्न या सूत्र दर्ज करें..."
                 rows={3}
               />
 
@@ -2346,7 +2313,7 @@ export default function AbhyaasMasterTower() {
                   label="Detailed Explanation (English)"
                   value={qExplanationEn}
                   onChange={setQExplanationEn}
-                  placeholder="Step-by-step proof. Use Enter for new lines, **Step 1** for bold, $$...$$ for centered math..."
+                  placeholder="Step-by-step mathematical proof. Use • for bullets, [center]...[/center] for center align, and [color=blue]...[/color] for highlights..."
                   rows={4}
                 />
                 <UniversalMathBox
