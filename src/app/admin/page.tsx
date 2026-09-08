@@ -12,7 +12,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
   Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
-  Sigma, Pi, Target, ArrowUpDown
+  Sigma, Pi, Target, ArrowUpDown, Columns
 } from 'lucide-react';
 
 import { 
@@ -118,14 +118,14 @@ function parseCSVProperly(text: string): string[][] {
 }
 
 // =========================================================================
-// UNIVERSAL MATH & LATEX INTERACTIVE COMPONENT WITH WORD/EXCEL CONVERTER
+// UNIVERSAL MATH & LATEX COMPONENT (WITH PARAGRAPH BREAKS & DIRECT EDITING)
 // =========================================================================
 function UniversalMathBox({
   label,
   value,
   onChange,
   placeholder,
-  rows = 2,
+  rows = 3,
   required = false
 }: {
   label: string;
@@ -135,7 +135,8 @@ function UniversalMathBox({
   rows?: number;
   required?: boolean;
 }) {
-  const [viewMode, setViewMode] = useState<'latex' | 'math'>('latex');
+  // 'split' = Live Edit + Visual Preview, 'latex' = Only Source, 'math' = Visual Converted View
+  const [viewMode, setViewMode] = useState<'split' | 'latex' | 'math'>('split');
   const [ribbonTab, setRibbonTab] = useState<'home' | 'equations' | 'symbols' | 'keyboard'>('home');
   const [visualEquation, setVisualEquation] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -163,35 +164,51 @@ function UniversalMathBox({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
         <label className="text-xs font-black text-slate-800">{label}</label>
         
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setViewMode('split')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              viewMode === 'split'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+            }`}
+            title="Edit and see visual equations simultaneously"
+          >
+            <Columns className="w-3.5 h-3.5" />
+            <span>Split View (Live)</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setViewMode('latex')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
               viewMode === 'latex'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
             }`}
           >
-            <span>✍️ Math ➔ LaTeX (Edit)</span>
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Source (Edit)</span>
           </button>
           
           <button
             type="button"
             onClick={() => setViewMode('math')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
               viewMode === 'math'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50'
             }`}
           >
-            <span>🔄 LaTeX ➔ Math (Convert)</span>
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>LaTeX ➔ Math (Convert)</span>
           </button>
         </div>
       </div>
 
-      {/* Ribbon Toolbar Bar (Available in Edit Mode) */}
-      {viewMode === 'latex' && (
+      {/* Ribbon Toolbar Bar (Available in Edit & Split Modes) */}
+      {viewMode !== 'math' && (
         <div className="bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-800 shadow-xs">
           <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto">
             {[
@@ -222,8 +239,8 @@ function UniversalMathBox({
                 <button type="button" onClick={() => insertText('$X^{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
                 <button type="button" onClick={() => insertText('$\\displaystyle\\frac{a}{b}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
                 <button type="button" onClick={() => insertText('$\\sqrt{x}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Square Root</button>
+                <button type="button" onClick={() => insertText('\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer" title="Add empty line">↵ New Line / Para</button>
                 <button type="button" onClick={() => insertText('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
-                <button type="button" onClick={() => insertText('\n\n<br/><br/>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer">Extra Gap</button>
               </div>
             )}
 
@@ -292,8 +309,32 @@ function UniversalMathBox({
         </div>
       )}
 
-      {/* Editor Main Content Area */}
-      {viewMode === 'latex' ? (
+      {/* Editor Content Area */}
+      {viewMode === 'split' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <span className="text-[10px] font-black uppercase text-slate-500 block mb-1">Source / Text Input (Press Enter for new line):</span>
+            <textarea
+              ref={textareaRef}
+              rows={rows}
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed outline-none focus:border-blue-600 text-slate-900"
+              required={required}
+            />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase text-emerald-600 block mb-1">Live Converted Math (Paragraphs & Formulas):</span>
+            <div 
+              className="w-full p-3 bg-white border border-emerald-300 rounded-xl text-xs text-slate-900 leading-[2.2] overflow-x-auto min-h-[90px] shadow-2xs"
+              style={{ whiteSpace: 'pre-wrap' }}
+            >
+              {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">Live formatted equations will render here...</span>}
+            </div>
+          </div>
+        </div>
+      ) : viewMode === 'latex' ? (
         <div className="space-y-2">
           <textarea
             ref={textareaRef}
@@ -304,26 +345,27 @@ function UniversalMathBox({
             className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed outline-none focus:border-blue-600 text-slate-900"
             required={required}
           />
-          {value.trim() && (
-            <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl overflow-x-auto leading-[2.2]">
-              <span className="text-[10px] font-black uppercase text-blue-600 block mb-0.5">Live Math Preview:</span>
-              <div className="text-xs font-bold text-slate-900">
-                <MathRenderer text={value} />
-              </div>
-            </div>
-          )}
         </div>
       ) : (
-        /* Word/PowerPoint Professional Visual View */
-        <div className="p-4 bg-white border-2 border-emerald-500 rounded-xl shadow-xs space-y-2 min-h-[90px] overflow-x-auto">
+        /* Word/PowerPoint Style Converted Visual View (Click to Edit) */
+        <div 
+          onClick={() => setViewMode('split')}
+          className="p-4 bg-white border-2 border-emerald-500 rounded-xl shadow-xs space-y-2 min-h-[90px] overflow-x-auto cursor-pointer group hover:border-blue-500 transition"
+          title="Click anywhere to edit"
+        >
           <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
             <span className="text-[10px] font-black uppercase text-emerald-700 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" /> Converted Professional Math View
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">To edit text or symbols, switch to "Math ➔ LaTeX"</span>
+            <span className="text-[10px] text-blue-600 font-bold group-hover:underline flex items-center gap-1">
+              <Edit3 className="w-3 h-3" /> Click anywhere to Edit
+            </span>
           </div>
-          <div className="text-sm font-semibold text-slate-900 leading-[2.4]">
-            {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">No equation content typed yet.</span>}
+          <div 
+            className="text-sm font-semibold text-slate-900 leading-[2.4]"
+            style={{ whiteSpace: 'pre-wrap' }}
+          >
+            {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">No content typed yet.</span>}
           </div>
         </div>
       )}
@@ -446,10 +488,6 @@ export default function AbhyaasMasterTower() {
   const [pushPyqYear, setPushPyqYear] = useState('2026');
 
   const fileAttachmentRef = useRef<HTMLInputElement | null>(null);
-  const opt0FileRef = useRef<HTMLInputElement | null>(null);
-  const opt1FileRef = useRef<HTMLInputElement | null>(null);
-  const opt2FileRef = useRef<HTMLInputElement | null>(null);
-  const opt3FileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -1370,11 +1408,17 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       <div>
-                        <div className="font-bold text-sm text-slate-900 leading-[2.2]">
+                        <div 
+                          className="font-bold text-sm text-slate-900 leading-[2.2]"
+                          style={{ whiteSpace: 'pre-wrap' }}
+                        >
                           <MathRenderer text={q.questionEn} />
                         </div>
                         {q.questionHi && (
-                          <div className="text-xs text-slate-600 mt-1 leading-[2.2]">
+                          <div 
+                            className="text-xs text-slate-600 mt-1 leading-[2.2]"
+                            style={{ whiteSpace: 'pre-wrap' }}
+                          >
                             <MathRenderer text={q.questionHi} />
                           </div>
                         )}
@@ -1433,7 +1477,10 @@ export default function AbhyaasMasterTower() {
                                 }`}>
                                   {String.fromCharCode(65 + i)}
                                 </span>
-                                <div className="truncate leading-loose">
+                                <div 
+                                  className="truncate leading-loose"
+                                  style={{ whiteSpace: 'pre-wrap' }}
+                                >
                                   <MathRenderer text={opt} />
                                 </div>
                               </div>
@@ -1454,7 +1501,10 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
-                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-[2.2]">
+                        <div 
+                          className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-[2.2]"
+                          style={{ whiteSpace: 'pre-wrap' }}
+                        >
                           <strong className="font-black">💡 Solution:</strong>{' '}
                           <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
                         </div>
@@ -1822,11 +1872,17 @@ export default function AbhyaasMasterTower() {
                         </button>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-slate-800 line-through opacity-80">
+                    <div 
+                      className="text-sm font-bold text-slate-800 line-through opacity-80"
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
                       <MathRenderer text={q.questionEn} />
                     </div>
                     {q.questionHi && (
-                      <div className="text-xs text-slate-500">
+                      <div 
+                        className="text-xs text-slate-500"
+                        style={{ whiteSpace: 'pre-wrap' }}
+                      >
                         <MathRenderer text={q.questionHi} />
                       </div>
                     )}
@@ -1982,7 +2038,7 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setNewOlyTopic(e.target.value)}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
-                      <option value="">-- Choose Topic --</option>
+                      <option value="">-- Choose Topic (Optional) --</option>
                       {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
                     </select>
@@ -2128,7 +2184,7 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 2: SINGLE QUESTION STUDIO (WITH UNIVERSAL WORD/EXCEL CONVERTIBLE MATH BOXES) */}
+      {/* MODAL 2: SINGLE QUESTION STUDIO */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
@@ -2139,7 +2195,7 @@ export default function AbhyaasMasterTower() {
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Visual Question Studio'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Type formulas in LaTeX or Visual Keyboard, then click "LaTeX ➔ Math" to convert just like Word/PowerPoint!
+                  Split View provides live equations & line-break preview as you type. Click converted view to edit anytime.
                 </p>
               </div>
               <button
@@ -2291,12 +2347,12 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* UNIVERSAL MATH INPUT FIELDS (POWERED BY WORD/EXCEL STYLE CONVERTIBLE ENGINE) */}
+              {/* UNIVERSAL INPUT FIELDS WITH PRESERVED LINE BREAKS & SPLIT VIEW */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type English question or formula (e.g. Find the limit $\lim_{n \to \infty} \frac{x^n - 1}{x^n + 1}$)..."
+                placeholder="Type question in English. Press Enter to start new lines/paragraphs..."
                 rows={3}
                 required={true}
               />
@@ -2305,7 +2361,7 @@ export default function AbhyaasMasterTower() {
                 label="प्रश्न विवरण (हिंदी अनुवाद)"
                 value={qStatementHi}
                 onChange={setQStatementHi}
-                placeholder="हिंदी प्रश्न या सूत्र लिखें..."
+                placeholder="हिंदी प्रश्न दर्ज करें। पैराग्राफ बदलने के लिए Enter दबाएं..."
                 rows={3}
               />
 
@@ -2313,7 +2369,7 @@ export default function AbhyaasMasterTower() {
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
-                  placeholder="Paste diagram image URL or external link..."
+                  placeholder="Paste diagram image URL or Google Drive link..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
                   className="w-full h-9 px-3 bg-white border rounded-lg font-mono text-xs outline-none"
@@ -2324,7 +2380,7 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D with Individual Word/PowerPoint LaTeX ⇄ Math Converters */}
+              {/* Options A - D (English & Hindi) */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
                 <div className="space-y-4">
@@ -2365,20 +2421,20 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Detailed Explanations with Full Convertible Math Support */}
+              {/* Detailed Explanations with Line Breaks Preserved */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <UniversalMathBox
                   label="Detailed Explanation (English)"
                   value={qExplanationEn}
                   onChange={setQExplanationEn}
-                  placeholder="Step-by-step mathematical proof in English..."
+                  placeholder="Step-by-step mathematical proof in English. Press Enter for each new step/paragraph..."
                   rows={4}
                 />
                 <UniversalMathBox
                   label="Detailed Explanation (Hindi)"
                   value={qExplanationHi}
                   onChange={setQExplanationHi}
-                  placeholder="हिंदी में चरणबद्ध हल और व्याख्या..."
+                  placeholder="हिंदी में चरणबद्ध हल और व्याख्या। हर नए चरण के लिए Enter दबाएं..."
                   rows={4}
                 />
               </div>
