@@ -12,7 +12,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
   Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
-  Sigma, Pi, Target, ArrowUpDown
+  Sigma, Pi, Target, ArrowUpDown, RefreshHorizontal
 } from 'lucide-react';
 
 import { 
@@ -118,286 +118,213 @@ function parseCSVProperly(text: string): string[][] {
 }
 
 // =========================================================================
-// GMAIL-STYLE INLINE IMAGE & RESIZABLE RICH CONTENT EDITOR
+// UNIVERSAL MATH & LATEX INTERACTIVE COMPONENT WITH WORD/EXCEL CONVERTER
 // =========================================================================
-function GmailInlineEditor({
+function UniversalMathBox({
   label,
   value,
   onChange,
   placeholder,
-  minHeight = '90px'
+  rows = 2,
+  required = false
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
   placeholder: string;
-  minHeight?: string;
+  rows?: number;
+  required?: boolean;
 }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const editorRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const isInternalChange = useRef(false);
+  // Mode: 'latex' = editable source code, 'math' = Word/PowerPoint style visual professional equation
+  const [viewMode, setViewMode] = useState<'latex' | 'math'>('latex');
+  const [ribbonTab, setRibbonTab] = useState<'home' | 'equations' | 'symbols' | 'keyboard'>('home');
+  const [visualEquation, setVisualEquation] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Selected Image state for Gmail-style bounding box & handles
-  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
-  const [overlayBox, setOverlayBox] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-
-  useEffect(() => {
-    if (editorRef.current && !isInternalChange.current) {
-      if (editorRef.current.innerHTML !== (value || '')) {
-        editorRef.current.innerHTML = value || '';
-      }
-    }
-  }, [value]);
-
-  const updateOverlay = () => {
-    if (!selectedImg || !containerRef.current || !editorRef.current?.contains(selectedImg)) {
-      setOverlayBox(null);
-      setSelectedImg(null);
+  const insertText = (prefix: string, suffix: string = '') => {
+    const textToInsert = prefix + suffix;
+    const el = textareaRef.current;
+    if (!el) {
+      onChange(value + textToInsert);
       return;
     }
-    const cRect = containerRef.current.getBoundingClientRect();
-    const iRect = selectedImg.getBoundingClientRect();
-    setOverlayBox({
-      top: iRect.top - cRect.top,
-      left: iRect.left - cRect.left,
-      width: iRect.width,
-      height: iRect.height
-    });
-  };
-
-  useEffect(() => {
-    updateOverlay();
-    const handleScrollOrResize = () => updateOverlay();
-    window.addEventListener('resize', handleScrollOrResize);
-    const ed = editorRef.current;
-    if (ed) ed.addEventListener('scroll', handleScrollOrResize);
-    return () => {
-      window.removeEventListener('resize', handleScrollOrResize);
-      if (ed) ed.removeEventListener('scroll', handleScrollOrResize);
-    };
-  }, [selectedImg]);
-
-  const handleInput = () => {
-    if (editorRef.current) {
-      isInternalChange.current = true;
-      onChange(editorRef.current.innerHTML);
-      updateOverlay();
-      setTimeout(() => {
-        isInternalChange.current = false;
-      }, 0);
-    }
-  };
-
-  // Direct Clipboard Image Paste (Ctrl + V)
-  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) {
-        e.preventDefault();
-        const file = items[i].getAsFile();
-        if (!file) continue;
-
-        const reader = new FileReader();
-        reader.onload = (loadEvent) => {
-          const base64Url = loadEvent.target?.result as string;
-          const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 140px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 4px 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" alt="inline image" />&nbsp;`;
-          document.execCommand('insertHTML', false, imgHtml);
-          handleInput();
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-    }
-  };
-
-  // Click handler to select image like Gmail
-  const handleContainerClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'IMG') {
-      setSelectedImg(target as HTMLImageElement);
-    } else if (!target.closest('.gmail-overlay-toolbar')) {
-      setSelectedImg(null);
-      setOverlayBox(null);
-    }
-  };
-
-  // Manual Drag to Resize Handler (Corner Handle)
-  const handleCornerDrag = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!selectedImg) return;
-
-    const startX = e.clientX;
-    const startW = selectedImg.offsetWidth;
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const newWidth = Math.max(50, startW + deltaX);
-      selectedImg.style.width = `${newWidth}px`;
-      selectedImg.style.height = 'auto';
-      selectedImg.style.maxWidth = '100%';
-      updateOverlay();
-      handleInput();
-    };
-
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-  };
-
-  // Quick Preset Actions from Toolbar
-  const applySize = (size: 'small' | 'best_fit' | 'original') => {
-    if (!selectedImg) return;
-    if (size === 'small') {
-      selectedImg.style.width = '180px';
-      selectedImg.style.maxWidth = '100%';
-      selectedImg.style.height = 'auto';
-    } else if (size === 'best_fit') {
-      selectedImg.style.width = '100%';
-      selectedImg.style.maxWidth = '520px';
-      selectedImg.style.height = 'auto';
-    } else if (size === 'original') {
-      selectedImg.style.width = 'auto';
-      selectedImg.style.maxWidth = 'none';
-      selectedImg.style.height = 'auto';
-    }
-    updateOverlay();
-    handleInput();
-  };
-
-  const removeSelectedImage = () => {
-    if (!selectedImg) return;
-    selectedImg.remove();
-    setSelectedImg(null);
-    setOverlayBox(null);
-    handleInput();
-  };
-
-  // Quick upload from file dialog
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      const base64Url = loadEvent.target?.result as string;
-      if (editorRef.current) {
-        editorRef.current.focus();
-        const imgHtml = `&nbsp;<img src="${base64Url}" style="max-height: 140px; max-width: 100%; height: auto; display: inline-block; vertical-align: middle; margin: 4px 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" alt="inline image" />&nbsp;`;
-        document.execCommand('insertHTML', false, imgHtml);
-        handleInput();
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const exec = (cmd: string, val: string = '') => {
-    if (editorRef.current) {
-      editorRef.current.focus();
-      document.execCommand(cmd, false, val);
-      handleInput();
-    }
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const updated = value.substring(0, start) + textToInsert + value.substring(end);
+    onChange(updated);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
+    }, 0);
   };
 
   return (
-    <div ref={containerRef} onClick={handleContainerClick} className="relative space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="text-xs font-black text-slate-700">{label}</label>
-        <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-          💡 Click any pasted image to resize or delete like Gmail
-        </span>
+    <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+      {/* Header with Title and Mode Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+        <label className="text-xs font-black text-slate-800">{label}</label>
+        
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setViewMode('latex')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              viewMode === 'latex'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <span>✍️ Math ➔ LaTeX (Edit)</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setViewMode('math')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              viewMode === 'math'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50'
+            }`}
+          >
+            <span>🔄 LaTeX ➔ Math (Convert)</span>
+          </button>
+        </div>
       </div>
 
-      {/* Editor Formatting Bar */}
-      <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 text-white p-1.5 rounded-xl text-xs shadow-xs">
-        <button type="button" onClick={() => exec('bold')} className="px-2 py-1 hover:bg-slate-800 rounded font-bold cursor-pointer" title="Bold">B</button>
-        <button type="button" onClick={() => exec('italic')} className="px-2 py-1 hover:bg-slate-800 rounded italic cursor-pointer" title="Italic">I</button>
-        <button type="button" onClick={() => exec('underline')} className="px-2 py-1 hover:bg-slate-800 rounded underline cursor-pointer" title="Underline">U</button>
-        <span className="text-slate-700">|</span>
-        <button type="button" onClick={() => exec('justifyLeft')} className="px-2 py-1 hover:bg-slate-800 rounded text-slate-300 cursor-pointer" title="Align Left">Left</button>
-        <button type="button" onClick={() => exec('justifyCenter')} className="px-2 py-1 hover:bg-slate-800 rounded text-slate-300 cursor-pointer" title="Align Center">Center</button>
-        <button type="button" onClick={() => exec('justifyRight')} className="px-2 py-1 hover:bg-slate-800 rounded text-slate-300 cursor-pointer" title="Align Right">Right</button>
-        <span className="text-slate-700">|</span>
-        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
-        <button type="button" onClick={() => fileInputRef.current?.click()} className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold flex items-center gap-1 cursor-pointer text-[11px]" title="Insert Image File">
-          <ImageIcon className="w-3.5 h-3.5" /> + Image
-        </button>
-      </div>
-
-      {/* Editable Area */}
-      <div
-        ref={editorRef}
-        contentEditable={true}
-        onInput={handleInput}
-        onPaste={handlePaste}
-        className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-600 font-sans leading-loose text-slate-900 overflow-y-auto"
-        style={{ minHeight, wordBreak: 'break-word' }}
-      />
-
-      {/* ========================================================================= */}
-      {/* GMAIL RESIZE OVERLAY & FLOATING ACTION TOOLBAR */}
-      {/* ========================================================================= */}
-      {overlayBox && selectedImg && (
-        <div
-          className="absolute pointer-events-none z-20"
-          style={{
-            top: overlayBox.top,
-            left: overlayBox.left,
-            width: overlayBox.width,
-            height: overlayBox.height
-          }}
-        >
-          {/* Blue Bounding Box */}
-          <div className="w-full h-full border-2 border-blue-600 relative pointer-events-none">
-            {/* 4 Corner Square Handles */}
-            <div className="w-2.5 h-2.5 bg-blue-600 border border-white absolute -top-1.5 -left-1.5 cursor-nwse-resize pointer-events-auto" />
-            <div className="w-2.5 h-2.5 bg-blue-600 border border-white absolute -top-1.5 -right-1.5 cursor-nesw-resize pointer-events-auto" />
-            <div className="w-2.5 h-2.5 bg-blue-600 border border-white absolute -bottom-1.5 -left-1.5 cursor-nesw-resize pointer-events-auto" />
-            {/* Bottom-Right Handle: interactive drag handle */}
-            <div
-              onMouseDown={handleCornerDrag}
-              className="w-3 h-3 bg-blue-600 border border-white absolute -bottom-1.5 -right-1.5 cursor-nwse-resize pointer-events-auto shadow-md"
-              title="Drag to resize"
-            />
+      {/* Ribbon Toolbar Bar (Available in Edit Mode) */}
+      {viewMode === 'latex' && (
+        <div className="bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-800 shadow-xs">
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto">
+            {[
+              { id: 'home', label: 'Home (Font, Powers)' },
+              { id: 'equations', label: '📐 Equations (Presets)' },
+              { id: 'symbols', label: 'Ω Symbols' },
+              { id: 'keyboard', label: '✨ Visual Keyboard' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setRibbonTab(tab.id as any)}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg whitespace-nowrap transition cursor-pointer ${
+                  ribbonTab === tab.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {/* Gmail Floating Action Toolbar: Small | Best fit | Original size | Remove */}
-          <div className="gmail-overlay-toolbar pointer-events-auto absolute left-0 top-full mt-2 bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl rounded-lg px-3 py-1.5 flex items-center gap-2 text-[11px] font-bold text-blue-700 whitespace-nowrap z-30">
-            <button
-              type="button"
-              onClick={() => applySize('small')}
-              className="hover:underline hover:text-blue-900 cursor-pointer"
-            >
-              Small
-            </button>
-            <span className="text-slate-300">|</span>
-            <button
-              type="button"
-              onClick={() => applySize('best_fit')}
-              className="hover:underline hover:text-blue-900 cursor-pointer"
-            >
-              Best fit
-            </button>
-            <span className="text-slate-300">|</span>
-            <button
-              type="button"
-              onClick={() => applySize('original')}
-              className="hover:underline hover:text-blue-900 cursor-pointer"
-            >
-              Original size
-            </button>
-            <span className="text-slate-300">|</span>
-            <button
-              type="button"
-              onClick={removeSelectedImage}
-              className="text-rose-600 hover:underline hover:text-rose-800 cursor-pointer"
-            >
-              Remove
-            </button>
+          <div className="p-2 text-xs">
+            {ribbonTab === 'home' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button type="button" onClick={() => insertText('**', '**')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Bold</button>
+                <button type="button" onClick={() => insertText('*', '*')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer">Italic</button>
+                <button type="button" onClick={() => insertText('$X_{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
+                <button type="button" onClick={() => insertText('$X^{2}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
+                <button type="button" onClick={() => insertText('$\\displaystyle\\frac{a}{b}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Fraction</button>
+                <button type="button" onClick={() => insertText('$\\sqrt{x}$')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Square Root</button>
+                <button type="button" onClick={() => insertText('\n\n| Col 1 | Col 2 |\n| --- | --- |\n| A | B |\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer">Table 2x2</button>
+                <button type="button" onClick={() => insertText('\n\n<br/><br/>\n\n')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded font-bold cursor-pointer">Extra Gap</button>
+              </div>
+            )}
+
+            {ribbonTab === 'equations' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { label: 'Area of Circle', formula: '$A = \\pi r^2$' },
+                  { label: 'Quadratic Formula', formula: '$x = \\displaystyle\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$' },
+                  { label: 'Pythagorean', formula: '$a^2 + b^2 = c^2$' },
+                  { label: 'Limit Expression', formula: '$\\displaystyle\\lim_{n \\to \\infty} \\frac{x^n - 1}{x^n + 1}$' },
+                  { label: 'Definite Integral', formula: '$\\displaystyle\\int_{0}^{\\pi} f(x) \\, dx$' },
+                  { label: 'Binomial Theorem', formula: '$(x + a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^{n-k} a^k$' },
+                  { label: 'Fourier Series', formula: '$f(x) = \\displaystyle\\frac{a_0}{2} + \\sum_{n=1}^{\\infty} (a_n \\cos nx + b_n \\sin nx)$' },
+                  { label: 'Trig Identity', formula: '$\\sin^2\\theta + \\cos^2\\theta = 1$' }
+                ].map((eq, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => insertText(` ${eq.formula} `)}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 rounded text-[11px] font-mono font-bold transition cursor-pointer"
+                  >
+                    {eq.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {ribbonTab === 'symbols' && (
+              <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
+                {['\\alpha', '\\beta', '\\theta', '\\pi', '\\sigma', '\\Delta', '\\Sigma', '\\omega', '\\infty', '\\int', '\\oint', '\\partial', '\\nabla', '\\pm', '\\times', '\\div', '\\le', '\\ge', '\\approx', '\\in', '\\notin', '\\subset'].map((sym, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => insertText(` $${sym}$ `)}
+                    className="px-2 py-0.5 bg-slate-800 hover:bg-purple-600 text-white rounded text-xs font-bold transition cursor-pointer"
+                  >
+                    {sym}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {ribbonTab === 'keyboard' && (
+              <div className="space-y-2 p-1">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                  <span>Type visually below and click Insert:</span>
+                  <button
+                    type="button"
+                    disabled={!visualEquation.trim()}
+                    onClick={() => {
+                      if (!visualEquation.trim()) return;
+                      insertText(` $\\displaystyle ${visualEquation}$ `);
+                      setVisualEquation('');
+                    }}
+                    className={`px-3 py-0.5 rounded text-[11px] font-bold transition ${
+                      visualEquation.trim() ? 'bg-emerald-600 text-white cursor-pointer' : 'bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    + Insert Equation
+                  </button>
+                </div>
+                <VisualMathInput value={visualEquation} onChange={setVisualEquation} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Editor Main Content Area */}
+      {viewMode === 'latex' ? (
+        <div className="space-y-2">
+          <textarea
+            ref={textareaRef}
+            rows={rows}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full p-3.5 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed outline-none focus:border-blue-600 text-slate-900"
+            required={required}
+          />
+          {value.trim() && (
+            <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl overflow-x-auto leading-[2.2]">
+              <span className="text-[10px] font-black uppercase text-blue-600 block mb-0.5">Live Math Preview:</span>
+              <div className="text-xs font-bold text-slate-900">
+                <MathRenderer text={value} />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Word/PowerPoint Professional Visual View */
+        <div className="p-4 bg-white border-2 border-emerald-500 rounded-xl shadow-xs space-y-2 min-h-[90px] overflow-x-auto">
+          <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
+            <span className="text-[10px] font-black uppercase text-emerald-700 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Converted Professional Math View
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">To edit text or symbols, switch to "Math ➔ LaTeX"</span>
+          </div>
+          <div className="text-sm font-semibold text-slate-900 leading-[2.4]">
+            {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">No equation content typed yet.</span>}
           </div>
         </div>
       )}
@@ -423,7 +350,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State
+  // Olympiad Creation Modal State with Full Manual Taxonomy Control
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -444,6 +371,7 @@ export default function AbhyaasMasterTower() {
   
   const [newOlySubject, setNewOlySubject] = useState<string>('');
   const [newOlySubjectCustom, setNewOlySubjectCustom] = useState<string>('');
+
   const [newOlyTopic, setNewOlyTopic] = useState<string>('');
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
@@ -523,13 +451,6 @@ export default function AbhyaasMasterTower() {
   const opt1FileRef = useRef<HTMLInputElement | null>(null);
   const opt2FileRef = useRef<HTMLInputElement | null>(null);
   const opt3FileRef = useRef<HTMLInputElement | null>(null);
-
-  const getOptRef = (index: number) => {
-    if (index === 0) return opt0FileRef;
-    if (index === 1) return opt1FileRef;
-    if (index === 2) return opt2FileRef;
-    return opt3FileRef;
-  };
 
   useEffect(() => {
     setMounted(true);
@@ -993,6 +914,7 @@ export default function AbhyaasMasterTower() {
   const openCreateQuestionModal = () => {
     setEditingQuestionId(null);
     setDuplicateWarning(null);
+    setVisualEquation('');
     setQStatementEn(''); setQStatementHi('');
     setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
     setQOptionsDiagrams(['', '', '', '']);
@@ -1004,6 +926,7 @@ export default function AbhyaasMasterTower() {
   const openEditQuestionModal = (q: QuestionData) => {
     setEditingQuestionId(q.id);
     setDuplicateWarning(null);
+    setVisualEquation('');
     setQClass(q.className || q.class || '');
     setQExam(q.examName || q.category || '');
     setQSubject(q.subjectName || q.subject || '');
@@ -1449,24 +1372,14 @@ export default function AbhyaasMasterTower() {
                         </div>
                       </div>
 
-                      {/* Question Text with HTML/Image Support */}
                       <div>
-                        {(q.questionEn || '').includes('<') ? (
-                          <div dangerouslySetInnerHTML={{ __html: q.questionEn || '' }} className="text-sm font-bold text-slate-900 leading-loose" />
-                        ) : (
-                          <div className="font-bold text-sm text-slate-900 leading-loose">
-                            <MathRenderer text={q.questionEn || ''} />
-                          </div>
-                        )}
-
+                        <div className="font-bold text-sm text-slate-900 leading-[2.2]">
+                          <MathRenderer text={q.questionEn} />
+                        </div>
                         {q.questionHi && (
-                          (q.questionHi || '').includes('<') ? (
-                            <div dangerouslySetInnerHTML={{ __html: q.questionHi || '' }} className="text-xs text-slate-600 mt-1 leading-loose" />
-                          ) : (
-                            <div className="text-xs text-slate-600 mt-1 leading-loose">
-                              <MathRenderer text={q.questionHi || ''} />
-                            </div>
-                          )
+                          <div className="text-xs text-slate-600 mt-1 leading-[2.2]">
+                            <MathRenderer text={q.questionHi} />
+                          </div>
                         )}
                       </div>
 
@@ -1523,12 +1436,8 @@ export default function AbhyaasMasterTower() {
                                 }`}>
                                   {String.fromCharCode(65 + i)}
                                 </span>
-                                <div className="truncate">
-                                  {(opt || '').includes('<') ? (
-                                    <span dangerouslySetInnerHTML={{ __html: opt || '' }} />
-                                  ) : (
-                                    <MathRenderer text={opt || ''} />
-                                  )}
+                                <div className="truncate leading-loose">
+                                  <MathRenderer text={opt} />
                                 </div>
                               </div>
 
@@ -1548,13 +1457,9 @@ export default function AbhyaasMasterTower() {
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
-                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-loose">
+                        <div className="p-3 bg-blue-50/70 rounded-xl text-[11px] text-blue-900 border border-blue-100 leading-[2.2]">
                           <strong className="font-black">💡 Solution:</strong>{' '}
-                          {((q.explanationEn || q.explanationHi) || '').includes('<') ? (
-                            <span dangerouslySetInnerHTML={{ __html: (q.explanationEn || q.explanationHi) || '' }} />
-                          ) : (
-                            <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
-                          )}
+                          <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
                         </div>
                       )}
                     </div>
@@ -2080,298 +1985,6 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setNewOlyTopic(e.target.value)}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
                     >
-                      <option value="">-- Choose Topic (Optional) --</option>
-                      {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
-                    </select>
-                    {newOlyTopic === 'OTHER' && (
-                      <input
-                        type="text"
-                        placeholder="Type custom topic (e.g. Fundamental Rights, Thermodynamics)"
-                        value={newOlyTopicCustom}
-                        onChange={e => setNewOlyTopicCustom(e.target.value)}
-                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Manual Fee (₹)*</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="49"
-                    value={newOlyFee}
-                    onChange={e => setNewOlyFee(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-600"
-                    required
-                  />
-                  <p className="text-[10px] text-slate-400 mt-0.5">Enter 0 for Free Entry</p>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Fellowship Pool*</label>
-                  <input
-                    type="text"
-                    placeholder="₹15,000"
-                    value={newOlyGrantPool}
-                    onChange={e => setNewOlyGrantPool(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Slots Capacity*</label>
-                  <input
-                    type="number"
-                    min="10"
-                    value={newOlySlots}
-                    onChange={e => setNewOlySlots(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Duration (Mins)*</label>
-                  <input
-                    type="number"
-                    value={newOlyDuration}
-                    onChange={e => setNewOlyDuration(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                  Scheduled Date & Start Time (Calendar & Clock 2026–2099)*
-                </label>
-                <input
-                  type="datetime-local"
-                  min="2026-01-01T00:00"
-                  max="2099-12-31T23:59"
-                  value={newOlyDateTime}
-                  onChange={e => setNewOlyDateTime(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800 cursor-pointer"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Examination Description / Overview</label>
-                <textarea
-                  rows={2}
-                  placeholder="Describe examination standards, syllabus coverage, and learning outcomes..."
-                  value={newOlyDesc}
-                  onChange={e => setNewOlyDesc(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                />
-              </div>
-
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
-                <div className="space-y-2">
-                  {newOlySyllabus.map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
-                      <div>
-                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
-                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
-                      </div>
-                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid sm:grid-cols-3 gap-2 pt-2">
-                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                </div>
-                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
-              </div>
-
-              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {newOlyRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
-                      <span>• {rule}</span>
-                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
-                    value={newRuleInput}
-                    onChange={e => setNewRuleInput(e.target.value)}
-                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
-                  />
-                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
-              >
-                <Trophy className="w-4 h-4" /> Save & Publish Olympiad Live
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: SINGLE QUESTION STUDIO (GMAIL-STYLE RICH INLINE EDITOR WITH RESIZER) */}
-      {isQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Gmail-Style Visual Question Studio'}
-                </h3>
-                <p className="text-xs text-slate-500">Paste images/equations directly into text flow, resize with handles, and type around seamlessly.</p>
-              </div>
-              <button
-                onClick={() => setIsQuestionModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveQuestion} className="space-y-5">
-              
-              {duplicateWarning && (
-                <div className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-rose-50 border-rose-300 text-rose-800">
-                  <AlertTriangle className="w-5 h-5 shrink-0" />
-                  <span>{duplicateWarning}</span>
-                </div>
-              )}
-
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Destination / Vault*
-                </label>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {[
-                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
-                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
-                  ].map(s => (
-                    <button
-                      type="button"
-                      key={s.id}
-                      onClick={() => setQSegment(s.id as QuestionSegment)}
-                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
-                        qSegment === s.id 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <p className="font-black text-xs">{s.title}</p>
-                      <p className={`text-[10px] mt-0.5 ${qSegment === s.id ? 'text-blue-100' : 'text-slate-400'}`}>
-                        {s.desc}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-
-                {qSegment === 'PYQ' && (
-                  <div className="pt-2 flex items-center gap-3">
-                    <label className="text-xs font-bold text-slate-700">Exam Year (PYQ):</label>
-                    <input
-                      type="text"
-                      value={qPyqYear}
-                      onChange={e => setQPyqYear(e.target.value)}
-                      placeholder="e.g. 2026"
-                      className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold w-32 outline-none"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <div className="relative">
-                    <select
-                      value={qClass}
-                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qClass === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <div className="relative">
-                    <select
-                      value={qExam}
-                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Exam --</option>
-                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qExam === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
-                  <div className="relative">
-                    <select
-                      value={qSubject}
-                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Subject --</option>
-                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qSubject === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
-                  <div className="relative">
-                    <select
-                      value={qTopic}
-                      onChange={e => setQTopic(e.target.value)}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
                       <option value="">-- Choose Topic --</option>
                       {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
@@ -2387,28 +2000,31 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* GMAIL-STYLE RESIZABLE INLINE FIELDS */}
-              <GmailInlineEditor
+              {/* ========================================================================= */}
+              {/* UNIVERSAL INPUT FIELDS POWERED BY WORD/EXCEL STYLE LATEX ⇄ MATH BOXES */}
+              {/* ========================================================================= */}
+              <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type your question or paste screenshots directly inside the sentence..."
-                minHeight="110px"
+                placeholder="Enter English question statement (e.g. Find the limit $\lim_{n \to \infty} \frac{x^n-1}{x^n+1}$)..."
+                rows={3}
+                required={true}
               />
 
-              <GmailInlineEditor
-                label="Question Statement (Hindi)"
+              <UniversalMathBox
+                label="प्रश्न विवरण (हिंदी अनुवाद)"
                 value={qStatementHi}
-                onChange={val => setQStatementHi(val)}
-                placeholder="हिंदी प्रश्न लिखें या डायग्राम पेस्ट करें..."
-                minHeight="90px"
+                onChange={setQStatementHi}
+                placeholder="हिंदी में प्रश्न दर्ज करें (जैसे: फलन $f(x)$ के असांतत्य के बिंदु ज्ञात कीजिए)..."
+                rows={3}
               />
 
-              {/* Diagram URL (Standalone File / Drive URL) */}
+              {/* Diagram URL */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
-                  placeholder="Optional: Google Drive or external image URL..."
+                  placeholder="Paste diagram image URL or drive link..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
                   className="w-full h-9 px-3 bg-white border rounded-lg font-mono text-xs outline-none"
@@ -2419,30 +2035,40 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D (English & Hindi) with Inline Paste Support */}
+              {/* Options A - D (English & Hindi) with Full LaTeX ⇄ Math Support */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
                 <div className="space-y-4">
                   {[0, 1, 2, 3].map(i => (
-                    <div key={i} className="p-3 bg-white border rounded-2xl space-y-2">
+                    <div key={i} className="p-3.5 bg-white border rounded-2xl space-y-3 shadow-xs">
                       <div className="flex items-center gap-2">
-                        <input type="radio" name="correctKey" checked={qCorrectOpt === i} onChange={() => setQCorrectOpt(i)} className="w-4 h-4 text-blue-600 cursor-pointer" />
-                        <span className="font-black text-slate-700 w-24">Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct)' : ''}</span>
+                        <input
+                          type="radio"
+                          name="correctKey"
+                          checked={qCorrectOpt === i}
+                          onChange={() => setQCorrectOpt(i)}
+                          className="w-4 h-4 text-blue-600 cursor-pointer"
+                        />
+                        <span className="font-black text-slate-800 text-xs">
+                          Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct Answer)' : ''}
+                        </span>
                       </div>
+
                       <div className="grid sm:grid-cols-2 gap-3">
-                        <GmailInlineEditor
+                        <UniversalMathBox
                           label={`Option ${String.fromCharCode(65 + i)} (English)`}
                           value={qOptionsEn[i]}
                           onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} English or paste image...`}
-                          minHeight="70px"
+                          placeholder={`Option ${String.fromCharCode(65 + i)} English equation or text...`}
+                          rows={1}
+                          required={true}
                         />
-                        <GmailInlineEditor
+                        <UniversalMathBox
                           label={`Option ${String.fromCharCode(65 + i)} (Hindi)`}
                           value={qOptionsHi[i]}
                           onChange={val => { const o = [...qOptionsHi]; o[i] = val; setQOptionsHi(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi or paste image...`}
-                          minHeight="70px"
+                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi equation or text...`}
+                          rows={1}
                         />
                       </div>
                     </div>
@@ -2450,21 +2076,21 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Detailed Explanations */}
+              {/* Detailed Explanations (English & Hindi) with Full LaTeX ⇄ Math Support */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                <GmailInlineEditor
+                <UniversalMathBox
                   label="Detailed Explanation (English)"
                   value={qExplanationEn}
-                  onChange={val => setQExplanationEn(val)}
-                  placeholder="English solution with text & inline pasted clippings..."
-                  minHeight="100px"
+                  onChange={setQExplanationEn}
+                  placeholder="Step-by-step mathematical proof in English..."
+                  rows={4}
                 />
-                <GmailInlineEditor
+                <UniversalMathBox
                   label="Detailed Explanation (Hindi)"
                   value={qExplanationHi}
-                  onChange={val => setQExplanationHi(val)}
-                  placeholder="हिंदी समाधान..."
-                  minHeight="100px"
+                  onChange={setQExplanationHi}
+                  placeholder="हिंदी में चरणबद्ध हल और व्याख्या..."
+                  rows={4}
                 />
               </div>
 
