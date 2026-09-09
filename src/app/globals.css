@@ -27,61 +27,29 @@ body {
 }
 
 /* ========================================================================= */
-/* ULTIMATE BULLETPROOF UPSC-GRADE KATEX FRACTION & LINE OVERLAP FIX          */
+/* UPSC MATHEMATICAL PRINT STANDARD (EXACT METRIC ALIGNMENT)                 */
 /* ========================================================================= */
 
-/* 1. Global KaTeX Display Box & Font Scaling */
 .katex-display {
   display: block !important;
   margin: 1.8rem 0 !important;
-  padding: 0.8rem 0 !important;
+  padding: 0.6rem 0 !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
 }
 
-.katex {
-  font-size: 1.15em !important;
-  text-rendering: optimizeLegibility !important;
-}
-
-/* 2. Main Fraction Spacing & Vertical Breathing Room */
-.katex .mfrac {
-  padding: 0.35em 0 !important;
-}
-
+/* Fraction Bar Vertical Separation */
 .katex .mfrac .frac-line {
-  border-bottom-width: 1.5px !important;
-  border-color: currentColor !important;
-  margin-top: 0.35em !important;
-  margin-bottom: 0.35em !important;
-  min-height: 1.5px !important;
-}
-
-/* 3. THE ULTIMATE FIX FOR NESTED FRACTIONS (PI / X STRIKE OVERLAP FIX) */
-.katex .scriptstyle .mfrac, 
-.katex .scriptscriptstyle .mfrac {
-  padding: 0.4em 0 !important;
-  margin: 0.2em 0.15em !important;
-}
-
-.katex .scriptstyle .mfrac .frac-line, 
-.katex .scriptscriptstyle .mfrac .frac-line {
   border-bottom-width: 1.3px !important;
-  margin-top: 0.4em !important;
-  margin-bottom: 0.4em !important;
+  margin: 0.12em 0 !important;
 }
 
-/* Force vertical separation inside inner/nested vlists so lines never touch pi or x */
-.katex .vlist-t2 {
-  min-height: 2.2em !important;
+/* Numerator Gap */
+.katex .mfrac > .vlist-t > .vlist-r:first-child {
+  padding-bottom: 0.18em !important;
 }
 
-.katex .scriptstyle .vlist-t2,
-.katex .scriptscriptstyle .vlist-t2 {
-  min-height: 2.4em !important;
-}
-
-/* Superscripts (powers) headroom */
-.katex .msupsub {
-  text-align: left !important;
+/* Denominator Gap */
+.katex .mfrac > .vlist-t2 {
+  margin-top: 0.18em !important;
 }

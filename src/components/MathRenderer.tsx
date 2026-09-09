@@ -12,7 +12,7 @@ interface MathRendererProps {
 export default function MathRenderer({ text = '', className = '' }: MathRendererProps) {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. Typography & Symbol Pre-processing
+  // 1. UPSC Exact Replacements: Clean spacing and nested fractions
   let cleanText = text
     .replace(/\\le\s+ft/g, '\\left')
     .replace(/\\ri\s+ght/g, '\\right')
@@ -24,7 +24,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
     .replace(/≠/g, '\\ne ')
     .replace(/∞/g, '\\infty ');
 
-  // 2. Math-Bolding Support
+  // 2. Auto-Bold Support
   cleanText = cleanText.replace(/\*\*\$([^\$]+?)\$\*\*/g, (_, math) => `$\\boldsymbol{${math.trim()}}$`);
   cleanText = cleanText.replace(/\*\*\$\$([\s\S]+?)\$\$\*\*/g, (_, math) => `$$\\boldsymbol{${math.trim()}}$$`);
 
@@ -91,9 +91,8 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
     return parts.map((part, pIdx) => {
       if (!part) return null;
 
-      // Block Math ($$...$$) -> Safe Display Box with UPSC Spacing
       if (part.startsWith('$$') && part.endsWith('$$')) {
-        const math = part.slice(2, -2).trim();
+        let math = part.slice(2, -2).trim();
         return (
           <div key={`${blockKey}-${pIdx}`} className="my-6 py-4 px-2 overflow-x-auto text-center w-full block-math-box">
             <BlockMath math={math} errorColor="#ef4444" />
@@ -102,7 +101,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
       }
 
       if (part.startsWith('$') && part.endsWith('$')) {
-        const math = part.slice(1, -1).trim();
+        let math = part.slice(1, -1).trim();
         return (
           <span key={`${blockKey}-${pIdx}`} className="inline-block mx-0.5 align-baseline">
             <InlineMath math={math} errorColor="#ef4444" />
@@ -117,51 +116,11 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
   const lines = cleanText.split('\n');
 
   return (
-    <div className={`font-sans leading-[2.8] text-slate-900 ${className}`}>
-      {/* UPSC-Grade Precision Fraction & Typography Engine */}
-      <style>{`
-        .katex-display {
-          display: block !important;
-          margin: 2rem 0 !important;
-          padding: 1rem 0 !important;
-          overflow-x: auto !important;
-          overflow-y: visible !important;
-        }
-        .katex {
-          font-size: 1.15em !important;
-          text-rendering: optimizeLegibility !important;
-        }
-        /* -- PERFECT UPSC FRACTION PADDING & NUMERATOR/DENOMINATOR GAP FIX -- */
-        .katex .mfrac {
-          padding: 0 0.2em !important;
-        }
-        .katex .mfrac .vlist-t2 {
-          margin-top: 0.15em !important;
-          margin-bottom: 0.15em !important;
-        }
-        .katex .mfrac .vlist-r > span:nth-child(1) {
-          margin-bottom: -0.2em !important;
-        }
-        .katex .mfrac .vlist-r > span:nth-child(3) {
-          margin-top: -0.15em !important;
-        }
-        .katex .mfrac .frac-line {
-          border-bottom-width: 1.4px !important;
-          border-color: currentColor !important;
-          min-height: 1.4px !important;
-        }
-        /* Ensures superscripts (powers) have ideal vertical headroom */
-        .katex .msupsub {
-          text-align: left !important;
-        }
-      `}</style>
-
+    <div className={`font-serif leading-[2.8] text-slate-950 ${className}`}>
       {lines.map((line, lIdx) => {
         const trimmed = line.trim();
 
-        if (!trimmed) {
-          return <div key={lIdx} className="h-4" />;
-        }
+        if (!trimmed) return <div key={lIdx} className="h-4" />;
 
         if (trimmed.startsWith('[center]') && trimmed.endsWith('[/center]')) {
           const inner = trimmed.slice(8, -9);
