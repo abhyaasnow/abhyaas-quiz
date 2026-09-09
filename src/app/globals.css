@@ -27,34 +27,10 @@ body {
 }
 
 /* ========================================================================= */
-/* PERFECT UPSC-GRADE PERMANENT KATEX FRACTION & SPACING OVERRIDE            */
+/* ULTIMATE BULLETPROOF UPSC-GRADE KATEX FRACTION & LINE OVERLAP FIX          */
 /* ========================================================================= */
 
-/* Fraction container ko upar-neeche khula space dena */
-.katex .mfrac {
-  padding: 0.4em 0 !important;
-}
-
-/* Numerator (अंश) ko fraction line se upar uthana */
-.katex .mfrac > span > span:first-child {
-  padding-bottom: 0.3em !important;
-}
-
-/* Denominator (हर) ko fraction line se neeche khકના */
-.katex .mfrac > span > span:last-child {
-  padding-top: 0.3em !important;
-}
-
-/* Fraction bar (बट्टे की लाइन) ki motaai aur safety margin */
-.katex .mfrac .frac-line {
-  border-bottom-width: 1.5px !important;
-  border-color: currentColor !important;
-  margin-top: 0.25em !important;
-  margin-bottom: 0.25em !important;
-  min-height: 1.5px !important;
-}
-
-/* Display equations ke liye safe bounding box aur visible overflow */
+/* 1. Global KaTeX Display Box & Font Scaling */
 .katex-display {
   display: block !important;
   margin: 1.8rem 0 !important;
@@ -63,39 +39,49 @@ body {
   overflow-y: visible !important;
 }
 
-/* Superscripts (powers) aur limits ke liye proper vertical headroom */
-.katex .msupsub {
-  text-align: left !important;
+.katex {
+  font-size: 1.15em !important;
+  text-rendering: optimizeLegibility !important;
 }
 
-.katex .vlist-t2 {
-  min-height: 2.4em !important;
+/* 2. Main Fraction Spacing & Vertical Breathing Room */
+.katex .mfrac {
+  padding: 0.35em 0 !important;
 }
-/* ========================================================================= */
-/* PERMANENT FIX FOR NESTED FRACTIONS & SYMBOL OVERLAPS (PI / X STRIKE FIX)  */
-/* ========================================================================= */
 
-/* Jab koi fraction kisi dusre fraction ke andar ho (Script/ScriptScript style) */
+.katex .mfrac .frac-line {
+  border-bottom-width: 1.5px !important;
+  border-color: currentColor !important;
+  margin-top: 0.35em !important;
+  margin-bottom: 0.35em !important;
+  min-height: 1.5px !important;
+}
+
+/* 3. THE ULTIMATE FIX FOR NESTED FRACTIONS (PI / X STRIKE OVERLAP FIX) */
 .katex .scriptstyle .mfrac, 
 .katex .scriptscriptstyle .mfrac {
-  padding: 0.25em 0 !important;
-  margin: 0 0.1em !important;
+  padding: 0.4em 0 !important;
+  margin: 0.2em 0.15em !important;
 }
 
 .katex .scriptstyle .mfrac .frac-line, 
 .katex .scriptscriptstyle .mfrac .frac-line {
-  border-bottom-width: 1.2px !important;
-  margin-top: 0.25em !important;
-  margin-bottom: 0.25em !important;
+  border-bottom-width: 1.3px !important;
+  margin-top: 0.4em !important;
+  margin-bottom: 0.4em !important;
 }
 
-/* Pi (\pi) ya numerator ke upar wale symbols ko line se safe door rakhna */
-.katex .scriptstyle .mfrac > span > span:first-child,
-.katex .scriptscriptstyle .mfrac > span > span:first-child {
-  padding-bottom: 0.2em !important;
+/* Force vertical separation inside inner/nested vlists so lines never touch pi or x */
+.katex .vlist-t2 {
+  min-height: 2.2em !important;
 }
 
-.katex .scriptstyle .mfrac > span > span:last-child,
-.katex .scriptscriptstyle .mfrac > span > span:last-child {
-  padding-top: 0.2em !important;
+.katex .scriptstyle .vlist-t2,
+.katex .scriptscriptstyle .vlist-t2 {
+  min-height: 2.4em !important;
+}
+
+/* Superscripts (powers) headroom */
+.katex .msupsub {
+  text-align: left !important;
 }
