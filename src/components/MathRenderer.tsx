@@ -9,14 +9,15 @@ interface MathRendererProps {
 }
 
 const mathJaxConfig = {
-  loader: { load: ['[tex]/ams'] },
+  loader: { load: ['input/tex', 'output/chtml'] },
   tex: {
-    packages: { '[+]': ['ams'] },
     inlineMath: [['$', '$']],
     displayMath: [['$$', '$$']],
+    processEscapes: true,
   },
   chtml: {
-    fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2',
+    scale: 1.05,
+    matchFontHeight: true,
   },
 };
 
@@ -43,13 +44,13 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
 
   return (
     <MathJaxContext config={mathJaxConfig}>
-      <div className={`font-sans leading-relaxed text-slate-900 ${className}`}>
+      <div className={`font-sans leading-[2.2] text-slate-900 overflow-visible ${className}`}>
         {lines.map((line, lIdx) => {
           const trimmed = line.trim();
           if (!trimmed) return <div key={lIdx} className="h-3" />;
 
           return (
-            <div key={lIdx} className="my-1.5">
+            <div key={lIdx} className="my-2 overflow-visible">
               <MathJax dynamic>{line}</MathJax>
             </div>
           );
