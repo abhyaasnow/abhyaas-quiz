@@ -3,13 +3,13 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -23,11 +23,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ========================================================================= */
-/* UPSC MATHEMATICAL PRINT STANDARD (EXACT METRIC ALIGNMENT)                 */
+/* FIX: FRACTION LINE CRUSH & VERTICAL COLLISION OVERRIDE                    */
 /* ========================================================================= */
 
 .katex-display {
@@ -38,18 +39,26 @@ body {
   overflow-y: visible !important;
 }
 
-/* Fraction Bar Vertical Separation */
+/* Main fraction bar styling */
 .katex .mfrac .frac-line {
-  border-bottom-width: 1.3px !important;
-  margin: 0.12em 0 !important;
+  border-bottom-width: 1.4px !important;
+  border-color: #0f172a !important;
+  min-height: 1.4px !important;
 }
 
-/* Numerator Gap */
+/* KaTeX vlist box adjustment: forcing genuine separation */
 .katex .mfrac > .vlist-t > .vlist-r:first-child {
-  padding-bottom: 0.18em !important;
+  position: relative;
+  bottom: 6px !important; /* Lifts the entire numerator cleanly off the fraction bar */
 }
 
-/* Denominator Gap */
 .katex .mfrac > .vlist-t2 {
-  margin-top: 0.18em !important;
+  position: relative;
+  top: 6px !important;    /* Pushes the entire denominator down away from the bar */
+}
+
+/* Normal sans-serif font for regular math prose */
+.katex {
+  font-size: 1.12em !important;
+  text-rendering: optimizeLegibility !important;
 }

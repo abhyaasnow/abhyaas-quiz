@@ -12,7 +12,7 @@ interface MathRendererProps {
 export default function MathRenderer({ text = '', className = '' }: MathRendererProps) {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. UPSC Exact Replacements: Clean spacing and nested fractions
+  // 1. Clean up characters & symbols
   let cleanText = text
     .replace(/\\le\s+ft/g, '\\left')
     .replace(/\\ri\s+ght/g, '\\right')
@@ -27,6 +27,15 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
   // 2. Auto-Bold Support
   cleanText = cleanText.replace(/\*\*\$([^\$]+?)\$\*\*/g, (_, math) => `$\\boldsymbol{${math.trim()}}$`);
   cleanText = cleanText.replace(/\*\*\$\$([\s\S]+?)\$\$\*\*/g, (_, math) => `$$\\boldsymbol{${math.trim()}}$$`);
+
+  // 3. Engine-level fraction safety injection: Ensures numerator/denominator never collide with fraction line
+  const autoInjectFractionHeadroom = (mathExpr: string): string => {
+    // Nested fractions like \frac{\pi}{x} are promoted to full-spaced fractions
+    let processed = mathExpr.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (match, num, den) => {
+      return `\\frac{${num}}{${den}}`;
+    });
+    return processed;
+  };
 
   const renderInlineFormatted = (rawStr: string, keyPrefix: string | number) => {
     const colorTokens = rawStr.split(/(\[color=[a-zA-Z0-9#]+\][\s\S]*?\[\/color\])/g);
@@ -93,6 +102,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
 
       if (part.startsWith('$$') && part.endsWith('$$')) {
         let math = part.slice(2, -2).trim();
+        math = autoInjectFractionHeadroom(math);
         return (
           <div key={`${blockKey}-${pIdx}`} className="my-6 py-4 px-2 overflow-x-auto text-center w-full block-math-box">
             <BlockMath math={math} errorColor="#ef4444" />
@@ -116,7 +126,7 @@ export default function MathRenderer({ text = '', className = '' }: MathRenderer
   const lines = cleanText.split('\n');
 
   return (
-    <div className={`font-serif leading-[2.8] text-slate-950 ${className}`}>
+    <div className={`font-sans leading-[2.6] text-slate-900 ${className}`}>
       {lines.map((line, lIdx) => {
         const trimmed = line.trim();
 
