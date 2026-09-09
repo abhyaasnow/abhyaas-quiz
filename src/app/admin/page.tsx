@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import 'katex/dist/katex.min.css';
 import {
   Plus, Trash2, Edit3, Eye, LogOut, KeyRound,
   Layers, ChevronDown, Check, X,
@@ -120,10 +119,11 @@ function parseCSVProperly(text: string): string[][] {
   return rows;
 }
 
-// Clean KaTeX crash-prone Unicode characters without altering natural sentences
 function sanitizeLatex(text: string): string {
   if (!text) return '';
   return text
+    .replace(/\\le\s+ft/g, '\\left')
+    .replace(/\\ri\s+ght/g, '\\right')
     .replace(/→/g, '\\to ')
     .replace(/←/g, '\\leftarrow ')
     .replace(/↔/g, '\\leftrightarrow ')
@@ -138,7 +138,7 @@ function sanitizeLatex(text: string): string {
 }
 
 // =========================================================================
-// UNIVERSAL QUESTION STUDIO BOX WITH FULL FORMATTING CONTROLS
+// UNIVERSAL QUESTION STUDIO BOX WITH FULL FORMATTING CONTROLS & INLINE IMAGES
 // =========================================================================
 function UniversalMathBox({
   label,
@@ -158,6 +158,7 @@ function UniversalMathBox({
   const [ribbonTab, setRibbonTab] = useState<'home' | 'formatting' | 'equations' | 'symbols' | 'keyboard'>('home');
   const [visualEquation, setVisualEquation] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const inlineImgInputRef = useRef<HTMLInputElement | null>(null);
 
   const wrapOrInsert = (prefix: string, suffix: string = '', defaultPlaceholder: string = '') => {
     const el = textareaRef.current;
@@ -180,12 +181,31 @@ function UniversalMathBox({
     }, 10);
   };
 
+  const handleInsertImageTag = (url: string, width: string = '280', align: string = 'center') => {
+    if (!url.trim()) return;
+    const imgTag = `\n[img url=${url.trim()} w=${width} align=${align}]\n`;
+    wrapOrInsert(imgTag, '');
+  };
+
+  const handleInlineImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) return alert("Image size must be less than 4MB");
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const b64 = (evt.target?.result as string) || '';
+      handleInsertImageTag(b64, '300', 'center');
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
         <label className="text-xs font-black text-slate-800">{label}</label>
         <span className="text-[10px] text-slate-400 font-medium">
-          Inline: <code className="bg-slate-200 px-1 rounded text-slate-700">$x$</code> | Centered: <code className="bg-slate-200 px-1 rounded text-slate-700">$$x$$</code>
+          Inline: <code className="bg-slate-200 px-1 rounded text-slate-700">$x$</code> | Centered: <code className="bg-slate-200 px-1 rounded text-slate-700">$$x$$</code> | Image: <code className="bg-slate-200 px-1 rounded text-slate-700">[img url=... w=250]</code>
         </span>
       </div>
 
@@ -227,6 +247,18 @@ function UniversalMathBox({
               <button type="button" onClick={() => wrapOrInsert('^{', '}', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Power</button>
               <button type="button" onClick={() => wrapOrInsert('_{', '}', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
               <span className="text-slate-700">|</span>
+              
+              {/* Inline Diagram Button */}
+              <input type="file" accept="image/*" ref={inlineImgInputRef} onChange={handleInlineImageUpload} className="hidden" />
+              <button 
+                type="button" 
+                onClick={() => inlineImgInputRef.current?.click()} 
+                className="px-2.5 py-1 bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/50 rounded font-bold cursor-pointer flex items-center gap-1"
+                title="Insert Diagram / Ring / Map at cursor"
+              >
+                🖼️ + Inline Diagram
+              </button>
+
               <button type="button" onClick={() => wrapOrInsert('\n', '')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-bold cursor-pointer">↵ New Line</button>
             </div>
           )}
@@ -378,7 +410,7 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State with Full Manual Taxonomy Control
+  // Olympiad Creation Modal State
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -435,7 +467,6 @@ export default function AbhyaasMasterTower() {
   const [bulkParsedQuestions, setBulkParsedQuestions] = useState<QuestionData[]>([]);
   const [bulkParseError, setBulkParseError] = useState<string | null>(null);
   const [isImportingBulk, setIsImportingBulk] = useState(false);
-  const bulkFileRef = useRef<HTMLInputElement | null>(null);
 
   // Filters (Tab 1)
   const [searchFilter, setSearchFilter] = useState('');
@@ -468,11 +499,6 @@ export default function AbhyaasMasterTower() {
   const [qExplanationEn, setQExplanationEn] = useState('');
   const [qExplanationHi, setQExplanationHi] = useState('');
   const [qDiagramUrl, setQDiagramUrl] = useState('');
-
-  // Auto-Push Pipeline State
-  const [pushTargetExam, setPushTargetExam] = useState('');
-  const [pushTargetSegment, setPushTargetSegment] = useState<'PRACTICE' | 'PYQ'>('PRACTICE');
-  const [pushPyqYear, setPushPyqYear] = useState('2026');
 
   const fileAttachmentRef = useRef<HTMLInputElement | null>(null);
 
@@ -531,9 +557,6 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // =========================================================================
-  // EXCEL BULK IMPORTER LOGIC
-  // =========================================================================
   const parseExcelCorrectOption = (val: string): number => {
     const clean = String(val || '').trim().toUpperCase();
     if (clean === 'A' || clean === '1') return 0;
@@ -903,7 +926,6 @@ export default function AbhyaasMasterTower() {
 
     const parsedAtt = parseAttachment(qDiagramUrl);
 
-    // Save with pure sanitized LaTeX
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
@@ -1063,7 +1085,7 @@ export default function AbhyaasMasterTower() {
             <Link href="/olympiad" target="_blank" className="text-xs font-bold text-amber-300 hover:text-white flex items-center gap-1.5 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
               <Trophy className="w-4 h-4 text-amber-400"/> Live Olympiad Arena
             </Link>
-            <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 bg-slate-800 p-2 rounded-xl">
+            <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 bg-slate-800 p-2 rounded-xl cursor-pointer">
               <LogOut className="w-4 h-4"/>
             </button>
           </div>
@@ -1112,9 +1134,7 @@ export default function AbhyaasMasterTower() {
           </button>
         </div>
 
-        {/* ========================================================================= */}
         {/* TAB 1: QUESTION BANK & PRACTICE VAULT */}
-        {/* ========================================================================= */}
         {adminTab === 'questions' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
@@ -1125,7 +1145,7 @@ export default function AbhyaasMasterTower() {
                     Active Question Bank & Practice Vault
                   </h2>
                   <p className="text-xs text-slate-500">
-                    STEM & Humanities: Precision LaTeX formulas, diagrams, and true bold typography.
+                    STEM & Humanities: Precision LaTeX formulas, inline diagrams, maps, and true bold typography.
                   </p>
                 </div>
 
@@ -1146,12 +1166,6 @@ export default function AbhyaasMasterTower() {
                     className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Excel Power Importer
-                  </button>
-                  <button
-                    onClick={() => setIsAutoPushModalOpen(true)}
-                    className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <RefreshCw className="w-4 h-4" /> Push Olympiad ➔ PYQ
                   </button>
                 </div>
               </div>
@@ -1251,7 +1265,7 @@ export default function AbhyaasMasterTower() {
               )}
             </div>
 
-            {/* Questions Stream (Rendered cleanly via MathRenderer) */}
+            {/* Questions Stream */}
             <div className="space-y-3">
               {filteredActiveQuestions.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
@@ -2081,7 +2095,7 @@ export default function AbhyaasMasterTower() {
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Universal Question Studio'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  UPSC/NTA Standard: Bold, Alignment, Colors, Lists, and Live Split Preview as you type.
+                  UPSC/NTA Standard: Bold, Alignment, Colors, Inline Diagrams, and Live Split Preview as you type.
                 </p>
               </div>
               <button
@@ -2233,7 +2247,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* UNIVERSAL INPUT FIELDS WITH TRUE BOLD & SPLIT LIVE PREVIEW */}
+              {/* UNIVERSAL INPUT FIELDS WITH TRUE BOLD, INLINE DIAGRAMS & SPLIT LIVE PREVIEW */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
@@ -2251,11 +2265,11 @@ export default function AbhyaasMasterTower() {
                 rows={3}
               />
 
-              {/* Diagram URL */}
+              {/* Standalone Diagram URL / Drive Attachment */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
-                  placeholder="Paste diagram image URL or Google Drive link..."
+                  placeholder="Optional standalone diagram URL or Google Drive link..."
                   value={qDiagramUrl}
                   onChange={e => setQDiagramUrl(e.target.value)}
                   className="w-full h-9 px-3 bg-white border rounded-lg font-mono text-xs outline-none"
@@ -2307,7 +2321,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Detailed Explanations with True Bold & Line Breaks */}
+              {/* Detailed Explanations */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <UniversalMathBox
                   label="Detailed Explanation (English)"
