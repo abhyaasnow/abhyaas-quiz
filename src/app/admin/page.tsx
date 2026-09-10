@@ -550,7 +550,6 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // Quick Live / Hidden Toggle directly on Question Card
   const handleToggleQuestionLiveStatus = async (q: QuestionData) => {
     const nextLiveStatus = !(q.isLive !== false);
     try {
@@ -561,7 +560,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Direct Olympiad Binding directly on Question Card
   const handleQuickAssignOlympiad = async (q: QuestionData, newOlyId: string) => {
     try {
       const targetSeg: QuestionSegment = newOlyId ? 'OLYMPIAD' : 'PRACTICE';
@@ -573,7 +571,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Question Selection Helpers
   const handleToggleSelectAllQuestions = () => {
     if (selectedQuestionIds.length === filteredActiveQuestions.length) {
       setSelectedQuestionIds([]);
@@ -735,7 +732,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // Olympiad Handlers
   const openCreateOlympiadModal = () => {
     setEditingOlyId(null);
     setNewOlyTitle('');
@@ -1418,6 +1414,7 @@ export default function AbhyaasMasterTower() {
 
               {selectedQuestionIds.length > 0 && (
                 <button
+                  type="button"
                   onClick={handleBulkMoveToRecycleBin}
                   className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
                 >
@@ -1521,6 +1518,7 @@ export default function AbhyaasMasterTower() {
                           </select>
 
                           <button
+                            type="button"
                             onClick={() => openEditQuestionModal(q)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
                             title="Edit Question"
@@ -1528,6 +1526,7 @@ export default function AbhyaasMasterTower() {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleMoveToRecycleBin(q.id)}
                             className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Move to Recycle Bin"
@@ -1657,6 +1656,7 @@ export default function AbhyaasMasterTower() {
 
                 {selectedOlyIds.length > 0 && (
                   <button
+                    type="button"
                     onClick={handleBulkDeleteOlympiads}
                     className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
                   >
@@ -1829,13 +1829,14 @@ export default function AbhyaasMasterTower() {
                           </td>
                           <td className="py-3 px-3 text-right space-x-2">
                             <button 
+                              type="button"
                               onClick={() => setViewingAdmitCardParticipant(p)}
                               className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded-lg cursor-pointer inline-flex items-center gap-1"
                             >
                               <Download className="w-3 h-3" /> Formal Admit Card
                             </button>
-                            <button onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded cursor-pointer">Pass</button>
-                            <button onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded cursor-pointer">Fail</button>
+                            <button type="button" onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded cursor-pointer">Pass</button>
+                            <button type="button" onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded cursor-pointer">Fail</button>
                           </td>
                         </tr>
                       ))}
@@ -1859,6 +1860,7 @@ export default function AbhyaasMasterTower() {
               ].map(lvl => (
                 <button
                   key={lvl.id}
+                  type="button"
                   onClick={() => { 
                     setActiveLevel(lvl.id as TaxonomyLevel); 
                     setPresetChoice(''); setManualNameEn(''); setManualNameHi(''); setSelectedParentId(''); 
@@ -1948,6 +1950,7 @@ export default function AbhyaasMasterTower() {
               </div>
               {archivedQuestions.length > 0 && (
                 <button
+                  type="button"
                   onClick={handleWipeAllRecycleBin}
                   className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
@@ -1961,8 +1964,8 @@ export default function AbhyaasMasterTower() {
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-500">{q.className} ➔ {q.examName} ➔ {q.subjectName}</span>
                     <div className="flex gap-2">
-                      <button onClick={() => handleRestoreFromRecycleBin(q.id)} className="px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg cursor-pointer">Restore</button>
-                      <button onClick={() => handlePermanentDelete(q)} className="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg cursor-pointer">Delete Forever</button>
+                      <button type="button" onClick={() => handleRestoreFromRecycleBin(q.id)} className="px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg cursor-pointer">Restore</button>
+                      <button type="button" onClick={() => handlePermanentDelete(q)} className="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg cursor-pointer">Delete Forever</button>
                     </div>
                   </div>
                   <div className="text-sm font-bold text-slate-800 line-through opacity-80"><MathRenderer text={q.questionEn} /></div>
@@ -1973,6 +1976,186 @@ export default function AbhyaasMasterTower() {
         )}
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* OLYMPIAD CREATION & EDIT MODAL (RESTORED & FULLY FUNCTIONAL) */}
+      {/* ========================================================================= */}
+      {isOlympiadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-700 tracking-wider">Olympiad Arena Configuration Studio</span>
+                <h3 className="text-base font-black text-slate-900 mt-0.5">
+                  {editingOlyId ? 'Edit Olympiad Configuration' : 'Create New National Olympiad'}
+                </h3>
+              </div>
+              <button type="button" onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOlympiadSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Tournament / Evaluation Title*</label>
+                <input
+                  type="text"
+                  value={newOlyTitle}
+                  onChange={e => setNewOlyTitle(e.target.value)}
+                  placeholder="e.g. All-India BRICS Geopolitics Fellowship Evaluation"
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900 text-xs"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Detailed Description & Governance</label>
+                <textarea
+                  rows={3}
+                  value={newOlyDesc}
+                  onChange={e => setNewOlyDesc(e.target.value)}
+                  placeholder="Comprehensive description of exam objectives and fellowship grants..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-slate-900 text-xs"
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Evaluation Fee (₹)</label>
+                  <input
+                    type="number"
+                    value={newOlyFee}
+                    onChange={e => setNewOlyFee(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Grant Pool Fund</label>
+                  <input
+                    type="text"
+                    value={newOlyGrantPool}
+                    onChange={e => setNewOlyGrantPool(e.target.value)}
+                    placeholder="e.g. ₹15,000"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Late Grace Window</label>
+                  <input
+                    type="number"
+                    value={newOlyGraceMinutes}
+                    onChange={e => setNewOlyGraceMinutes(Number(e.target.value))}
+                    placeholder="30 mins"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Duration (Mins)</label>
+                  <input
+                    type="number"
+                    value={newOlyDuration}
+                    onChange={e => setNewOlyDuration(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Questions Count</label>
+                  <input
+                    type="number"
+                    value={newOlyQuestions}
+                    onChange={e => setNewOlyQuestions(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Start Date & Time (IST)*</label>
+                  <input
+                    type="datetime-local"
+                    value={newOlyDateTime}
+                    onChange={e => setNewOlyDateTime(e.target.value)}
+                    className="w-full h-10 px-2 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-[11px]"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Cascading Taxonomy for Olympiad */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <span className="font-black text-slate-800 block uppercase text-[11px]">Academic Taxonomy Binding:</span>
+                
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Frequency Cadence Section:</label>
+                    <select
+                      value={newOlySection}
+                      onChange={e => setNewOlySection(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border rounded-xl font-bold outline-none cursor-pointer"
+                    >
+                      <option value="WEEKLY">WEEKLY</option>
+                      <option value="MONTHLY">MONTHLY</option>
+                      <option value="QUARTERLY">QUARTERLY</option>
+                      <option value="HALF_YEARLY">HALF YEARLY</option>
+                      <option value="YEARLY">YEARLY</option>
+                      <option value="GRAND">GRAND CONVOCATION</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Target Class / Standard:</label>
+                    <select
+                      value={newOlyClass}
+                      onChange={e => { setNewOlyClass(e.target.value); setNewOlyExam(''); setNewOlySubject(''); }}
+                      className="w-full h-9 px-3 bg-white border rounded-xl font-bold outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Class --</option>
+                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Target Examination:</label>
+                    <select
+                      value={newOlyExam}
+                      onChange={e => { setNewOlyExam(e.target.value); setNewOlySubject(''); }}
+                      className="w-full h-9 px-3 bg-white border rounded-xl font-bold outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Exam --</option>
+                      {olyAvailableExams.map(ex => <option key={ex.id} value={ex.nameEn}>{ex.nameEn}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Target Subject Discipline:</label>
+                    <select
+                      value={newOlySubject}
+                      onChange={e => setNewOlySubject(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border rounded-xl font-bold outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Subject --</option>
+                      {olyAvailableSubjects.map(sub => <option key={sub.id} value={sub.nameEn}>{sub.nameEn}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl shadow-md transition cursor-pointer"
+              >
+                {editingOlyId ? 'Save Olympiad Updates' : 'Publish Olympiad Live to Timetable'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: 100% BILINGUAL QUESTION STUDIO WITH OPTIONAL OLYMPIAD & VISIBILITY */}
@@ -1989,7 +2172,7 @@ export default function AbhyaasMasterTower() {
                   UPSC/NTA Standard: Hindi & English inputs with optional Olympiad binding and live/hidden controls.
                 </p>
               </div>
-              <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer">
+              <button type="button" onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2294,7 +2477,7 @@ export default function AbhyaasMasterTower() {
                 </h3>
                 <p className="text-xs text-slate-500">Bulk upload questions via Direct Copy-Paste or CSV Spreadsheet file.</p>
               </div>
-              <button onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer">
+              <button type="button" onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2405,12 +2588,14 @@ export default function AbhyaasMasterTower() {
               </span>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => window.print()}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                 >
                   <Download className="w-3.5 h-3.5" /> Print / Save Formal PDF
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewingAdmitCardParticipant(null)}
                   className="p-2 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer"
                 >
