@@ -91,7 +91,6 @@ export function formatScientific(text: string): string {
     .replace(/≥/g, '\\ge ')
     .replace(/±/g, '\\pm ')
     .replace(/≠/g, '\\ne ')
-    .replace(/±/g, '\\pm ')
     .replace(/∞/g, '\\infty ');
 }
 
@@ -146,6 +145,7 @@ export interface QuestionData {
   id: string;
   docId: string;
   altId?: string;
+  olympiadId?: string;
   className: string;
   examName: string;
   subjectName: string;
@@ -193,6 +193,7 @@ export async function getAllQuestions(): Promise<QuestionData[]> {
         id: d.id,
         docId: d.id,
         altId: data.id || undefined,
+        olympiadId: data.olympiadId || '',
         className: safeClass,
         examName: safeExam,
         subjectName: safeSubject,
@@ -228,6 +229,7 @@ export async function createQuestion(q: QuestionData): Promise<void> {
   const docRef = doc(db, 'questions', q.id);
   const payload = {
     ...q,
+    olympiadId: q.olympiadId || '',
     questionEn: formatScientific(q.questionEn),
     questionHi: formatScientific(q.questionHi),
     optionsEn: q.optionsEn.map(o => formatScientific(o)),
@@ -259,6 +261,7 @@ export async function updateQuestion(id: string, q: Partial<QuestionData>): Prom
   if (q.explanationHi !== undefined) payload.explanationHi = formatScientific(q.explanationHi);
   if (q.examName) payload.category = q.examName;
   if (q.subjectName) payload.subject = q.subjectName;
+  if (q.olympiadId !== undefined) payload.olympiadId = q.olympiadId;
 
   await setDoc(docRef, payload, { merge: true });
 }
@@ -307,6 +310,7 @@ export async function bulkUploadQuestions(questions: QuestionData[]): Promise<nu
     const ref = doc(db, 'questions', q.id);
     batch.set(ref, {
       ...q,
+      olympiadId: q.olympiadId || '',
       questionEn: formatScientific(q.questionEn),
       questionHi: formatScientific(q.questionHi),
       optionsEn: q.optionsEn.map(o => formatScientific(o)),
@@ -555,11 +559,20 @@ export async function getAllPayments(): Promise<PaymentRecord[]> {
 // ==================== 4. LIVE EXAM HALL CONNECTOR & RESULT SAVER ====================
 export async function getOlympiadQuestionsForCandidate(
   targetSubjectOrExam: string = '', 
-  questionLimit: number = 10
+  questionLimit: number = 10,
+  olympiadId: string = ''
 ): Promise<QuestionData[]> {
   try {
     const all = await getAllQuestions();
     const olympiadPool = all.filter(q => q.segment === 'OLYMPIAD' && !q.isArchived);
+
+    // 1. First priority: Match by explicit olympiadId if provided
+    if (olympiadId.trim()) {
+      const directIdMatch = olympiadPool.filter(q => q.olympiadId === olympiadId.trim());
+      if (directIdMatch.length > 0) {
+        return directIdMatch.slice(0, questionLimit);
+      }
+    }
 
     if (olympiadPool.length === 0) {
       return all.filter(q => !q.isArchived).slice(0, questionLimit);
@@ -615,8 +628,9 @@ export async function submitOlympiadResult(
 // ==================== 5. ONE-CLICK PRODUCTION SEED: BRICS 10-QUESTION DEMO ====================
 export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; message: string }> {
   try {
+    const bricsTournamentId = `oly-brics-${Date.now()}`;
     const bricsTournament: OlympiadTournament = {
-      id: `oly-brics-${Date.now()}`,
+      id: bricsTournamentId,
       title: 'All-India BRICS Geopolitics & Global Governance Fellowship Evaluation',
       descriptionEn: 'The All-India BRICS Geopolitics & Global Governance Fellowship Evaluation is a standardized, high-rigor merit assessment designed to benchmark advanced analytical aptitude in contemporary international relations, geoeconomics, and multilateral diplomacy. Anchored in the UPSC Civil Services Examination framework, qualifying scholars (≥75%) are shortlisted for an endowed academic research grant, subject to defending their analytical rationale in a mandatory 1-on-1 Faculty Viva Voce.',
       fee: 49,
@@ -655,6 +669,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-1`,
         docId: `q-brics-1`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -677,6 +692,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-2`,
         docId: `q-brics-2`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -699,6 +715,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-3`,
         docId: `q-brics-3`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -731,6 +748,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-4`,
         docId: `q-brics-4`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -763,6 +781,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-5`,
         docId: `q-brics-5`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -785,6 +804,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-6`,
         docId: `q-brics-6`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -817,6 +837,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-7`,
         docId: `q-brics-7`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -849,6 +870,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-8`,
         docId: `q-brics-8`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -881,6 +903,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-9`,
         docId: `q-brics-9`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
@@ -903,6 +926,7 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
       {
         id: `q-brics-10`,
         docId: `q-brics-10`,
+        olympiadId: bricsTournamentId,
         className: 'Civil Services / Competitive',
         examName: 'UPSC Civil Services (Prelims)',
         subjectName: 'General Studies / Polity & International Relations',
