@@ -137,9 +137,6 @@ function sanitizeLatex(text: string): string {
     .replace(/∞/g, '\\infty ');
 }
 
-// =========================================================================
-// UNIVERSAL QUESTION STUDIO BOX WITH FULL FORMATTING CONTROLS & INLINE IMAGES
-// =========================================================================
 function UniversalMathBox({
   label,
   value,
@@ -205,7 +202,7 @@ function UniversalMathBox({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
         <label className="text-xs font-black text-slate-800">{label}</label>
         <span className="text-[10px] text-slate-400 font-medium">
-          Inline: <code className="bg-slate-200 px-1 rounded text-slate-700">$x$</code> | Centered: <code className="bg-slate-200 px-1 rounded text-slate-700">$$x$$</code> | Image: <code className="bg-slate-200 px-1 rounded text-slate-700">[img url=... w=250]</code>
+          Inline: <code className="bg-slate-200 px-1 rounded text-slate-700">$x$</code> | Centered: <code className="bg-slate-200 px-1 rounded text-slate-700">$$x$$</code>
         </span>
       </div>
 
@@ -404,7 +401,7 @@ export default function AbhyaasMasterTower() {
   const [newOlySlots, setNewOlySlots] = useState<number>(500);
   const [newOlyDuration, setNewOlyDuration] = useState<number>(45);
   const [newOlyQuestions, setNewOlyQuestions] = useState<number>(50);
-  const [newOlyGraceMinutes, setNewOlyGraceMinutes] = useState<number>(30); // 30 min backlock default
+  const [newOlyGraceMinutes, setNewOlyGraceMinutes] = useState<number>(30);
   const [newOlyStatus, setNewOlyStatus] = useState<'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED'>('UPCOMING');
   
   const [newOlySection, setNewOlySection] = useState<string>('WEEKLY');
@@ -448,13 +445,15 @@ export default function AbhyaasMasterTower() {
   // Question Studio State (Tab 1)
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
-  // Bulk Importer States
+  // Bulk Importer States (Copy-Paste AND CSV File Upload)
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<'paste' | 'file'>('paste');
   const [pasteData, setPasteData] = useState('');
   const [bulkParsedQuestions, setBulkParsedQuestions] = useState<QuestionData[]>([]);
   const [bulkParseError, setBulkParseError] = useState<string | null>(null);
   const [isImportingBulk, setIsImportingBulk] = useState(false);
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Filters (Tab 1)
   const [searchFilter, setSearchFilter] = useState('');
@@ -546,9 +545,136 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // =========================================================================
-  // OLYMPIAD LIFECYCLE, EDIT, TOGGLE & CRITICAL MANAGEMENT
-  // =========================================================================
+  // Parse Excel Correct Option Helper
+  const parseExcelCorrectOption = (val: string): number => {
+    const clean = String(val || '').trim().toUpperCase();
+    if (clean === 'A' || clean === '1') return 0;
+    if (clean === 'B' || clean === '2') return 1;
+    if (clean === 'C' || clean === '3') return 2;
+    if (clean === 'D' || clean === '4') return 3;
+    const num = parseInt(clean);
+    if (!isNaN(num) && num >= 1 && num <= 4) return num - 1;
+    return 0;
+  };
+
+  // Bulk Input Text Parser (Supports both TSV and CSV text)
+  const parseBulkInputText = (rawText: string) => {
+    setBulkParseError(null);
+    if (!rawText.trim()) {
+      setBulkParsedQuestions([]);
+      return;
+    }
+
+    try {
+      let rows: string[][] = [];
+      if (rawText.includes('\t')) {
+        const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
+        rows = lines.map(line => line.split('\t').map(c => c.trim()));
+      } else {
+        rows = parseCSVProperly(rawText);
+      }
+
+      const parsed: QuestionData[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 7) continue;
+
+        const col0 = (row[0] || '').toLowerCase();
+        const col6 = (row[6] || '').toLowerCase();
+        if (col0.includes('segment') || col6.includes('question') || col0.includes('class')) {
+          continue;
+        }
+
+        const rawSeg = (row[0] || 'PRACTICE').toUpperCase().trim();
+        const segment: QuestionSegment = (['PRACTICE', 'PYQ', 'OLYMPIAD'].includes(rawSeg) ? rawSeg : 'PRACTICE') as QuestionSegment;
+
+        const newId = `q-bulk-${Date.now()}-${i}`;
+        const correctIndex = parseExcelCorrectOption(row[16]);
+
+        parsed.push({
+          id: newId,
+          docId: newId,
+          segment: segment,
+          className: row[1] || 'Civil Services / Competitive',
+          examName: row[2] || 'General Studies',
+          subjectName: row[3] || 'General Subject',
+          topicName: row[4] || 'General Topic',
+          category: row[2] || 'General Studies',
+          subject: row[3] || 'General Subject',
+          class: row[1] || 'Civil Services / Competitive',
+          topic: row[4] || 'General Topic',
+          pyqYear: row[5] || '',
+          questionEn: sanitizeLatex((row[6] || '').trim()),
+          questionHi: sanitizeLatex((row[7] || row[6] || '').trim()),
+          optionsEn: [
+            sanitizeLatex((row[8] || '').trim()),
+            sanitizeLatex((row[9] || '').trim()),
+            sanitizeLatex((row[10] || '').trim()),
+            sanitizeLatex((row[11] || '').trim())
+          ],
+          optionsHi: [
+            sanitizeLatex((row[12] || row[8] || '').trim()),
+            sanitizeLatex((row[13] || row[9] || '').trim()),
+            sanitizeLatex((row[14] || row[10] || '').trim()),
+            sanitizeLatex((row[15] || row[11] || '').trim())
+          ],
+          optionsDiagrams: ['', '', '', ''],
+          correctOption: correctIndex,
+          explanationEn: sanitizeLatex((row[17] || '').trim()),
+          explanationHi: sanitizeLatex((row[18] || row[17] || '').trim()),
+          diagramUrl: row[19] || '',
+          attachmentType: parseAttachment(row[19] || '').type,
+          isArchived: false,
+          status: 'ACTIVE',
+          timesUsedInOlympiad: 0
+        });
+      }
+
+      setBulkParsedQuestions(parsed);
+      if (parsed.length === 0) {
+        setBulkParseError("No valid question rows could be identified. Make sure each row contains the expected columns.");
+      }
+    } catch (err: any) {
+      setBulkParseError("Error reading tabular data: " + err.message);
+      setBulkParsedQuestions([]);
+    }
+  };
+
+  // CSV File Handler
+  const handleCSVFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = (evt.target?.result as string) || '';
+      setPasteData(text);
+      parseBulkInputText(text);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExecuteBulkImport = async () => {
+    if (bulkParsedQuestions.length === 0) {
+      return alert("No valid questions parsed. Please paste data or upload a file first.");
+    }
+
+    setIsImportingBulk(true);
+    try {
+      const count = await bulkUploadQuestions(bulkParsedQuestions);
+      setQuestionsList(prev => [...bulkParsedQuestions, ...prev]);
+      setPasteData('');
+      setBulkParsedQuestions([]);
+      setIsBulkModalOpen(false);
+      alert(`🎉 Success! Uploaded ${count} questions to the database. They are now live!`);
+    } catch (err: any) {
+      alert("Error importing questions: " + err.message);
+    } finally {
+      setIsImportingBulk(false);
+    }
+  };
+
+  // Olympiad Handlers
   const openCreateOlympiadModal = () => {
     setEditingOlyId(null);
     setNewOlyTitle('');
@@ -1085,6 +1211,17 @@ export default function AbhyaasMasterTower() {
                   >
                     <Plus className="w-4 h-4" /> Single Question Studio
                   </button>
+                  <button
+                    onClick={() => {
+                      setBulkParsedQuestions([]);
+                      setBulkParseError(null);
+                      setPasteData('');
+                      setIsBulkModalOpen(true);
+                    }}
+                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Excel Power Importer
+                  </button>
                 </div>
               </div>
 
@@ -1102,7 +1239,7 @@ export default function AbhyaasMasterTower() {
                       >
                         {seg === 'ALL' ? `All (${activeQuestions.length})` :
                          seg === 'PRACTICE' ? `Practice (${activeQuestions.filter(q=>q.segment==='PRACTICE').length})` :
-                         seg === 'PYQ' ? `PYQ (${activeQuestions.filter(q=>q.segment==='PYQ').length})` :
+                         seg === 'PYQ' ? `Past Archive (${activeQuestions.filter(q=>q.segment==='PYQ').length})` :
                          `🛡️ Olympiad (${activeQuestions.filter(q=>q.segment==='OLYMPIAD').length})`}
                       </button>
                     ))}
@@ -1159,7 +1296,7 @@ export default function AbhyaasMasterTower() {
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Add questions using Single Question Studio.</p>
+                  <p className="text-xs text-slate-400">Add bilingual questions using Single Question Studio or Excel Power Importer.</p>
                 </div>
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
@@ -1177,7 +1314,7 @@ export default function AbhyaasMasterTower() {
                             'bg-emerald-100 text-emerald-900 border border-emerald-300'
                           }`}>
                             {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
-                             q.segment === 'PYQ' ? `📜 PYQ (${q.pyqYear || 'Past Year'})` :
+                             q.segment === 'PYQ' ? `🏛️ Past Archive (${q.pyqYear || 'Retrospective'})` :
                              '📘 Free Practice Drill'}
                           </span>
 
@@ -1667,7 +1804,7 @@ export default function AbhyaasMasterTower() {
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
                     { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
-                    { id: 'PYQ', title: '📜 Previous Year (PYQ)', desc: 'Official past year archive' },
+                    { id: 'PYQ', title: '🏛️ Past Archive Vault', desc: 'Retrospective historical papers' },
                     { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
                   ].map(s => (
                     <button
@@ -1686,7 +1823,7 @@ export default function AbhyaasMasterTower() {
 
                 {qSegment === 'PYQ' && (
                   <div className="pt-2 flex items-center gap-3">
-                    <label className="text-xs font-bold text-slate-700">Exam Year (PYQ):</label>
+                    <label className="text-xs font-bold text-slate-700">Exam / Archive Year:</label>
                     <input
                       type="text"
                       value={qPyqYear}
@@ -1698,7 +1835,7 @@ export default function AbhyaasMasterTower() {
                 )}
               </div>
 
-              {/* 4-TIER CASCADING DROPDOWNS: CLASS, EXAM, SUBJECT, TOPIC */}
+              {/* 4-TIER CASCADING DROPDOWNS */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
@@ -1789,7 +1926,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* SECTION 1: QUESTION STATEMENT (BILINGUAL) */}
+              {/* 1. Question Statement (Bilingual) */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
@@ -1822,7 +1959,7 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* SECTION 2: OPTIONS A, B, C, D (FULL BILINGUAL - ENGLISH & HINDI RESTORED) */}
+              {/* 2. Options A, B, C, D (Bilingual) */}
               <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block text-xs">Options & Answer Key (Bilingual)*:</span>
                 <div className="space-y-4">
@@ -1864,7 +2001,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* SECTION 3: DETAILED SOLUTIONS (FULL BILINGUAL - ENGLISH & HINDI RESTORED) */}
+              {/* 3. Detailed Solutions (Bilingual) */}
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <UniversalMathBox
                   label="Detailed Solution & Explanation (English)"
@@ -1893,7 +2030,102 @@ export default function AbhyaasMasterTower() {
         </div>
       )}
 
-      {/* MODAL 3: OFFICIAL NTA / UPSC STANDARD PROVISIONAL ADMIT CARD */}
+      {/* ========================================================================= */}
+      {/* MODAL 3: EXCEL & CSV POWER IMPORTER (COPY-PASTE + CSV FILE UPLOAD) */}
+      {/* ========================================================================= */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl animate-in fade-in">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Excel & CSV Power Importer
+                </h3>
+                <p className="text-xs text-slate-500">Bulk upload questions via Direct Copy-Paste or CSV Spreadsheet file.</p>
+              </div>
+              <button onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Switcher: Paste VS CSV File */}
+            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setBulkMode('paste')}
+                className={`flex-1 py-2 rounded-lg transition cursor-pointer ${
+                  bulkMode === 'paste' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📋 Direct Copy-Paste from Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkMode('file')}
+                className={`flex-1 py-2 rounded-lg transition cursor-pointer ${
+                  bulkMode === 'file' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📁 Upload CSV Spreadsheet File
+              </button>
+            </div>
+
+            {bulkMode === 'paste' ? (
+              <textarea
+                rows={8}
+                value={pasteData}
+                onChange={e => { setPasteData(e.target.value); parseBulkInputText(e.target.value); }}
+                placeholder="Paste Excel tab-separated rows here (Columns: Segment, Class, Exam, Subject, Topic, Year, QuestionEn, QuestionHi, OptA_En, OptB_En, OptC_En, OptD_En, OptA_Hi, OptB_Hi, OptC_Hi, OptD_Hi, CorrectKey, SolutionEn, SolutionHi, DiagramUrl)..."
+                className="w-full p-3 bg-slate-50 border rounded-2xl font-mono text-xs outline-none"
+              />
+            ) : (
+              <div className="p-6 border-2 border-dashed border-slate-300 rounded-2xl text-center space-y-3 bg-slate-50">
+                <UploadCloud className="w-10 h-10 text-slate-400 mx-auto" />
+                <div>
+                  <p className="font-bold text-xs text-slate-700">Choose CSV Spreadsheet File</p>
+                  <p className="text-[11px] text-slate-400">File must follow the 20-column standard question schema</p>
+                </div>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  ref={csvFileInputRef}
+                  onChange={handleCSVFileUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => csvFileInputRef.current?.click()}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer"
+                >
+                  Browse Computer for CSV File
+                </button>
+              </div>
+            )}
+
+            {bulkParseError && <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl">{bulkParseError}</div>}
+            
+            {bulkParsedQuestions.length > 0 && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl">
+                ✓ Successfully parsed {bulkParsedQuestions.length} questions ready for deployment!
+              </div>
+            )}
+
+            <button
+              type="button"
+              disabled={bulkParsedQuestions.length === 0 || isImportingBulk}
+              onClick={handleExecuteBulkImport}
+              className={`w-full h-11 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${
+                bulkParsedQuestions.length > 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer' : 'bg-slate-200 text-slate-400'
+              }`}
+            >
+              {isImportingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+              <span>Confirm & Upload {bulkParsedQuestions.length} Questions to Database</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: OFFICIAL NTA / UPSC STANDARD PROVISIONAL ADMIT CARD */}
       {viewingAdmitCardParticipant && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-8 shadow-2xl my-6 max-h-[95vh] overflow-y-auto">
