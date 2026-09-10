@@ -478,6 +478,7 @@ export default function AbhyaasMasterTower() {
   const [qSegment, setQSegment] = useState<QuestionSegment>('PRACTICE');
   const [qPyqYear, setQPyqYear] = useState('2024');
 
+  // BILINGUAL QUESTION, OPTIONS & EXPLANATIONS STATE
   const [qStatementEn, setQStatementEn] = useState('');
   const [qStatementHi, setQStatementHi] = useState('');
   const [qOptionsEn, setQOptionsEn] = useState(['', '', '', '']);
@@ -1073,7 +1074,7 @@ export default function AbhyaasMasterTower() {
                     Active Question Bank & Practice Vault
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Precision LaTeX formulas, inline diagrams, maps, and true bold typography.
+                    Bilingual UPSC/NTA Standard: Hindi & English inputs for Question, Options, and Detailed Explanations.
                   </p>
                 </div>
 
@@ -1083,17 +1084,6 @@ export default function AbhyaasMasterTower() {
                     className="px-4 h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Single Question Studio
-                  </button>
-                  <button
-                    onClick={() => {
-                      setBulkParsedQuestions([]);
-                      setBulkParseError(null);
-                      setPasteData('');
-                      setIsBulkModalOpen(true);
-                    }}
-                    className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Excel Power Importer
                   </button>
                 </div>
               </div>
@@ -1169,7 +1159,7 @@ export default function AbhyaasMasterTower() {
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Add questions using Single Question Studio or Excel Power Importer.</p>
+                  <p className="text-xs text-slate-400">Add questions using Single Question Studio.</p>
                 </div>
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
@@ -1244,28 +1234,40 @@ export default function AbhyaasMasterTower() {
                         {q.optionsEn?.map((opt, i) => (
                           <div
                             key={i}
-                            className={`p-3 rounded-2xl border flex items-center gap-2 transition ${
+                            className={`p-3 rounded-2xl border flex flex-col gap-1 transition ${
                               q.correctOption === i
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
                                 : 'bg-slate-50 border-slate-200 text-slate-700'
                             }`}
                           >
-                            <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
-                              q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                            }`}>
-                              {String.fromCharCode(65 + i)}
-                            </span>
-                            <div className="truncate leading-loose">
-                              <MathRenderer text={opt} />
+                            <div className="flex items-center gap-2">
+                              <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
+                                q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+                              }`}>
+                                {String.fromCharCode(65 + i)}
+                              </span>
+                              <div className="truncate leading-loose">
+                                <MathRenderer text={opt} />
+                              </div>
                             </div>
+                            {q.optionsHi?.[i] && q.optionsHi[i] !== opt && (
+                              <div className="text-[11px] text-slate-500 pl-7">
+                                <MathRenderer text={q.optionsHi[i]} />
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
-                        <div className="p-3.5 bg-blue-50/70 rounded-xl text-xs text-blue-950 border border-blue-100 leading-[2.2]">
-                          <strong className="font-black text-blue-900 block mb-1">💡 Solution & Explanation:</strong>
-                          <MathRenderer text={q.explanationEn || q.explanationHi || ''} />
+                        <div className="p-3.5 bg-blue-50/70 rounded-xl text-xs text-blue-950 border border-blue-100 leading-[2.2] space-y-1.5">
+                          <strong className="font-black text-blue-900 block">💡 Solution & Explanation:</strong>
+                          {q.explanationEn && <MathRenderer text={q.explanationEn} />}
+                          {q.explanationHi && (
+                            <div className="pt-1 border-t border-blue-200/50 text-slate-600">
+                              <MathRenderer text={q.explanationHi} />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1276,11 +1278,9 @@ export default function AbhyaasMasterTower() {
           </div>
         )}
 
-        {/* TAB 2: OLYMPIAD ARENA STUDIO WITH FULL CRUD, STATUS SWITCHER & EDIT */}
+        {/* TAB 2: OLYMPIAD ARENA STUDIO */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
-            
-            {/* Header Toolbar */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -1360,7 +1360,6 @@ export default function AbhyaasMasterTower() {
                         }`}
                       >
                         <div className="space-y-3">
-                          {/* Header badges */}
                           <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
                             <div className="flex items-start gap-2">
                               <input
@@ -1391,14 +1390,13 @@ export default function AbhyaasMasterTower() {
                             </div>
                           </div>
 
-                          {/* Logistics & Timings */}
                           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
                             <div className="flex items-center justify-between text-slate-600">
                               <span className="flex items-center gap-1 font-medium"><Calendar className="w-3.5 h-3.5 text-slate-400" /> Start Window:</span>
                               <strong className="text-slate-900">{oly.startDateTime ? new Date(oly.startDateTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : oly.scheduleText}</strong>
                             </div>
                             <div className="flex items-center justify-between text-slate-600">
-                              <span className="flex items-center gap-1 font-medium"><Clock className="w-3.5 h-3.5 text-slate-400" /> Exam Duration:</span>
+                              <span className="flex items-center gap-1 font-medium"><Clock className="w-3.5 h-3.5 text-slate-400" /> Duration:</span>
                               <strong className="text-slate-900">{oly.durationMinutes || 45} mins • {oly.questionsCount || 50} Qs</strong>
                             </div>
                             <div className="flex items-center justify-between text-slate-600">
@@ -1412,9 +1410,7 @@ export default function AbhyaasMasterTower() {
                           </div>
                         </div>
 
-                        {/* Interactive Management Controls */}
                         <div className="pt-3 border-t border-slate-100 space-y-2.5">
-                          {/* Fast Status Switcher Dropdown */}
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] font-black uppercase text-slate-500">State:</span>
                             <div className="flex items-center gap-1">
@@ -1435,7 +1431,6 @@ export default function AbhyaasMasterTower() {
                             </div>
                           </div>
 
-                          {/* Action Buttons: Edit & Permanent Delete */}
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => openEditOlympiadModal(oly)}
@@ -1452,7 +1447,6 @@ export default function AbhyaasMasterTower() {
                             </button>
                           </div>
                         </div>
-
                       </div>
                     );
                   })}
@@ -1462,17 +1456,10 @@ export default function AbhyaasMasterTower() {
 
             {/* Viva Verification & Candidates Queue */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <Video className="w-4 h-4 text-amber-600" />
-                    Verified Candidates, Viva Defense & Official Admit Rosters ({participantsList.length})
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Official Admit Card Generation, 1-on-1 Viva Voce defense decisions, and grant sanction rolls.
-                  </p>
-                </div>
-              </div>
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Video className="w-4 h-4 text-amber-600" />
+                Verified Candidates, Viva Defense & Official Admit Rosters ({participantsList.length})
+              </h3>
 
               {participantsList.length === 0 ? (
                 <p className="text-xs text-slate-400 font-bold p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
@@ -1524,11 +1511,10 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
             </div>
-
           </div>
         )}
 
-        {/* TAB 3: CATEGORY & HIERARCHY TREE */}
+        {/* TAB 3: HIERARCHY TREE */}
         {adminTab === 'hierarchy' && (
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1600,7 +1586,7 @@ export default function AbhyaasMasterTower() {
                       onChange={e => setSelectedParentId(e.target.value)}
                       className="w-full h-11 px-4 pr-10 bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl text-xs appearance-none outline-none cursor-pointer"
                     >
-                      <option value="">-- Select Parent Entity (Required for sub-categorization) --</option>
+                      <option value="">-- Select Parent Entity --</option>
                       {activeLevel === 'EXAM' && classes.map(c => <option key={c.id} value={c.id}>Belongs to Class: {c.nameEn}</option>)}
                       {activeLevel === 'SUBJECT' && taxonomyList.filter(t => t.level === 'EXAM').map(e => <option key={e.id} value={e.id}>Belongs to Exam: {e.nameEn}</option>)}
                       {activeLevel === 'TOPIC' && taxonomyList.filter(t => t.level === 'SUBJECT').map(s => <option key={s.id} value={s.id}>Belongs to Subject: {s.nameEn}</option>)}
@@ -1614,31 +1600,6 @@ export default function AbhyaasMasterTower() {
                 </button>
               </form>
             </div>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-400 uppercase">Active {activeLevel} Nodes ({taxonomyList.filter(t => t.level === activeLevel).length})</h3>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {taxonomyList.filter(t => t.level === activeLevel).map(item => {
-                  const parent = taxonomyList.find(t => t.id === item.parentId);
-                  return (
-                    <div key={item.id} className="bg-white border border-slate-200 hover:border-blue-300 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                      <div>
-                        <p className="font-extrabold text-sm text-slate-900">{item.nameEn}</p>
-                        {item.nameHi && <p className="text-xs text-slate-500">{item.nameHi}</p>}
-                        {parent && (
-                          <span className="inline-block mt-1 text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                            ↳ Linked to: {parent.nameEn}
-                          </span>
-                        )}
-                      </div>
-                      <button onClick={() => handleDeleteTaxonomy(item.id, item.nameEn)} className="text-rose-400 hover:text-rose-600 p-2 rounded-xl cursor-pointer">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
 
@@ -1651,11 +1612,7 @@ export default function AbhyaasMasterTower() {
                   <Trash2 className="w-5 h-5 text-rose-600" />
                   Recycle Bin / Archived Questions ({archivedQuestions.length})
                 </h2>
-                <p className="text-xs text-rose-700 mt-1">
-                  Questions deleted from the active bank are held here. Restore them back or permanently wipe them from Firestore.
-                </p>
               </div>
-
               {archivedQuestions.length > 0 && (
                 <button
                   onClick={handleWipeAllRecycleBin}
@@ -1665,326 +1622,39 @@ export default function AbhyaasMasterTower() {
                 </button>
               )}
             </div>
-
             <div className="space-y-3">
-              {archivedQuestions.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 text-xs font-bold shadow-sm">
-                  Recycle Bin is completely empty. No deleted questions.
-                </div>
-              ) : (
-                archivedQuestions.map(q => (
-                  <div key={q.id} className="bg-white border border-rose-200 p-5 rounded-2xl shadow-sm space-y-3">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500">
-                        {q.className} ➔ {q.examName} ➔ {q.subjectName} (ID: <code className="font-mono text-[10px]">{q.id}</code>)
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleRestoreFromRecycleBin(q.id)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" /> Restore to Bank
-                        </button>
-                        <button
-                          onClick={() => handlePermanentDelete(q)}
-                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete Forever
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-sm font-bold text-slate-800 line-through opacity-80 leading-[2.2]">
-                      <MathRenderer text={q.questionEn} />
+              {archivedQuestions.map(q => (
+                <div key={q.id} className="bg-white border border-rose-200 p-5 rounded-2xl shadow-sm space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500">{q.className} ➔ {q.examName} ➔ {q.subjectName}</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleRestoreFromRecycleBin(q.id)} className="px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg cursor-pointer">Restore</button>
+                      <button onClick={() => handlePermanentDelete(q)} className="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg cursor-pointer">Delete Forever</button>
                     </div>
                   </div>
-                ))
-              )}
+                  <div className="text-sm font-bold text-slate-800 line-through opacity-80"><MathRenderer text={q.questionEn} /></div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
       </div>
 
-      {/* MODAL 1: CREATE OR EDIT OLYMPIAD TOURNAMENT */}
-      {isOlympiadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  {editingOlyId ? 'Modify Configuration' : 'Custom Tournament Engine'}
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">
-                  {editingOlyId ? 'Edit Olympiad Assessment Parameters' : 'Create Standardized Olympiad'}
-                </h3>
-              </div>
-              <button onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveOlympiadSubmit} className="space-y-4 text-xs font-medium">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. All-India Sunday Prelims Arena"
-                    value={newOlyTitle}
-                    onChange={e => setNewOlyTitle(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 font-semibold"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Schedule Cadence / Frequency*</label>
-                  <select
-                    value={newOlySection}
-                    onChange={e => setNewOlySection(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                  >
-                    <option value="WEEKLY">Weekly Sprints (Sundays)</option>
-                    <option value="MONTHLY">Monthly Mega Assessment</option>
-                    <option value="QUARTERLY">Quarterly Talent Search (3-Month)</option>
-                    <option value="HALF_YEARLY">Half-Yearly Assessment</option>
-                    <option value="YEARLY">Annual Grand Fellowship</option>
-                    <option value="GRAND">National Convocation (15 Aug / 26 Jan)</option>
-                    <option value="SPECIAL">Special Invitational</option>
-                    <option value="CUSTOM" className="font-black text-blue-600">✍️ + Type Custom Section...</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Status & Grace Window Controls */}
-              <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-black text-amber-950 text-[11px] mb-1">Live State / Lifecycle Status:</label>
-                  <select
-                    value={newOlyStatus}
-                    onChange={e => setNewOlyStatus(e.target.value as any)}
-                    className="w-full h-10 px-3 bg-white border border-amber-300 rounded-xl font-bold text-xs outline-none cursor-pointer"
-                  >
-                    <option value="UPCOMING">⏳ UPCOMING (Locked Countdown)</option>
-                    <option value="LIVE">🔴 LIVE (Accepting Submissions)</option>
-                    <option value="COMPLETED">✓ COMPLETED (Exam Over)</option>
-                    <option value="CANCELLED">✕ CANCELLED</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-black text-amber-950 text-[11px] mb-1">Entry Grace Window (Backlock Mins):</label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="120"
-                    value={newOlyGraceMinutes}
-                    onChange={e => setNewOlyGraceMinutes(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-white border border-amber-300 rounded-xl font-bold text-xs outline-none"
-                    required
-                  />
-                  <span className="text-[10px] text-amber-800 font-medium">Allows candidates to join up to {newOlyGraceMinutes} mins late.</span>
-                </div>
-              </div>
-
-              {/* Academic Hierarchy */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <span className="text-[11px] font-black uppercase text-slate-700 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-blue-600" /> Target Academic Hierarchy
-                </span>
-                
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">1. Target Class / Standard*</label>
-                    <select
-                      value={newOlyClass}
-                      onChange={e => setNewOlyClass(e.target.value)}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                      required
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Class...</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">2. Target Examination*</label>
-                    <select
-                      value={newOlyExam}
-                      onChange={e => setNewOlyExam(e.target.value)}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                      required
-                    >
-                      <option value="">-- Choose Examination --</option>
-                      {olyAvailableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Exam...</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">3. Target Subject*</label>
-                    <select
-                      value={newOlySubject}
-                      onChange={e => setNewOlySubject(e.target.value)}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                      required
-                    >
-                      <option value="">-- Choose Subject --</option>
-                      {olyAvailableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Subject...</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">4. Target Topic / Chapter</label>
-                    <select
-                      value={newOlyTopic}
-                      onChange={e => setNewOlyTopic(e.target.value)}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Topic --</option>
-                      {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Numerical Parameters */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Evaluation Fee (₹)*</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={newOlyFee}
-                    onChange={e => setNewOlyFee(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Fellowship Pool*</label>
-                  <input
-                    type="text"
-                    value={newOlyGrantPool}
-                    onChange={e => setNewOlyGrantPool(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Slots Capacity*</label>
-                  <input
-                    type="number"
-                    min="10"
-                    value={newOlySlots}
-                    onChange={e => setNewOlySlots(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Duration (Mins)*</label>
-                  <input
-                    type="number"
-                    value={newOlyDuration}
-                    onChange={e => setNewOlyDuration(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                  Scheduled Session Start Time*
-                </label>
-                <input
-                  type="datetime-local"
-                  value={newOlyDateTime}
-                  onChange={e => setNewOlyDateTime(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800 cursor-pointer"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Examination Description / Overview</label>
-                <textarea
-                  rows={2}
-                  value={newOlyDesc}
-                  onChange={e => setNewOlyDesc(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                />
-              </div>
-
-              {/* Detailed Syllabus */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
-                <div className="space-y-2">
-                  {newOlySyllabus.map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
-                      <div>
-                        <strong className="text-slate-900">{s.subject}</strong>: <span className="text-blue-600 font-bold">{s.questions} Questions</span>
-                        {s.topics && <p className="text-[10px] text-slate-400">{s.topics}</p>}
-                      </div>
-                      <button type="button" onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-bold cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid sm:grid-cols-3 gap-2 pt-2">
-                  <input type="text" placeholder="Subject Name" value={newSubjName} onChange={e => setNewSubjName(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="number" placeholder="Qs Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                  <input type="text" placeholder="Key Topics" value={newSubjTopics} onChange={e => setNewSubjTopics(e.target.value)} className="h-9 px-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none" />
-                </div>
-                <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
-              </div>
-
-              {/* Anti Cheat Rules */}
-              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
-                <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {newOlyRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-start justify-between gap-2 bg-white p-2 rounded-lg border border-amber-200 text-[11px] text-slate-700">
-                      <span>• {rule}</span>
-                      <button type="button" onClick={() => handleRemoveRule(idx)} className="text-rose-500 font-bold ml-2 cursor-pointer">×</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    placeholder="Add custom rule..."
-                    value={newRuleInput}
-                    onChange={e => setNewRuleInput(e.target.value)}
-                    className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
-                  />
-                  <button type="button" onClick={handleAddRule} className="px-3 bg-amber-600 text-white font-bold rounded-lg text-xs cursor-pointer">+ Rule</button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
-              >
-                <Trophy className="w-4 h-4" /> {editingOlyId ? 'Save & Synchronize Changes Live' : 'Save & Publish Olympiad Live'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: SINGLE QUESTION STUDIO */}
+      {/* ========================================================================= */}
+      {/* MODAL 2: 100% RESTORED BILINGUAL SINGLE QUESTION STUDIO */}
+      {/* ========================================================================= */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Universal Question Studio'}
+                  {editingQuestionId ? 'Edit Question Entry' : 'Smart Universal Question Studio (Bilingual)'}
                 </h3>
-                <p className="text-xs text-slate-500">UPSC/NTA Standard: Bold, Alignment, Colors, Inline Diagrams, and Live Split Preview.</p>
+                <p className="text-xs text-slate-500">
+                  UPSC/NTA Standard: Hindi & English inputs for Question Statement, Options (A-D) & Detailed Solutions.
+                </p>
               </div>
               <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
@@ -1993,7 +1663,7 @@ export default function AbhyaasMasterTower() {
 
             <form onSubmit={handleSaveQuestion} className="space-y-5">
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">Target Vault*</label>
+                <label className="block text-xs font-black uppercase text-slate-500">Target Destination / Vault*</label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
                     { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
@@ -2013,47 +1683,127 @@ export default function AbhyaasMasterTower() {
                     </button>
                   ))}
                 </div>
+
+                {qSegment === 'PYQ' && (
+                  <div className="pt-2 flex items-center gap-3">
+                    <label className="text-xs font-bold text-slate-700">Exam Year (PYQ):</label>
+                    <input
+                      type="text"
+                      value={qPyqYear}
+                      onChange={e => setQPyqYear(e.target.value)}
+                      placeholder="e.g. 2026"
+                      className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold w-32 outline-none"
+                    />
+                  </div>
+                )}
               </div>
 
+              {/* 4-TIER CASCADING DROPDOWNS: CLASS, EXAM, SUBJECT, TOPIC */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <select
-                    value={qClass}
-                    onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Class --</option>
-                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={qClass}
+                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Class --</option>
+                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qClass === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <select
-                    value={qExam}
-                    onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
-                  >
-                    <option value="">-- Choose Exam --</option>
-                    {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={qExam}
+                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Exam --</option>
+                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qExam === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
+                  <div className="relative">
+                    <select
+                      value={qSubject}
+                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Subject --</option>
+                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qSubject === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
+                  <div className="relative">
+                    <select
+                      value={qTopic}
+                      onChange={e => setQTopic(e.target.value)}
+                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Topic --</option>
+                      {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
+                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {qTopic === 'OTHER' && (
+                    <input
+                      type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
+                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
+                    />
+                  )}
                 </div>
               </div>
 
+              {/* SECTION 1: QUESTION STATEMENT (BILINGUAL) */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type question or formula..."
+                placeholder="Type English question statement or formula..."
                 rows={3}
                 required={true}
               />
 
               <UniversalMathBox
-                label="प्रश्न विवरण (हिंदी अनुवाद)"
+                label="प्रश्न विवरण (हिंदी अनुवाद)*"
                 value={qStatementHi}
                 onChange={setQStatementHi}
-                placeholder="हिंदी में प्रश्न या सूत्र दर्ज करें..."
+                placeholder="हिंदी में प्रश्न विवरण अथवा सूत्र दर्ज करें..."
                 rows={3}
               />
 
@@ -2072,13 +1822,13 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D */}
-              <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
-                <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
+              {/* SECTION 2: OPTIONS A, B, C, D (FULL BILINGUAL - ENGLISH & HINDI RESTORED) */}
+              <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+                <span className="font-black uppercase text-slate-700 block text-xs">Options & Answer Key (Bilingual)*:</span>
                 <div className="space-y-4">
                   {[0, 1, 2, 3].map(i => (
-                    <div key={i} className="p-3.5 bg-white border rounded-2xl space-y-3 shadow-xs">
-                      <div className="flex items-center gap-2">
+                    <div key={i} className="p-4 bg-white border rounded-2xl space-y-3 shadow-xs">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                         <input
                           type="radio"
                           name="correctKey"
@@ -2086,48 +1836,67 @@ export default function AbhyaasMasterTower() {
                           onChange={() => setQCorrectOpt(i)}
                           className="w-4 h-4 text-blue-600 cursor-pointer"
                         />
-                        <span className="font-black text-slate-800 text-xs">Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct Answer)' : ''}</span>
+                        <span className="font-black text-slate-900 text-xs">
+                          Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(✓ Correct Key)' : ''}
+                        </span>
                       </div>
-                      <UniversalMathBox
-                        label={`Option ${String.fromCharCode(65 + i)} (English)`}
-                        value={qOptionsEn[i]}
-                        onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
-                        placeholder={`Option ${String.fromCharCode(65 + i)} English formula...`}
-                        rows={1}
-                        required={true}
-                      />
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <UniversalMathBox
+                          label={`Option ${String.fromCharCode(65 + i)} (English)`}
+                          value={qOptionsEn[i]}
+                          onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
+                          placeholder={`Option ${String.fromCharCode(65 + i)} English formula or text...`}
+                          rows={2}
+                          required={true}
+                        />
+                        <UniversalMathBox
+                          label={`विकल्प ${String.fromCharCode(65 + i)} (हिंदी)`}
+                          value={qOptionsHi[i]}
+                          onChange={val => { const o = [...qOptionsHi]; o[i] = val; setQOptionsHi(o); }}
+                          placeholder={`विकल्प ${String.fromCharCode(65 + i)} हिंदी अनुवाद...`}
+                          rows={2}
+                          required={false}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <UniversalMathBox
-                label="Detailed Explanation (English)"
-                value={qExplanationEn}
-                onChange={setQExplanationEn}
-                placeholder="Step-by-step mathematical proof..."
-                rows={4}
-              />
+              {/* SECTION 3: DETAILED SOLUTIONS (FULL BILINGUAL - ENGLISH & HINDI RESTORED) */}
+              <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                <UniversalMathBox
+                  label="Detailed Solution & Explanation (English)"
+                  value={qExplanationEn}
+                  onChange={setQExplanationEn}
+                  placeholder="Step-by-step mathematical proof / solution..."
+                  rows={4}
+                />
+                <UniversalMathBox
+                  label="विस्तृत व्याख्या एवं समाधान (हिंदी अनुवाद)"
+                  value={qExplanationHi}
+                  onChange={setQExplanationHi}
+                  placeholder="हिंदी में चरणबद्ध हल एवं व्याख्या..."
+                  rows={4}
+                />
+              </div>
 
               <button
                 type="submit"
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Check className="w-4 h-4" /> Save Question Entry to Database
+                <Check className="w-4 h-4" /> Save Bilingual Question to Database
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL 3: OFFICIAL NTA / UPSC STANDARD PROVISIONAL ADMIT CARD */}
-      {/* ========================================================================= */}
       {viewingAdmitCardParticipant && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-8 shadow-2xl my-6 max-h-[95vh] overflow-y-auto">
-            
-            {/* Top Close & Print Action Bar (Hidden on actual print) */}
             <div className="flex justify-between items-center pb-4 border-b border-slate-200 print:hidden">
               <span className="text-xs font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Official National Assessment Hall Ticket Generated
@@ -2148,10 +1917,7 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
-            {/* FORMAL NTA / UPSC STANDARD ADMIT CARD LAYOUT (Print Engine Target) */}
             <div className="admit-card-container p-6 sm:p-8 border-2 border-slate-900 rounded-2xl bg-white text-slate-900 space-y-5 font-serif mt-4">
-              
-              {/* Official Header */}
               <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
                 <div className="flex items-center justify-center gap-3">
                   <div className="w-12 h-12 rounded-full border border-slate-900 flex items-center justify-center font-black text-lg bg-slate-100 font-sans">
@@ -2173,7 +1939,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Barcode Mock & Verification Banner */}
               <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50 border border-slate-300 p-3 rounded-lg text-xs font-sans">
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">Application Reference No:</span>
@@ -2193,7 +1958,6 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Candidate Details & Examination Timing Grid */}
               <div className="border border-slate-800 rounded-lg overflow-hidden text-xs font-sans">
                 <table className="w-full border-collapse">
                   <tbody>
@@ -2236,47 +2000,7 @@ export default function AbhyaasMasterTower() {
                   </tbody>
                 </table>
               </div>
-
-              {/* Photo / Signature Watermark Boxes */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 font-sans text-xs">
-                <div className="border border-dashed border-slate-400 rounded-lg p-3 text-center flex flex-col justify-between h-28 bg-slate-50">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase">Digital Biometric Stamp</span>
-                  <div className="font-mono text-[10px] text-slate-400">VERIFIED PASS CERTIFIED</div>
-                  <span className="text-[9px] text-emerald-600 font-bold">✓ Identity Check Match</span>
-                </div>
-                <div className="border border-dashed border-slate-400 rounded-lg p-3 text-center flex flex-col justify-between h-28 bg-slate-50">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase">Candidate Signature</span>
-                  <div className="font-serif italic text-slate-600 text-sm">Digitally Affirmed on Registration</div>
-                  <span className="text-[9px] text-slate-400">System Signed</span>
-                </div>
-                <div className="border border-dashed border-slate-400 rounded-lg p-3 text-center flex flex-col justify-between h-28 bg-slate-50 col-span-2 sm:col-span-1">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase">Directorate Seal</span>
-                  <div className="font-serif font-black text-slate-800 text-xs">ABHYAAS CENTRAL CONTROLLER</div>
-                  <span className="text-[9px] text-slate-500">Autonomous Evaluation Board</span>
-                </div>
-              </div>
-
-              {/* Strict NTA / Civil Services Conduct Rules */}
-              <div className="border-t-2 border-slate-900 pt-3 space-y-2 font-sans text-[10px] leading-relaxed text-slate-700">
-                <h4 className="font-black uppercase text-slate-900 text-xs">
-                  IMPORTANT INSTRUCTIONS FOR THE CANDIDATE:
-                </h4>
-                <ol className="list-decimal pl-4 space-y-1">
-                  <li>This Provisional Admit Card must be presented alongside an authentic Government Photo Identity Card for session validation.</li>
-                  <li><strong>Strict Entry Cutoff:</strong> Candidates are allowed entry into the proctored hall from the scheduled session time up to <strong>exactly 30 minutes thereafter (Backlock Window)</strong>. At the 31st minute, the assessment portal locks permanently and late admission is barred under all circumstances.</li>
-                  <li><strong>No Backtracking Policy:</strong> Questions appear under an independent per-question timer. Once answered or expired, candidates cannot revisit previous questions.</li>
-                  <li><strong>Digital Proctoring & Focus Lock:</strong> The assessment executes in full-screen mode. Switching tabs, minimizing windows, or secondary monitor relays will prompt instant disciplinary warnings; <strong>exceeding 2 warnings causes immediate script auto-submission</strong>.</li>
-                  <li><strong>Academic Research Fellowships:</strong> Sanction of endowed grants is strictly contingent upon securing a written score &ge;75% followed by successfully defending analytical methods in a mandatory <strong>1-on-1 Faculty Viva Voce (minimum 60% viva cutoff)</strong>.</li>
-                  <li>Impersonation, AI relay, or unfair means will lead to permanent blacklisting across the national verification register.</li>
-                </ol>
-              </div>
-
-              <div className="text-center text-[9px] font-sans text-slate-400 pt-2 border-t border-slate-200">
-                This document is a computer-generated provisional credentials pass authorized by the Abhyaas Examination Directorate.
-              </div>
-
             </div>
-
           </div>
         </div>
       )}
