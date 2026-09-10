@@ -72,14 +72,22 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
   DOMAIN: []
 };
 
-const DEFAULT_RULES = [
+const DEFAULT_RULES_EN = [
   "Strict Per-Question Timer (No Backtracking allowed) to prevent external relay.",
   "Window & Browser Defocus Alert: Maximum 2 warnings permitted before automated script termination.",
   "Grace Entry Window: Candidate login permissible up to 30 minutes past scheduled session commencement.",
   "Mandatory 1-on-1 Recorded Video Viva within 24 hours for top rankers (minimum 60% viva cutoff).",
   "Minimum written evaluation cutoff of 75% marks required to be eligible for academic fellowship grants.",
-  "Disqualification of any candidate immediately cascades the fellowship to the next eligible merit ranker.",
-  "Zero-Tolerance Blacklist: Impersonation or unauthorized aids permanently blacklist the candidate across the national verification register."
+  "Merit-Based Skill Evaluation: All grants are strictly endowed based on academic merit, written scores, and faculty viva defense under 0% chance or lottery mechanisms."
+];
+
+const DEFAULT_RULES_HI = [
+  "सख्त प्रति-प्रश्न टाइमर (कोई बैकट्रैकिंग नहीं) ताकि बाहरी नकल या रिले को रोका जा सके।",
+  "विंडो और ब्राउज़र डिफोकस चेतावनी: स्वचालित स्क्रिप्ट समाप्ति से पहले अधिकतम 2 चेतावनियाँ permissible हैं।",
+  "अनुग्रह प्रवेश विंडो: निर्धारित सत्र प्रारंभ होने के 30 मिनट बाद तक उम्मीदवार का लॉगिन अनुमत है।",
+  "शीर्ष रैंकर्स के लिए 24 घंटे के भीतर अनिवार्य 1-on-1 रिकॉर्डेड वीडियो वाइवा (न्यूनतम 60% वाइवा कटऑफ)।",
+  "शैक्षणिक फेलोशिप अनुदान के लिए पात्र होने हेतु न्यूनतम 75% अंकों का लिखित मूल्यांकन कटऑफ अनिवार्य है।",
+  "मेधा-आधारित कौशल मूल्यांकन: सभी अनुदान पूरी तरह से अकादमिक योग्यता, लिखित स्कोर और फैकल्टी वाइवा डिफेंस के आधार पर दिए जाते हैं (शून्य चांस या लॉटरी आधारित)।"
 ];
 
 function parseCSVProperly(text: string): string[][] {
@@ -421,19 +429,24 @@ export default function AbhyaasMasterTower() {
   const [newOlyTopicCustom, setNewOlyTopicCustom] = useState<string>('');
 
   const [newOlyDateTime, setNewOlyDateTime] = useState('2026-09-13T10:00');
-  const [newOlyRules, setNewOlyRules] = useState<string[]>(DEFAULT_RULES);
-  const [newRuleInput, setNewRuleInput] = useState('');
   
-  const [newOlySyllabus, setNewOlySyllabus] = useState<{ subject: string; questions: number; topics: string }[]>([
-    { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament' },
-    { subject: 'Modern Indian History', questions: 15, topics: '1857 to 1947, Freedom Struggle' },
-    { subject: 'Indian Economy', questions: 15, topics: 'Macroeconomics, Fiscal Policy, Banking' }
-  ]);
-  const [newSubjName, setNewSubjName] = useState('');
-  const [newSubjQs, setNewSubjQs] = useState(10);
-  const [newSubjTopics, setNewSubjTopics] = useState('');
+  // Bilingual Rules & Detailed Syllabus States
+  const [newOlyRulesEn, setNewOlyRulesEn] = useState<string[]>(DEFAULT_RULES_EN);
+  const [newOlyRulesHi, setNewOlyRulesHi] = useState<string[]>(DEFAULT_RULES_HI);
+  const [newRuleInputEn, setNewRuleInputEn] = useState('');
+  const [newRuleInputHi, setNewRuleInputHi] = useState('');
 
-  // Admit Card Preview Modal State (Official NTA / UPSC Standard)
+  const [newOlySyllabus, setNewOlySyllabus] = useState<{ subject: string; subjectHi: string; questions: number; topics: string; topicsHi: string }[]>([
+    { subject: 'Indian Polity & Constitution', subjectHi: 'भारतीय राजव्यवस्था एवं संविधान', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament', topicsHi: 'प्रस्तावना, मौलिक अधिकार, संसद' },
+    { subject: 'Modern Indian History', subjectHi: 'आधुनिक भारतीय इतिहास', questions: 15, topics: '1857 to 1947, Freedom Struggle', topicsHi: '1857 से 1947, स्वतंत्रता संग्राम' }
+  ]);
+  const [newSubjEn, setNewSubjEn] = useState('');
+  const [newSubjHi, setNewSubjHi] = useState('');
+  const [newSubjQs, setNewSubjQs] = useState(15);
+  const [newSubjTopicsEn, setNewSubjTopicsEn] = useState('');
+  const [newSubjTopicsHi, setNewSubjTopicsHi] = useState('');
+
+  // Admit Card Preview Modal State
   const [viewingAdmitCardParticipant, setViewingAdmitCardParticipant] = useState<OlympiadParticipant | null>(null);
 
   // Hierarchy Form State (Tab 3)
@@ -447,7 +460,7 @@ export default function AbhyaasMasterTower() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
 
-  // Bulk Importer States (Copy-Paste AND CSV File Upload)
+  // Bulk Importer States
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<'paste' | 'file'>('paste');
   const [pasteData, setPasteData] = useState('');
@@ -759,13 +772,13 @@ export default function AbhyaasMasterTower() {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const hh = String(now.getHours()).padStart(2, '0');
     const autoHanumanOlyId = `ABH-OLY-${mm}${hh}-11108${Math.floor(10 + Math.random() * 90)}`;
-    setEditingOlyId(autoHanumanOlyId); // We temporarily use editingOlyId state to hold the generated ID for creation!
+    setEditingOlyId(autoHanumanOlyId);
 
-    setNewOlyRules(DEFAULT_RULES);
+    setNewOlyRulesEn(DEFAULT_RULES_EN);
+    setNewOlyRulesHi(DEFAULT_RULES_HI);
     setNewOlySyllabus([
-      { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament' },
-      { subject: 'Modern Indian History', questions: 15, topics: '1857 to 1947, Freedom Struggle' },
-      { subject: 'Indian Economy', questions: 15, topics: 'Macroeconomics, Fiscal Policy, Banking' }
+      { subject: 'Indian Polity & Constitution', subjectHi: 'भारतीय राजव्यवस्था एवं संविधान', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament', topicsHi: 'प्रस्तावना, मौलिक अधिकार, संसद' },
+      { subject: 'Modern Indian History', subjectHi: 'आधुनिक भारतीय इतिहास', questions: 15, topics: '1857 to 1947, Freedom Struggle', topicsHi: '1857 से 1947, स्वतंत्रता संग्राम' }
     ]);
     setIsOlympiadModalOpen(true);
   };
@@ -794,7 +807,8 @@ export default function AbhyaasMasterTower() {
     setNewOlyTopicCustom('');
     
     setNewOlyDateTime(oly.startDateTime || '2026-09-13T10:00');
-    setNewOlyRules(Array.isArray(oly.rules) && oly.rules.length > 0 ? oly.rules : DEFAULT_RULES);
+    setNewOlyRulesEn(Array.isArray(oly.rulesEn) && oly.rulesEn.length > 0 ? oly.rulesEn : (Array.isArray(oly.rules) ? oly.rules : DEFAULT_RULES_EN));
+    setNewOlyRulesHi(Array.isArray(oly.rulesHi) && oly.rulesHi.length > 0 ? oly.rulesHi : DEFAULT_RULES_HI);
     setNewOlySyllabus(Array.isArray(oly.syllabus) ? oly.syllabus as any : []);
     setIsOlympiadModalOpen(true);
   };
@@ -814,8 +828,8 @@ export default function AbhyaasMasterTower() {
     if (!finalClass) return alert("Please select or enter the Target Class.");
     if (!finalExam) return alert("Please select or enter the Target Examination.");
     if (!finalSubject) return alert("Please select or enter the Target Subject.");
+    if (newOlySyllabus.length === 0) return alert("Detailed syllabus is mandatory! Please add at least one subject to the syllabus.");
 
-    // If editingOlyId starts with ABH-OLY-, it was auto-generated. If it's a firebase id or custom, keep it.
     const targetId = (editingOlyId && editingOlyId.startsWith('ABH-OLY-')) ? editingOlyId : (editingOlyId || `oly-${Date.now()}`);
 
     const payload: OlympiadTournament = {
@@ -837,7 +851,9 @@ export default function AbhyaasMasterTower() {
       topicName: finalTopic || 'Comprehensive',
       startDateTime: newOlyDateTime,
       scheduleText: new Date(newOlyDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-      rules: newOlyRules,
+      rulesEn: newOlyRulesEn,
+      rulesHi: newOlyRulesHi,
+      rules: newOlyRulesEn, // Backward compatibility
       syllabus: newOlySyllabus,
       status: newOlyStatus,
       updatedAt: Timestamp.now(),
@@ -889,23 +905,41 @@ export default function AbhyaasMasterTower() {
   };
 
   const handleAddSyllabusItem = () => {
-    if (!newSubjName.trim()) return alert("Enter Subject Name");
+    if (!newSubjEn.trim()) return alert("Enter Subject Name (English)");
     setNewOlySyllabus(prev => [
       ...prev,
-      { subject: newSubjName.trim(), questions: Number(newSubjQs) || 10, topics: newSubjTopics.trim() }
+      { 
+        subject: newSubjEn.trim(), 
+        subjectHi: newSubjHi.trim() || newSubjEn.trim(), 
+        questions: Number(newSubjQs) || 10, 
+        topics: newSubjTopicsEn.trim(), 
+        topicsHi: newSubjTopicsHi.trim() || newSubjTopicsEn.trim() 
+      }
     ]);
-    setNewSubjName('');
-    setNewSubjTopics('');
+    setNewSubjEn('');
+    setNewSubjHi('');
+    setNewSubjTopicsEn('');
+    setNewSubjTopicsHi('');
   };
 
-  const handleAddRule = () => {
-    if (!newRuleInput.trim()) return;
-    setNewOlyRules(prev => [...prev, newRuleInput.trim()]);
-    setNewRuleInput('');
+  const handleAddRuleEn = () => {
+    if (!newRuleInputEn.trim()) return;
+    setNewOlyRulesEn(prev => [...prev, newRuleInputEn.trim()]);
+    setNewRuleInputEn('');
   };
 
-  const handleRemoveRule = (index: number) => {
-    setNewOlyRules(prev => prev.filter((_, i) => i !== index));
+  const handleAddRuleHi = () => {
+    if (!newRuleInputHi.trim()) return;
+    setNewOlyRulesHi(prev => [...prev, newRuleInputHi.trim()]);
+    setNewRuleInputHi('');
+  };
+
+  const handleRemoveRuleEn = (index: number) => {
+    setNewOlyRulesEn(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveRuleHi = (index: number) => {
+    setNewOlyRulesHi(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleToggleSelectAllOlys = () => {
@@ -1996,11 +2030,11 @@ export default function AbhyaasMasterTower() {
       </div>
 
       {/* ========================================================================= */}
-      {/* OLYMPIAD CREATION & EDIT MODAL (RESTORED & FULLY FUNCTIONAL) */}
+      {/* OLYMPIAD CREATION & EDIT MODAL (WITH HANUMAN JI ID & MANDATORY SYLLABUS & RULES) */}
       {/* ========================================================================= */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center border-b pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-700 tracking-wider">Olympiad Arena Configuration Studio</span>
@@ -2008,7 +2042,7 @@ export default function AbhyaasMasterTower() {
                   {editingOlyId && !editingOlyId.startsWith('ABH-OLY-') ? 'Edit Olympiad Configuration' : 'Create New National Olympiad'}
                 </h3>
                 <span className="text-[11px] font-mono text-amber-600 font-bold block mt-0.5">
-                  Assigned ID: {editingOlyId}
+                  Assigned Sacred Unique ID: {editingOlyId}
                 </span>
               </div>
               <button type="button" onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
@@ -2052,7 +2086,7 @@ export default function AbhyaasMasterTower() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Grant Pool Fund</label>
+                  <label className="block font-bold text-slate-700 mb-1">Grant Pool Fund (Merit)</label>
                   <input
                     type="text"
                     value={newOlyGrantPool}
@@ -2108,7 +2142,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Cascading Taxonomy for Olympiad with Manual Type Option */}
+              {/* Cascading Taxonomy with Manual Typing Support */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <span className="font-black text-slate-800 block uppercase text-[11px]">Academic Taxonomy Binding (Dropdown or Manual Type):</span>
                 
@@ -2184,6 +2218,95 @@ export default function AbhyaasMasterTower() {
                         className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
                       />
                     )}
+                  </div>
+                </div>
+              </div>
+
+              {/* DETAILED BILINGUAL SYLLABUS BUILDER (MANDATORY) */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <span className="font-black text-slate-800 block uppercase text-[11px]">Detailed Bilingual Syllabus (Mandatory):</span>
+                
+                <div className="space-y-2">
+                  {newOlySyllabus.map((s, idx) => (
+                    <div key={idx} className="p-3 bg-white border rounded-xl flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-slate-900">{s.subject} <span className="text-slate-400 font-normal">({s.subjectHi})</span> • {s.questions} Qs</p>
+                        <p className="text-[11px] text-slate-500">Topics (En): {s.topics}</p>
+                        <p className="text-[11px] text-slate-500">Topics (Hi): {s.topicsHi}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setNewOlySyllabus(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                  <input
+                    type="text" placeholder="Subject Name (English)*" value={newSubjEn} onChange={e => setNewSubjEn(e.target.value)}
+                    className="h-9 px-3 bg-white border rounded-lg outline-none"
+                  />
+                  <input
+                    type="text" placeholder="विषय का नाम (हिंदी)*" value={newSubjHi} onChange={e => setNewSubjHi(e.target.value)}
+                    className="h-9 px-3 bg-white border rounded-lg outline-none"
+                  />
+                  <input
+                    type="number" placeholder="Questions Count" value={newSubjQs} onChange={e => setNewSubjQs(Number(e.target.value))}
+                    className="h-9 px-3 bg-white border rounded-lg outline-none"
+                  />
+                  <input
+                    type="text" placeholder="Topics (English separated by comma)" value={newSubjTopicsEn} onChange={e => setNewSubjTopicsEn(e.target.value)}
+                    className="h-9 px-3 bg-white border rounded-lg outline-none"
+                  />
+                  <input
+                    type="text" placeholder="विषय (हिंदी में कॉमा लगाकर)" value={newSubjTopicsHi} onChange={e => setNewSubjTopicsHi(e.target.value)}
+                    className="h-9 px-3 bg-white border rounded-lg outline-none sm:col-span-2"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddSyllabusItem}
+                  className="px-4 py-2 bg-slate-900 text-white font-bold rounded-lg text-xs cursor-pointer"
+                >
+                  + Add Subject to Syllabus
+                </button>
+              </div>
+
+              {/* DETAILED BILINGUAL RULES & REGULATIONS */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <span className="font-black text-slate-800 block uppercase text-[11px]">Detailed Rules & Regulations (Bilingual):</span>
+                
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <span className="font-bold text-slate-700 text-[11px]">English Rules:</span>
+                    {newOlyRulesEn.map((r, i) => (
+                      <div key={i} className="flex justify-between items-center bg-white p-2 border rounded-lg text-[11px]">
+                        <span>{i+1}. {r}</span>
+                        <button type="button" onClick={() => handleRemoveRuleEn(i)} className="text-rose-500"><X className="w-3.5 h-3.5"/></button>
+                      </div>
+                    ))}
+                    <div className="flex gap-1 pt-1">
+                      <input type="text" placeholder="Add English rule..." value={newRuleInputEn} onChange={e => setNewRuleInputEn(e.target.value)} className="h-8 px-2 bg-white border rounded text-xs flex-grow outline-none" />
+                      <button type="button" onClick={handleAddRuleEn} className="px-3 bg-slate-900 text-white rounded text-xs font-bold cursor-pointer">Add</button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="font-bold text-slate-700 text-[11px]">हिंदी नियम (Rules in Hindi):</span>
+                    {newOlyRulesHi.map((r, i) => (
+                      <div key={i} className="flex justify-between items-center bg-white p-2 border rounded-lg text-[11px]">
+                        <span>{i+1}. {r}</span>
+                        <button type="button" onClick={() => handleRemoveRuleHi(i)} className="text-rose-500"><X className="w-3.5 h-3.5"/></button>
+                      </div>
+                    ))}
+                    <div className="flex gap-1 pt-1">
+                      <input type="text" placeholder="हिंदी नियम जोड़ें..." value={newRuleInputHi} onChange={e => setNewRuleInputHi(e.target.value)} className="h-8 px-2 bg-white border rounded text-xs flex-grow outline-none" />
+                      <button type="button" onClick={handleAddRuleHi} className="px-3 bg-slate-900 text-white rounded text-xs font-bold cursor-pointer">जोड़ें</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2745,7 +2868,7 @@ export default function AbhyaasMasterTower() {
           }
           .admit-card-container {
             position: absolute;
-            files: 0;
+            left: 0;
             top: 0;
             width: 100%;
             margin: 0;
