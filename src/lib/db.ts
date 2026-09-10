@@ -91,6 +91,7 @@ export function formatScientific(text: string): string {
     .replace(/≥/g, '\\ge ')
     .replace(/±/g, '\\pm ')
     .replace(/≠/g, '\\ne ')
+    .replace(/±/g, '\\pm ')
     .replace(/∞/g, '\\infty ');
 }
 
@@ -392,7 +393,10 @@ export interface OlympiadParticipant {
   candidateName: string;
   email: string;
   phone: string;
+  olympiadId?: string;
   olympiadTier: string;
+  targetExam?: string;
+  targetSubject?: string;
   amount: number;
   paymentMethod: string;
   writtenScore?: number;
@@ -410,7 +414,10 @@ export interface PaymentRecord {
   candidateName: string;
   email: string;
   phone: string;
+  olympiadId?: string;
   olympiadTier: string;
+  targetExam?: string;
+  targetSubject?: string;
   tierTitle: string;
   examSlot: string;
   amount: number;
@@ -447,12 +454,15 @@ export async function deleteOlympiadTournament(id: string): Promise<void> {
   await deleteDoc(doc(db, 'olympiads', id));
 }
 
-// Payment record creation (Plug-and-play architecture for future Razorpay / Cashfree webhook)
+// Payment record creation with full Olympiad metadata support
 export async function createPaymentRecord(r: {
   candidateName: string;
   email: string;
   phone: string;
+  olympiadId?: string;
   olympiadTier: string;
+  targetExam?: string;
+  targetSubject?: string;
   amount: number;
   paymentMethod?: string;
   transactionId?: string;
@@ -521,7 +531,10 @@ export async function getAllPayments(): Promise<PaymentRecord[]> {
         candidateName: String(data.candidateName || ''),
         email: String(data.email || ''),
         phone: String(data.phone || ''),
+        olympiadId: String(data.olympiadId || ''),
         olympiadTier: String(data.olympiadTier || ''),
+        targetExam: String(data.targetExam || ''),
+        targetSubject: String(data.targetSubject || ''),
         tierTitle: String(data.tierTitle || data.olympiadTier || 'Academic Olympiad'),
         examSlot: String(data.examSlot || 'Sunday Synchronized Slot'),
         amount: typeof data.amount === 'number' ? data.amount : 0,
@@ -549,7 +562,6 @@ export async function getOlympiadQuestionsForCandidate(
     const olympiadPool = all.filter(q => q.segment === 'OLYMPIAD' && !q.isArchived);
 
     if (olympiadPool.length === 0) {
-      // Fallback to active practice bank if olympiad vault is empty
       return all.filter(q => !q.isArchived).slice(0, questionLimit);
     }
 
@@ -558,9 +570,10 @@ export async function getOlympiadQuestionsForCandidate(
     }
 
     const filtered = olympiadPool.filter(q => 
-      q.examName.toLowerCase().includes(targetSubjectOrExam.toLowerCase()) ||
-      q.subjectName.toLowerCase().includes(targetSubjectOrExam.toLowerCase()) ||
-      q.topicName.toLowerCase().includes(targetSubjectOrExam.toLowerCase())
+      (q.examName && q.examName.toLowerCase().includes(targetSubjectOrExam.toLowerCase())) ||
+      (q.subjectName && q.subjectName.toLowerCase().includes(targetSubjectOrExam.toLowerCase())) ||
+      (q.topicName && q.topicName.toLowerCase().includes(targetSubjectOrExam.toLowerCase())) ||
+      (q.category && q.category.toLowerCase().includes(targetSubjectOrExam.toLowerCase()))
     );
 
     return (filtered.length >= questionLimit ? filtered : olympiadPool).slice(0, questionLimit);
@@ -602,7 +615,6 @@ export async function submitOlympiadResult(
 // ==================== 5. ONE-CLICK PRODUCTION SEED: BRICS 10-QUESTION DEMO ====================
 export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; message: string }> {
   try {
-    // 1. Create Official BRICS Olympiad Tournament Session
     const bricsTournament: OlympiadTournament = {
       id: `oly-brics-${Date.now()}`,
       title: 'All-India BRICS Geopolitics & Global Governance Fellowship Evaluation',
@@ -639,7 +651,6 @@ export async function seedBricsOlympiadDemo(): Promise<{ success: boolean; messa
 
     await saveOlympiadTournament(bricsTournament);
 
-    // 2. Ten UPSC-Standard Questions (Bilingual + Full Explanations)
     const bricsQuestions: QuestionData[] = [
       {
         id: `q-brics-1`,
