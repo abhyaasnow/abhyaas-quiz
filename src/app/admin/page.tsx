@@ -745,6 +745,22 @@ export default function AbhyaasMasterTower() {
     setNewOlyStatus('UPCOMING');
     setNewOlySection('WEEKLY');
     setNewOlySectionCustom('');
+    setNewOlyClass('');
+    setNewOlyClassCustom('');
+    setNewOlyExam('');
+    setNewOlyExamCustom('');
+    setNewOlySubject('');
+    setNewOlySubjectCustom('');
+    setNewOlyTopic('');
+    setNewOlyTopicCustom('');
+    
+    // Auto-generate Hanuman Ji-inspired ID: ABH-OLY-MMHH-11108xx
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const autoHanumanOlyId = `ABH-OLY-${mm}${hh}-11108${Math.floor(10 + Math.random() * 90)}`;
+    setEditingOlyId(autoHanumanOlyId); // We temporarily use editingOlyId state to hold the generated ID for creation!
+
     setNewOlyRules(DEFAULT_RULES);
     setNewOlySyllabus([
       { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament' },
@@ -799,7 +815,9 @@ export default function AbhyaasMasterTower() {
     if (!finalExam) return alert("Please select or enter the Target Examination.");
     if (!finalSubject) return alert("Please select or enter the Target Subject.");
 
-    const targetId = editingOlyId || `oly-${Date.now()}`;
+    // If editingOlyId starts with ABH-OLY-, it was auto-generated. If it's a firebase id or custom, keep it.
+    const targetId = (editingOlyId && editingOlyId.startsWith('ABH-OLY-')) ? editingOlyId : (editingOlyId || `oly-${Date.now()}`);
+
     const payload: OlympiadTournament = {
       id: targetId,
       title: newOlyTitle.trim(),
@@ -807,7 +825,7 @@ export default function AbhyaasMasterTower() {
       fee: Number(newOlyFee) >= 0 ? Number(newOlyFee) : 49,
       totalGrantPool: newOlyGrantPool.trim() || '₹15,000',
       totalSlots: Number(newOlySlots) || 500,
-      bookedSlots: editingOlyId ? (olympiadsList.find(o => o.id === editingOlyId)?.bookedSlots || 0) : 0,
+      bookedSlots: olympiadsList.find(o => o.id === targetId)?.bookedSlots || 0,
       durationMinutes: Number(newOlyDuration) || 45,
       questionsCount: Number(newOlyQuestions) || 50,
       graceMinutes: Number(newOlyGraceMinutes) || 30,
@@ -823,7 +841,7 @@ export default function AbhyaasMasterTower() {
       syllabus: newOlySyllabus,
       status: newOlyStatus,
       updatedAt: Timestamp.now(),
-      createdAt: editingOlyId ? (olympiadsList.find(o => o.id === editingOlyId)?.createdAt || Timestamp.now()) : Timestamp.now()
+      createdAt: olympiadsList.find(o => o.id === targetId)?.createdAt || Timestamp.now()
     };
 
     try {
@@ -833,7 +851,7 @@ export default function AbhyaasMasterTower() {
         return [payload, ...filtered];
       });
       setIsOlympiadModalOpen(false);
-      alert(editingOlyId ? "🎉 Olympiad Updated Successfully!" : "🎉 New Olympiad Created & Published Live!");
+      alert(`🎉 Olympiad Saved Successfully! Unique ID: ${targetId}`);
     } catch (err: any) {
       alert("Error saving Olympiad: " + err.message);
     }
@@ -1987,8 +2005,11 @@ export default function AbhyaasMasterTower() {
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-700 tracking-wider">Olympiad Arena Configuration Studio</span>
                 <h3 className="text-base font-black text-slate-900 mt-0.5">
-                  {editingOlyId ? 'Edit Olympiad Configuration' : 'Create New National Olympiad'}
+                  {editingOlyId && !editingOlyId.startsWith('ABH-OLY-') ? 'Edit Olympiad Configuration' : 'Create New National Olympiad'}
                 </h3>
+                <span className="text-[11px] font-mono text-amber-600 font-bold block mt-0.5">
+                  Assigned ID: {editingOlyId}
+                </span>
               </div>
               <button type="button" onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
@@ -2087,9 +2108,9 @@ export default function AbhyaasMasterTower() {
                 </div>
               </div>
 
-              {/* Cascading Taxonomy for Olympiad */}
+              {/* Cascading Taxonomy for Olympiad with Manual Type Option */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <span className="font-black text-slate-800 block uppercase text-[11px]">Academic Taxonomy Binding:</span>
+                <span className="font-black text-slate-800 block uppercase text-[11px]">Academic Taxonomy Binding (Dropdown or Manual Type):</span>
                 
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
@@ -2117,7 +2138,14 @@ export default function AbhyaasMasterTower() {
                     >
                       <option value="">-- Choose Class --</option>
                       {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                      <option value="OTHER" className="font-bold text-blue-600">✍️ + Other (Type Manually)</option>
                     </select>
+                    {newOlyClass === 'OTHER' && (
+                      <input
+                        type="text" placeholder="Type custom Class name" value={newOlyClassCustom} onChange={e => setNewOlyClassCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -2129,7 +2157,14 @@ export default function AbhyaasMasterTower() {
                     >
                       <option value="">-- Choose Exam --</option>
                       {olyAvailableExams.map(ex => <option key={ex.id} value={ex.nameEn}>{ex.nameEn}</option>)}
+                      <option value="OTHER" className="font-bold text-blue-600">✍️ + Other (Type Manually)</option>
                     </select>
+                    {newOlyExam === 'OTHER' && (
+                      <input
+                        type="text" placeholder="Type custom Exam name" value={newOlyExamCustom} onChange={e => setNewOlyExamCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -2141,7 +2176,14 @@ export default function AbhyaasMasterTower() {
                     >
                       <option value="">-- Choose Subject --</option>
                       {olyAvailableSubjects.map(sub => <option key={sub.id} value={sub.nameEn}>{sub.nameEn}</option>)}
+                      <option value="OTHER" className="font-bold text-blue-600">✍️ + Other (Type Manually)</option>
                     </select>
+                    {newOlySubject === 'OTHER' && (
+                      <input
+                        type="text" placeholder="Type custom Subject name" value={newOlySubjectCustom} onChange={e => setNewOlySubjectCustom(e.target.value)}
+                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -2150,7 +2192,7 @@ export default function AbhyaasMasterTower() {
                 type="submit"
                 className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl shadow-md transition cursor-pointer"
               >
-                {editingOlyId ? 'Save Olympiad Updates' : 'Publish Olympiad Live to Timetable'}
+                {editingOlyId && !editingOlyId.startsWith('ABH-OLY-') ? 'Save Olympiad Updates' : 'Publish Olympiad Live to Timetable'}
               </button>
             </form>
           </div>
@@ -2703,7 +2745,7 @@ export default function AbhyaasMasterTower() {
           }
           .admit-card-container {
             position: absolute;
-            left: 0;
+            files: 0;
             top: 0;
             width: 100%;
             margin: 0;
