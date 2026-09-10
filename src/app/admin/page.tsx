@@ -12,7 +12,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
   Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
-  Sigma, Pi, Target, ArrowUpDown, Columns
+  Sigma, Pi, Target, ArrowUpDown, Columns, PlayCircle, StopCircle, Radio
 } from 'lucide-react';
 
 import { 
@@ -72,13 +72,13 @@ const PRESETS: Record<TaxonomyLevel, { en: string; hi: string }[]> = {
 };
 
 const DEFAULT_RULES = [
-  "Strict Per-Question Timer (e.g. 50s limit with No Backtracking) to prevent AI-relay exploits.",
-  "Full-Screen Browser Lock: Tab-switching or minimizing prompts a penalty; 2 warnings leads to immediate auto-submission.",
-  "Front Camera & Microphone verification authorization required prior to entering the arena.",
-  "Mandatory 1-on-1 Recorded Video Viva within 24 hours for top rankers (must answer 3 out of 5 questions correctly).",
-  "Minimum written test cutoff of 75% marks required to be eligible for academic grants.",
+  "Strict Per-Question Timer (No Backtracking allowed) to prevent external relay.",
+  "Window & Browser Defocus Alert: Maximum 2 warnings permitted before automated script termination.",
+  "Grace Entry Window: Candidate login permissible up to 30 minutes past scheduled session commencement.",
+  "Mandatory 1-on-1 Recorded Video Viva within 24 hours for top rankers (minimum 60% viva cutoff).",
+  "Minimum written evaluation cutoff of 75% marks required to be eligible for academic fellowship grants.",
   "Disqualification of any candidate immediately cascades the fellowship to the next eligible merit ranker.",
-  "Zero-Tolerance Blacklist: Cheating or proxy use permanently blacklists Name, Phone, UPI ID, and Government KYC verification across Abhyaas."
+  "Zero-Tolerance Blacklist: Impersonation or unauthorized aids permanently blacklist the candidate across the national verification register."
 ];
 
 function parseCSVProperly(text: string): string[][] {
@@ -209,7 +209,6 @@ function UniversalMathBox({
         </span>
       </div>
 
-      {/* Ribbon Toolbar */}
       <div className="bg-slate-900 text-white rounded-xl overflow-hidden border border-slate-800 shadow-xs">
         <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 border-b border-slate-800 overflow-x-auto text-[11px]">
           {[
@@ -233,10 +232,9 @@ function UniversalMathBox({
         </div>
 
         <div className="p-2 text-xs">
-          {/* TAB 1: HOME */}
           {ribbonTab === 'home' && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer" title="Make bold (works for text & formulas)"><b>B</b> Bold</button>
+              <button type="button" onClick={() => wrapOrInsert('**', '**', 'bold text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded font-bold cursor-pointer"><b>B</b> Bold</button>
               <button type="button" onClick={() => wrapOrInsert('*', '*', 'italic text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded italic cursor-pointer"><i>I</i> Italic</button>
               <button type="button" onClick={() => wrapOrInsert('<u>', '</u>', 'underlined text')} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded underline cursor-pointer"><u>U</u> Underline</button>
               <span className="text-slate-700">|</span>
@@ -248,13 +246,12 @@ function UniversalMathBox({
               <button type="button" onClick={() => wrapOrInsert('_{', '}', '2')} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded font-mono cursor-pointer">Subscript</button>
               <span className="text-slate-700">|</span>
               
-              {/* Inline Diagram Button */}
               <input type="file" accept="image/*" ref={inlineImgInputRef} onChange={handleInlineImageUpload} className="hidden" />
               <button 
                 type="button" 
                 onClick={() => inlineImgInputRef.current?.click()} 
                 className="px-2.5 py-1 bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/50 rounded font-bold cursor-pointer flex items-center gap-1"
-                title="Insert Diagram / Ring / Map at cursor"
+                title="Insert Diagram at cursor"
               >
                 🖼️ + Inline Diagram
               </button>
@@ -263,7 +260,6 @@ function UniversalMathBox({
             </div>
           )}
 
-          {/* TAB 2: ALIGNMENT & COLORS */}
           {ribbonTab === 'formatting' && (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -286,23 +282,14 @@ function UniversalMathBox({
 
               <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800">
                 <span className="text-[10px] text-slate-400 font-bold mr-1">Colors:</span>
-                <button type="button" onClick={() => wrapOrInsert('[color=red]', '[/color]', 'important text')} className="px-2 py-0.5 bg-rose-950/80 border border-rose-600 text-rose-300 rounded font-bold cursor-pointer text-xs">
-                  Red Tag
-                </button>
-                <button type="button" onClick={() => wrapOrInsert('[color=blue]', '[/color]', 'highlighted term')} className="px-2 py-0.5 bg-blue-950/80 border border-blue-600 text-blue-300 rounded font-bold cursor-pointer text-xs">
-                  Blue Tag
-                </button>
-                <button type="button" onClick={() => wrapOrInsert('[color=green]', '[/color]', 'correct answer')} className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-600 text-emerald-300 rounded font-bold cursor-pointer text-xs">
-                  Green Tag
-                </button>
-                <button type="button" onClick={() => wrapOrInsert('[color=amber]', '[/color]', 'theorem or law')} className="px-2 py-0.5 bg-amber-950/80 border border-amber-600 text-amber-300 rounded font-bold cursor-pointer text-xs">
-                  Amber Tag
-                </button>
+                <button type="button" onClick={() => wrapOrInsert('[color=red]', '[/color]', 'important text')} className="px-2 py-0.5 bg-rose-950/80 border border-rose-600 text-rose-300 rounded font-bold cursor-pointer text-xs">Red Tag</button>
+                <button type="button" onClick={() => wrapOrInsert('[color=blue]', '[/color]', 'highlighted term')} className="px-2 py-0.5 bg-blue-950/80 border border-blue-600 text-blue-300 rounded font-bold cursor-pointer text-xs">Blue Tag</button>
+                <button type="button" onClick={() => wrapOrInsert('[color=green]', '[/color]', 'correct answer')} className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-600 text-emerald-300 rounded font-bold cursor-pointer text-xs">Green Tag</button>
+                <button type="button" onClick={() => wrapOrInsert('[color=amber]', '[/color]', 'theorem or law')} className="px-2 py-0.5 bg-amber-950/80 border border-amber-600 text-amber-300 rounded font-bold cursor-pointer text-xs">Amber Tag</button>
               </div>
             </div>
           )}
 
-          {/* TAB 3: EQUATIONS */}
           {ribbonTab === 'equations' && (
             <div className="flex flex-wrap items-center gap-1.5">
               {[
@@ -325,7 +312,6 @@ function UniversalMathBox({
             </div>
           )}
 
-          {/* TAB 4: SYMBOLS */}
           {ribbonTab === 'symbols' && (
             <div className="flex flex-wrap items-center gap-1 text-xs font-mono">
               {['\\to', '\\implies', '\\le', '\\ge', '\\ne', '\\pm', '\\infty', '\\pi', '\\alpha', '\\beta', '\\theta', '\\Delta', '\\sigma', '\\lambda', '\\in', '\\notin', '\\boldsymbol{A}'].map((sym, i) => (
@@ -341,7 +327,6 @@ function UniversalMathBox({
             </div>
           )}
 
-          {/* TAB 5: KEYBOARD */}
           {ribbonTab === 'keyboard' && (
             <div className="space-y-2 p-1">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
@@ -366,7 +351,6 @@ function UniversalMathBox({
         </div>
       </div>
 
-      {/* Editor & Live Side-by-Side Preview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <span className="text-[10px] font-black uppercase text-slate-500 block mb-1">Text & Equation Input:</span>
@@ -382,7 +366,7 @@ function UniversalMathBox({
           />
         </div>
         <div>
-          <span className="text-[10px] font-black uppercase text-blue-600 block mb-1">Live Exam Preview (UPSC/NTA Standard):</span>
+          <span className="text-[10px] font-black uppercase text-blue-600 block mb-1">Live Exam Preview:</span>
           <div className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs text-slate-900 leading-[2.2] overflow-x-auto min-h-[90px] shadow-2xs">
             {value.trim() ? <MathRenderer text={value} /> : <span className="text-slate-400 italic">Formatted math & bold text will render here live...</span>}
           </div>
@@ -410,7 +394,8 @@ export default function AbhyaasMasterTower() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [selectedOlyIds, setSelectedOlyIds] = useState<string[]>([]);
 
-  // Olympiad Creation Modal State
+  // Olympiad Modal (Unified for Create & Edit)
+  const [editingOlyId, setEditingOlyId] = useState<string | null>(null);
   const [isOlympiadModalOpen, setIsOlympiadModalOpen] = useState(false);
   const [newOlyTitle, setNewOlyTitle] = useState('');
   const [newOlyDesc, setNewOlyDesc] = useState('');
@@ -419,6 +404,8 @@ export default function AbhyaasMasterTower() {
   const [newOlySlots, setNewOlySlots] = useState<number>(500);
   const [newOlyDuration, setNewOlyDuration] = useState<number>(45);
   const [newOlyQuestions, setNewOlyQuestions] = useState<number>(50);
+  const [newOlyGraceMinutes, setNewOlyGraceMinutes] = useState<number>(30); // 30 min backlock default
+  const [newOlyStatus, setNewOlyStatus] = useState<'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED'>('UPCOMING');
   
   const [newOlySection, setNewOlySection] = useState<string>('WEEKLY');
   const [newOlySectionCustom, setNewOlySectionCustom] = useState<string>('');
@@ -448,6 +435,9 @@ export default function AbhyaasMasterTower() {
   const [newSubjQs, setNewSubjQs] = useState(10);
   const [newSubjTopics, setNewSubjTopics] = useState('');
 
+  // Admit Card Preview Modal State (Official NTA / UPSC Standard)
+  const [viewingAdmitCardParticipant, setViewingAdmitCardParticipant] = useState<OlympiadParticipant | null>(null);
+
   // Hierarchy Form State (Tab 3)
   const [activeLevel, setActiveLevel] = useState<TaxonomyLevel>('CLASS');
   const [presetChoice, setPresetChoice] = useState<string>('');
@@ -459,10 +449,8 @@ export default function AbhyaasMasterTower() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isAutoPushModalOpen, setIsAutoPushModalOpen] = useState(false);
 
   // Bulk Importer States
-  const [bulkMode, setBulkMode] = useState<'paste' | 'file'>('paste');
   const [pasteData, setPasteData] = useState('');
   const [bulkParsedQuestions, setBulkParsedQuestions] = useState<QuestionData[]>([]);
   const [bulkParseError, setBulkParseError] = useState<string | null>(null);
@@ -557,145 +545,135 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  const parseExcelCorrectOption = (val: string): number => {
-    const clean = String(val || '').trim().toUpperCase();
-    if (clean === 'A' || clean === '1') return 0;
-    if (clean === 'B' || clean === '2') return 1;
-    if (clean === 'C' || clean === '3') return 2;
-    if (clean === 'D' || clean === '4') return 3;
-    const num = parseInt(clean);
-    if (!isNaN(num) && num >= 1 && num <= 4) return num - 1;
-    return 0;
+  // =========================================================================
+  // OLYMPIAD LIFECYCLE, EDIT, TOGGLE & CRITICAL MANAGEMENT
+  // =========================================================================
+  const openCreateOlympiadModal = () => {
+    setEditingOlyId(null);
+    setNewOlyTitle('');
+    setNewOlyDesc('');
+    setNewOlyFee(49);
+    setNewOlyGrantPool('₹15,000');
+    setNewOlySlots(500);
+    setNewOlyDuration(45);
+    setNewOlyQuestions(50);
+    setNewOlyGraceMinutes(30);
+    setNewOlyStatus('UPCOMING');
+    setNewOlySection('WEEKLY');
+    setNewOlySectionCustom('');
+    setNewOlyRules(DEFAULT_RULES);
+    setNewOlySyllabus([
+      { subject: 'Indian Polity & Constitution', questions: 20, topics: 'Preamble, Fundamental Rights, Parliament' },
+      { subject: 'Modern Indian History', questions: 15, topics: '1857 to 1947, Freedom Struggle' },
+      { subject: 'Indian Economy', questions: 15, topics: 'Macroeconomics, Fiscal Policy, Banking' }
+    ]);
+    setIsOlympiadModalOpen(true);
   };
 
-  const parseBulkInputText = (rawText: string) => {
-    setBulkParseError(null);
-    if (!rawText.trim()) {
-      setBulkParsedQuestions([]);
-      return;
-    }
+  const openEditOlympiadModal = (oly: OlympiadTournament) => {
+    setEditingOlyId(oly.id);
+    setNewOlyTitle(oly.title || '');
+    setNewOlyDesc(oly.descriptionEn || '');
+    setNewOlyFee(Number(oly.fee) || 0);
+    setNewOlyGrantPool(oly.totalGrantPool || '₹15,000');
+    setNewOlySlots(Number(oly.totalSlots) || 500);
+    setNewOlyDuration(Number(oly.durationMinutes) || 45);
+    setNewOlyQuestions(Number(oly.questionsCount) || 50);
+    setNewOlyGraceMinutes(Number(oly.graceMinutes) || 30);
+    setNewOlyStatus((oly.status as any) || 'UPCOMING');
+    
+    setNewOlySection(oly.categorySection || 'WEEKLY');
+    setNewOlySectionCustom('');
+    setNewOlyClass(oly.targetClass || '');
+    setNewOlyClassCustom('');
+    setNewOlyExam(oly.targetExam || '');
+    setNewOlyExamCustom('');
+    setNewOlySubject(oly.targetSubject || '');
+    setNewOlySubjectCustom('');
+    setNewOlyTopic(oly.topicName || '');
+    setNewOlyTopicCustom('');
+    
+    setNewOlyDateTime(oly.startDateTime || '2026-09-13T10:00');
+    setNewOlyRules(Array.isArray(oly.rules) && oly.rules.length > 0 ? oly.rules : DEFAULT_RULES);
+    setNewOlySyllabus(Array.isArray(oly.syllabus) ? oly.syllabus as any : []);
+    setIsOlympiadModalOpen(true);
+  };
+
+  const handleSaveOlympiadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOlyTitle.trim()) return alert("Enter Tournament Title");
+    if (!newOlyDateTime) return alert("Select start date and time");
+
+    const finalSection = newOlySection === 'CUSTOM' ? newOlySectionCustom.trim() : newOlySection;
+    const finalClass = newOlyClass === 'OTHER' ? newOlyClassCustom.trim() : newOlyClass;
+    const finalExam = newOlyExam === 'OTHER' ? newOlyExamCustom.trim() : newOlyExam;
+    const finalSubject = newOlySubject === 'OTHER' ? newOlySubjectCustom.trim() : newOlySubject;
+    const finalTopic = newOlyTopic === 'OTHER' ? newOlyTopicCustom.trim() : newOlyTopic;
+
+    if (!finalSection) return alert("Please specify the Schedule / Section.");
+    if (!finalClass) return alert("Please select or enter the Target Class.");
+    if (!finalExam) return alert("Please select or enter the Target Examination.");
+    if (!finalSubject) return alert("Please select or enter the Target Subject.");
+
+    const targetId = editingOlyId || `oly-${Date.now()}`;
+    const payload: OlympiadTournament = {
+      id: targetId,
+      title: newOlyTitle.trim(),
+      descriptionEn: newOlyDesc.trim() || 'Standardized All-India academic scholarship evaluation.',
+      fee: Number(newOlyFee) >= 0 ? Number(newOlyFee) : 49,
+      totalGrantPool: newOlyGrantPool.trim() || '₹15,000',
+      totalSlots: Number(newOlySlots) || 500,
+      bookedSlots: editingOlyId ? (olympiadsList.find(o => o.id === editingOlyId)?.bookedSlots || 0) : 0,
+      durationMinutes: Number(newOlyDuration) || 45,
+      questionsCount: Number(newOlyQuestions) || 50,
+      graceMinutes: Number(newOlyGraceMinutes) || 30,
+      categorySection: finalSection.toUpperCase() as any,
+      streamType: 'UPSC_PSC',
+      targetClass: finalClass,
+      targetExam: finalExam,
+      targetSubject: finalSubject,
+      topicName: finalTopic || 'Comprehensive',
+      startDateTime: newOlyDateTime,
+      scheduleText: new Date(newOlyDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+      rules: newOlyRules,
+      syllabus: newOlySyllabus,
+      status: newOlyStatus,
+      updatedAt: Timestamp.now(),
+      createdAt: editingOlyId ? (olympiadsList.find(o => o.id === editingOlyId)?.createdAt || Timestamp.now()) : Timestamp.now()
+    };
 
     try {
-      let rows: string[][] = [];
-      if (rawText.includes('\t')) {
-        const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
-        rows = lines.map(line => line.split('\t').map(c => c.trim()));
-      } else {
-        rows = parseCSVProperly(rawText);
-      }
-
-      const parsed: QuestionData[] = [];
-
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (row.length < 7) continue;
-
-        const col0 = (row[0] || '').toLowerCase();
-        const col6 = (row[6] || '').toLowerCase();
-        if (col0.includes('segment') || col6.includes('question') || col0.includes('class')) {
-          continue;
-        }
-
-        const rawSeg = (row[0] || 'PRACTICE').toUpperCase().trim();
-        const segment: QuestionSegment = (['PRACTICE', 'PYQ', 'OLYMPIAD'].includes(rawSeg) ? rawSeg : 'PRACTICE') as QuestionSegment;
-
-        const newId = `q-bulk-${Date.now()}-${i}`;
-        const correctIndex = parseExcelCorrectOption(row[16]);
-
-        parsed.push({
-          id: newId,
-          docId: newId,
-          segment: segment,
-          className: row[1] || 'Civil Services / Competitive',
-          examName: row[2] || 'General Studies',
-          subjectName: row[3] || 'General Subject',
-          topicName: row[4] || 'General Topic',
-          category: row[2] || 'General Studies',
-          subject: row[3] || 'General Subject',
-          class: row[1] || 'Civil Services / Competitive',
-          topic: row[4] || 'General Topic',
-          pyqYear: row[5] || '',
-          questionEn: sanitizeLatex((row[6] || '').trim()),
-          questionHi: sanitizeLatex((row[7] || row[6] || '').trim()),
-          optionsEn: [
-            sanitizeLatex((row[8] || '').trim()),
-            sanitizeLatex((row[9] || '').trim()),
-            sanitizeLatex((row[10] || '').trim()),
-            sanitizeLatex((row[11] || '').trim())
-          ],
-          optionsHi: [
-            sanitizeLatex((row[12] || row[8] || '').trim()),
-            sanitizeLatex((row[13] || row[9] || '').trim()),
-            sanitizeLatex((row[14] || row[10] || '').trim()),
-            sanitizeLatex((row[15] || row[11] || '').trim())
-          ],
-          optionsDiagrams: ['', '', '', ''],
-          correctOption: correctIndex,
-          explanationEn: sanitizeLatex((row[17] || '').trim()),
-          explanationHi: sanitizeLatex((row[18] || row[17] || '').trim()),
-          diagramUrl: row[19] || '',
-          attachmentType: parseAttachment(row[19] || '').type,
-          isArchived: false,
-          status: 'ACTIVE',
-          timesUsedInOlympiad: 0
-        });
-      }
-
-      setBulkParsedQuestions(parsed);
-      if (parsed.length === 0) {
-        setBulkParseError("No valid question rows could be identified. Make sure each row has at least columns A to R.");
-      }
+      await saveOlympiadTournament(payload);
+      setOlympiadsList(prev => {
+        const filtered = prev.filter(o => o.id !== targetId);
+        return [payload, ...filtered];
+      });
+      setIsOlympiadModalOpen(false);
+      alert(editingOlyId ? "🎉 Olympiad Updated Successfully!" : "🎉 New Olympiad Created & Published Live!");
     } catch (err: any) {
-      setBulkParseError("Error reading Excel data: " + err.message);
-      setBulkParsedQuestions([]);
+      alert("Error saving Olympiad: " + err.message);
     }
   };
 
-  const handleExecuteBulkImport = async () => {
-    if (bulkParsedQuestions.length === 0) {
-      return alert("No valid questions parsed. Please paste data first.");
-    }
-
-    setIsImportingBulk(true);
+  const handleToggleOlyStatus = async (oly: OlympiadTournament, nextStatus: 'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED') => {
+    const updated: OlympiadTournament = { ...oly, status: nextStatus, updatedAt: Timestamp.now() };
     try {
-      const count = await bulkUploadQuestions(bulkParsedQuestions);
-      setQuestionsList(prev => [...bulkParsedQuestions, ...prev]);
-      setPasteData('');
-      setBulkParsedQuestions([]);
-      setIsBulkModalOpen(false);
-      alert(`🎉 Success! Uploaded ${count} questions to the database. They are now live!`);
+      await saveOlympiadTournament(updated);
+      setOlympiadsList(prev => prev.map(o => o.id === oly.id ? updated : o));
     } catch (err: any) {
-      alert("Error importing questions: " + err.message);
-    } finally {
-      setIsImportingBulk(false);
+      alert("Status update error: " + err.message);
     }
   };
 
-  const handleToggleSelectAllQuestions = () => {
-    if (selectedQuestionIds.length === filteredActiveQuestions.length) {
-      setSelectedQuestionIds([]);
-    } else {
-      setSelectedQuestionIds(filteredActiveQuestions.map(q => q.id));
-    }
-  };
-
-  const handleToggleSelectQuestion = (id: string) => {
-    setSelectedQuestionIds(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleBulkMoveQuestionsToRecycleBin = async () => {
-    if (selectedQuestionIds.length === 0) return;
-    if (!confirm(`Move ${selectedQuestionIds.length} selected question(s) to Recycle Bin?`)) return;
-
+  const handleSingleDeleteOlympiad = async (id: string, title: string) => {
+    if (!confirm(`🚨 Are you sure you want to permanently delete "${title}"? This cannot be undone.`)) return;
     try {
-      await Promise.all(selectedQuestionIds.map(id => archiveQuestion(id)));
-      setQuestionsList(prev => prev.map(q => selectedQuestionIds.includes(q.id) ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
-      setSelectedQuestionIds([]);
-      alert("Selected questions moved to Recycle Bin!");
+      await deleteOlympiadTournament(id);
+      setOlympiadsList(prev => prev.filter(o => o.id !== id));
+      setSelectedOlyIds(prev => prev.filter(item => item !== id));
+      alert("Olympiad tournament deleted successfully!");
     } catch (err: any) {
-      alert("Error archiving questions: " + err.message);
+      alert("Delete failed: " + err.message);
     }
   };
 
@@ -735,67 +713,15 @@ export default function AbhyaasMasterTower() {
 
   const handleBulkDeleteOlympiads = async () => {
     if (selectedOlyIds.length === 0) return;
-    if (!confirm(`Delete ${selectedOlyIds.length} selected Olympiad tournament(s) permanently from database?`)) return;
+    if (!confirm(`🚨 Delete ${selectedOlyIds.length} selected Olympiad tournament(s) permanently from database?`)) return;
 
     try {
       await Promise.all(selectedOlyIds.map(id => deleteOlympiadTournament(id)));
       setOlympiadsList(prev => prev.filter(o => !selectedOlyIds.includes(o.id)));
       setSelectedOlyIds([]);
-      alert("Selected Olympiads deleted successfully!");
+      alert("Selected Olympiads deleted permanently!");
     } catch (err: any) {
       alert("Error deleting Olympiads: " + err.message);
-    }
-  };
-
-  const handleCreateOlympiadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newOlyTitle.trim()) return alert("Enter Tournament Title");
-    if (!newOlyDateTime) return alert("Select start date and time");
-
-    const finalSection = newOlySection === 'CUSTOM' ? newOlySectionCustom.trim() : newOlySection;
-    const finalClass = newOlyClass === 'OTHER' ? newOlyClassCustom.trim() : newOlyClass;
-    const finalExam = newOlyExam === 'OTHER' ? newOlyExamCustom.trim() : newOlyExam;
-    const finalSubject = newOlySubject === 'OTHER' ? newOlySubjectCustom.trim() : newOlySubject;
-    const finalTopic = newOlyTopic === 'OTHER' ? newOlyTopicCustom.trim() : newOlyTopic;
-
-    if (!finalSection) return alert("Please specify the Schedule / Section.");
-    if (!finalClass) return alert("Please select or enter the Target Class.");
-    if (!finalExam) return alert("Please select or enter the Target Examination.");
-    if (!finalSubject) return alert("Please select or enter the Target Subject.");
-
-    const newOly: OlympiadTournament = {
-      id: `oly-${Date.now()}`,
-      title: newOlyTitle.trim(),
-      descriptionEn: newOlyDesc.trim() || 'Standardized All-India academic scholarship evaluation.',
-      fee: Number(newOlyFee) >= 0 ? Number(newOlyFee) : 49,
-      totalGrantPool: newOlyGrantPool.trim() || '₹15,000',
-      totalSlots: Number(newOlySlots) || 500,
-      bookedSlots: 0,
-      durationMinutes: Number(newOlyDuration) || 45,
-      questionsCount: Number(newOlyQuestions) || 50,
-      categorySection: finalSection.toUpperCase() as any,
-      streamType: 'UPSC_PSC',
-      targetClass: finalClass,
-      targetExam: finalExam,
-      targetSubject: finalSubject,
-      topicName: finalTopic || 'Comprehensive',
-      startDateTime: newOlyDateTime,
-      scheduleText: new Date(newOlyDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-      rules: newOlyRules,
-      syllabus: newOlySyllabus,
-      status: 'UPCOMING',
-      createdAt: Timestamp.now()
-    };
-
-    try {
-      await saveOlympiadTournament(newOly);
-      setOlympiadsList(prev => [newOly, ...prev]);
-      setIsOlympiadModalOpen(false);
-      setNewOlyTitle('');
-      setNewOlyDesc('');
-      alert("🎉 Olympiad Tournament Created!");
-    } catch (err: any) {
-      alert("Error creating tournament: " + err.message);
     }
   };
 
@@ -812,6 +738,7 @@ export default function AbhyaasMasterTower() {
     }
   };
 
+  // Hierarchy Helpers (Tab 3)
   const handlePresetChange = (val: string) => {
     setPresetChoice(val);
     if (val === 'OTHER') {
@@ -850,6 +777,7 @@ export default function AbhyaasMasterTower() {
     await deleteTaxonomyNode(id);
   };
 
+  // Questions Bank Helpers (Tab 1)
   const cleanStr = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
 
   const checkDuplicates = (text: string) => {
@@ -1068,7 +996,7 @@ export default function AbhyaasMasterTower() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
       {/* Top Header */}
-      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
+      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 print:hidden">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-base">A</div>
@@ -1093,7 +1021,7 @@ export default function AbhyaasMasterTower() {
       </header>
 
       {/* Main Workspace */}
-      <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 pt-6 space-y-6 print:hidden">
 
         {/* 4-Tab Navigation */}
         <div className="bg-white p-2 border border-slate-200 rounded-3xl shadow-sm flex flex-wrap gap-2">
@@ -1112,7 +1040,7 @@ export default function AbhyaasMasterTower() {
               adminTab === 'olympiad' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Trophy className="w-4 h-4" /> 2. 🛡️ Olympiad Arena & Viva ({olympiadsList.length})
+            <Trophy className="w-4 h-4" /> 2. 🛡️ Olympiad Arena Studio ({olympiadsList.length})
           </button>
 
           <button
@@ -1145,7 +1073,7 @@ export default function AbhyaasMasterTower() {
                     Active Question Bank & Practice Vault
                   </h2>
                   <p className="text-xs text-slate-500">
-                    STEM & Humanities: Precision LaTeX formulas, inline diagrams, maps, and true bold typography.
+                    Precision LaTeX formulas, inline diagrams, maps, and true bold typography.
                   </p>
                 </div>
 
@@ -1235,36 +1163,6 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
-            {/* Questions Bulk Selection Toolbar */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-100 p-3 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs font-black text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filteredActiveQuestions.length > 0 && selectedQuestionIds.length === filteredActiveQuestions.length}
-                    onChange={handleToggleSelectAllQuestions}
-                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
-                  />
-                  <span>Select All Filtered ({filteredActiveQuestions.length})</span>
-                </label>
-                {selectedQuestionIds.length > 0 && (
-                  <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
-                    {selectedQuestionIds.length} Selected
-                  </span>
-                )}
-              </div>
-
-              {selectedQuestionIds.length > 0 && (
-                <button
-                  onClick={handleBulkMoveQuestionsToRecycleBin}
-                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Move Selected to Recycle Bin ({selectedQuestionIds.length})</span>
-                </button>
-              )}
-            </div>
-
             {/* Questions Stream */}
             <div className="space-y-3">
               {filteredActiveQuestions.length === 0 ? (
@@ -1276,24 +1174,13 @@ export default function AbhyaasMasterTower() {
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
                   const att = parseAttachment(q.diagramUrl);
-                  const isSelected = selectedQuestionIds.includes(q.id);
-
                   return (
                     <div
                       key={q.id || idx}
-                      className={`bg-white border p-5 rounded-2xl shadow-sm transition space-y-3 relative ${
-                        isSelected ? 'border-blue-600 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-blue-300'
-                      }`}
+                      className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3 relative"
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleSelectQuestion(q.id)}
-                            className="w-4 h-4 rounded text-blue-600 cursor-pointer"
-                          />
-
                           <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                             q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                             q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
@@ -1342,77 +1229,37 @@ export default function AbhyaasMasterTower() {
                         )}
                       </div>
 
-                      {att.type !== 'NONE' && (
+                      {att.type !== 'NONE' && att.type === 'IMAGE' && (
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
-                          {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
-                            <img 
-                              src={att.directUrl} 
-                              alt="Attached Diagram" 
-                              referrerPolicy="no-referrer"
-                              className="max-h-72 w-auto min-w-[280px] max-w-full object-contain rounded-xl bg-white p-2 border" 
-                            />
-                          )}
-
-                          {(att.type === 'PDF' || (att.type === 'GDRIVE' && att.rawUrl.includes('.pdf'))) && (
-                            <div className="flex items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 min-w-[280px]">
-                              <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 font-black">
-                                <FileText className="w-5 h-5" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-bold text-xs text-slate-900">Attached Reference Document (.PDF)</p>
-                                <p className="text-[10px] text-slate-400">Click below to read / preview</p>
-                              </div>
-                              <a 
-                                href={att.previewUrl || att.directUrl} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex items-center gap-1 transition"
-                              >
-                                View PDF <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            </div>
-                          )}
+                          <img 
+                            src={att.directUrl} 
+                            alt="Attached Diagram" 
+                            referrerPolicy="no-referrer"
+                            className="max-h-72 w-auto min-w-[280px] max-w-full object-contain rounded-xl bg-white p-2 border" 
+                          />
                         </div>
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
-                        {q.optionsEn?.map((opt, i) => {
-                          const optDiag = q.optionsDiagrams?.[i] || '';
-                          const optAtt = parseAttachment(optDiag);
-
-                          return (
-                            <div
-                              key={i}
-                              className={`p-3 rounded-2xl border flex flex-col gap-2 transition ${
-                                q.correctOption === i
-                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
-                                  : 'bg-slate-50 border-slate-200 text-slate-700'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
-                                  q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                                }`}>
-                                  {String.fromCharCode(65 + i)}
-                                </span>
-                                <div className="truncate leading-loose">
-                                  <MathRenderer text={opt} />
-                                </div>
-                              </div>
-
-                              {optAtt.type === 'IMAGE' && optAtt.directUrl && (
-                                <div className="mt-1 bg-white p-1 rounded-xl border border-slate-200 flex items-center justify-center">
-                                  <img 
-                                    src={optAtt.directUrl} 
-                                    alt={`Option ${i + 1}`}
-                                    referrerPolicy="no-referrer"
-                                    className="max-h-28 w-auto object-contain rounded-lg"
-                                  />
-                                </div>
-                              )}
+                        {q.optionsEn?.map((opt, i) => (
+                          <div
+                            key={i}
+                            className={`p-3 rounded-2xl border flex items-center gap-2 transition ${
+                              q.correctOption === i
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
+                              q.correctOption === i ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+                            }`}>
+                              {String.fromCharCode(65 + i)}
+                            </span>
+                            <div className="truncate leading-loose">
+                              <MathRenderer text={opt} />
                             </div>
-                          );
-                        })}
+                          </div>
+                        ))}
                       </div>
 
                       {(q.explanationEn || q.explanationHi) && (
@@ -1426,35 +1273,39 @@ export default function AbhyaasMasterTower() {
                 })
               )}
             </div>
-
           </div>
         )}
 
-        {/* TAB 2: OLYMPIAD ARENA */}
+        {/* TAB 2: OLYMPIAD ARENA STUDIO WITH FULL CRUD, STATUS SWITCHER & EDIT */}
         {adminTab === 'olympiad' && (
           <div className="space-y-6 animate-in fade-in">
+            
+            {/* Header Toolbar */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-black uppercase tracking-wider">
                     High Stakes Arena Manager
                   </span>
-                  <span className="text-xs font-bold text-slate-500">{olympiadsList.length} Tournaments Live in DB</span>
+                  <span className="text-xs font-bold text-slate-500">{olympiadsList.length} Scheduled Evaluations</span>
                 </div>
-                <h2 className="text-xl font-black text-slate-900 mt-1">Olympiad Arena Studio & Viva Verification</h2>
-                <p className="text-xs text-slate-500">Configure manual fees, dynamic categories, detailed syllabi, and anti-cheat rules.</p>
+                <h2 className="text-xl font-black text-slate-900 mt-1">Olympiad Arena Studio & Master Controller</h2>
+                <p className="text-xs text-slate-500">
+                  Full lifecycle control: Dynamic countdowns, 30-min late join window, instant status toggles, editing, and permanent purging.
+                </p>
               </div>
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => setIsOlympiadModalOpen(true)}
+                  onClick={openCreateOlympiadModal}
                   className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" /> Create Custom Tournament
+                  <Plus className="w-4 h-4" /> Create New Olympiad
                 </button>
               </div>
             </div>
 
+            {/* Batch Action Toolbar */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-100 p-3 rounded-2xl">
                 <div className="flex items-center gap-3">
@@ -1465,7 +1316,7 @@ export default function AbhyaasMasterTower() {
                       onChange={handleToggleSelectAllOlys}
                       className="w-4 h-4 rounded text-blue-600 cursor-pointer"
                     />
-                    <span>Select All ({olympiadsList.length})</span>
+                    <span>Select All Olympiads ({olympiadsList.length})</span>
                   </label>
                   {selectedOlyIds.length > 0 && (
                     <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
@@ -1489,83 +1340,119 @@ export default function AbhyaasMasterTower() {
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
                   <Trophy className="w-12 h-12 text-slate-300 mx-auto" />
                   <p className="font-bold text-slate-800 text-sm">No Olympiads Created Yet</p>
-                  <p className="text-xs text-slate-400">Click "Create Custom Tournament" above to publish your first Olympiad.</p>
+                  <p className="text-xs text-slate-400">Click "Create New Olympiad" above to configure your first evaluation.</p>
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {olympiadsList.map(oly => {
-                    const fillPercent = Math.round(((oly.bookedSlots || 0) / (oly.totalSlots || 500)) * 100);
-                    const isThresholdMet = fillPercent >= 50;
                     const isSelected = selectedOlyIds.includes(oly.id);
+                    const isLive = oly.status === 'LIVE';
+                    const isCompleted = oly.status === 'COMPLETED';
+                    const isCancelled = oly.status === 'CANCELLED';
 
                     return (
                       <div 
                         key={oly.id} 
-                        className={`bg-white border p-5 rounded-3xl shadow-xs space-y-4 transition relative ${
-                          isSelected ? 'border-blue-600 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-amber-400'
+                        className={`bg-white border p-5 rounded-3xl shadow-xs space-y-4 transition flex flex-col justify-between ${
+                          isSelected ? 'border-blue-600 ring-2 ring-blue-500/20' : 
+                          isLive ? 'border-emerald-500 ring-1 ring-emerald-500/30' :
+                          'border-slate-200 hover:border-amber-400'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
-                          <div className="flex items-start gap-2.5">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleToggleSelectOly(oly.id)}
-                              className="w-4 h-4 rounded text-blue-600 cursor-pointer mt-1"
-                            />
-                            <div>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                                  Fee: ₹{oly.fee}
-                                </span>
-                                <span className="text-[10px] font-black px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
-                                  {oly.categorySection}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                                  {oly.targetExam}
-                                </span>
+                        <div className="space-y-3">
+                          {/* Header badges */}
+                          <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div className="flex items-start gap-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleSelectOly(oly.id)}
+                                className="w-4 h-4 rounded text-blue-600 cursor-pointer mt-1"
+                              />
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${
+                                    isLive ? 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse' :
+                                    isCompleted ? 'bg-slate-100 text-slate-700 border-slate-300' :
+                                    isCancelled ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                                    'bg-blue-50 text-blue-700 border-blue-200'
+                                  }`}>
+                                    ● {oly.status || 'UPCOMING'}
+                                  </span>
+                                  <span className="text-[10px] font-black px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
+                                    Fee: ₹{oly.fee}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                                    {oly.categorySection}
+                                  </span>
+                                </div>
+                                <h4 className="font-black text-sm text-slate-900 mt-2 leading-snug">{oly.title}</h4>
                               </div>
-                              <h4 className="font-black text-sm text-slate-900 mt-1.5">{oly.title}</h4>
-                              <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                                <Calendar className="w-3 h-3 text-blue-600" />
-                                {oly.startDateTime ? new Date(oly.startDateTime).toLocaleString('en-IN') : oly.scheduleText}
-                              </p>
                             </div>
                           </div>
-                          <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
+
+                          {/* Logistics & Timings */}
+                          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                            <div className="flex items-center justify-between text-slate-600">
+                              <span className="flex items-center gap-1 font-medium"><Calendar className="w-3.5 h-3.5 text-slate-400" /> Start Window:</span>
+                              <strong className="text-slate-900">{oly.startDateTime ? new Date(oly.startDateTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : oly.scheduleText}</strong>
+                            </div>
+                            <div className="flex items-center justify-between text-slate-600">
+                              <span className="flex items-center gap-1 font-medium"><Clock className="w-3.5 h-3.5 text-slate-400" /> Exam Duration:</span>
+                              <strong className="text-slate-900">{oly.durationMinutes || 45} mins • {oly.questionsCount || 50} Qs</strong>
+                            </div>
+                            <div className="flex items-center justify-between text-slate-600">
+                              <span className="flex items-center gap-1 font-medium"><AlertOctagon className="w-3.5 h-3.5 text-amber-500" /> Late Grace Window:</span>
+                              <strong className="text-amber-800 font-bold">+{oly.graceMinutes || 30} mins</strong>
+                            </div>
+                            <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200">
+                              <span className="font-medium text-slate-500">Fellowship Grant:</span>
+                              <strong className="text-blue-600 font-bold">{oly.totalGrantPool}</strong>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[11px] font-black">
-                            <span className="text-slate-600">{oly.bookedSlots || 0} / {oly.totalSlots || 500} Slots</span>
-                            <span className={isThresholdMet ? 'text-emerald-600' : 'text-amber-600'}>{fillPercent}%</span>
+                        {/* Interactive Management Controls */}
+                        <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                          {/* Fast Status Switcher Dropdown */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-black uppercase text-slate-500">State:</span>
+                            <div className="flex items-center gap-1">
+                              {(['UPCOMING', 'LIVE', 'COMPLETED', 'CANCELLED'] as const).map(st => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => handleToggleOlyStatus(oly, st)}
+                                  className={`px-2 py-1 rounded text-[10px] font-black transition cursor-pointer ${
+                                    oly.status === st 
+                                      ? 'bg-slate-900 text-white' 
+                                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                  }`}
+                                >
+                                  {st === 'LIVE' ? '🔴 Live' : st === 'UPCOMING' ? '⏳ Wait' : st === 'COMPLETED' ? 'Done' : 'Cancel'}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${isThresholdMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                              style={{ width: `${Math.min(fillPercent, 100)}%` }}
-                            />
+
+                          {/* Action Buttons: Edit & Permanent Delete */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditOlympiadModal(oly)}
+                              className="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-blue-200"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" /> Edit Configuration
+                            </button>
+                            <button
+                              onClick={() => handleSingleDeleteOlympiad(oly.id, oly.title)}
+                              className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer border border-rose-200"
+                              title="Delete Olympiad Permanently"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <p className={`text-[10px] font-black uppercase ${isThresholdMet ? 'text-emerald-700' : 'text-amber-700'}`}>
-                            {isThresholdMet ? '✓ 50% Threshold Met' : '⏳ Awaiting 50% Cohort'}
-                          </p>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-600">Pool: <strong className="text-blue-600">{oly.totalGrantPool}</strong></span>
-                          <button
-                            onClick={async () => {
-                              if (confirm(`Delete Olympiad "${oly.title}"?`)) {
-                                await deleteOlympiadTournament(oly.id);
-                                setOlympiadsList(prev => prev.filter(item => item.id !== oly.id));
-                                setSelectedOlyIds(prev => prev.filter(id => id !== oly.id));
-                              }
-                            }}
-                            className="text-rose-500 hover:text-rose-700 font-bold cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                        </div>
                       </div>
                     );
                   })}
@@ -1573,35 +1460,62 @@ export default function AbhyaasMasterTower() {
               )}
             </div>
 
+            {/* Viva Verification & Candidates Queue */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <Video className="w-4 h-4 text-amber-600" />
-                Live Candidate Verification & Viva Queue ({participantsList.length})
-              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                    <Video className="w-4 h-4 text-amber-600" />
+                    Verified Candidates, Viva Defense & Official Admit Rosters ({participantsList.length})
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Official Admit Card Generation, 1-on-1 Viva Voce defense decisions, and grant sanction rolls.
+                  </p>
+                </div>
+              </div>
+
               {participantsList.length === 0 ? (
-                <p className="text-xs text-slate-400 font-bold p-6 text-center">No participants in viva verification queue yet.</p>
+                <p className="text-xs text-slate-400 font-bold p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
+                  No registered candidates found. As scholars register from the front-end, their provisional records appear here.
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
                         <th className="py-3 px-3">Roll Number</th>
-                        <th className="py-3 px-3">Candidate</th>
-                        <th className="py-3 px-3">Score</th>
-                        <th className="py-3 px-3">Status</th>
-                        <th className="py-3 px-3 text-right">Actions</th>
+                        <th className="py-3 px-3">Candidate Name</th>
+                        <th className="py-3 px-3">Session Enrolled</th>
+                        <th className="py-3 px-3">Written %</th>
+                        <th className="py-3 px-3">Defense Status</th>
+                        <th className="py-3 px-3 text-right">Official Documents & Viva Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 font-medium">
                       {participantsList.map(p => (
-                        <tr key={p.id}>
+                        <tr key={p.id} className="hover:bg-slate-50/80 transition">
                           <td className="py-3 px-3 font-mono font-bold text-slate-900">{p.rollNo}</td>
-                          <td className="py-3 px-3">{p.candidateName}</td>
-                          <td className="py-3 px-3 font-black text-blue-600">{p.writtenScore}%</td>
-                          <td className="py-3 px-3 font-bold">{p.vivaStatus}</td>
-                          <td className="py-3 px-3 text-right">
-                            <button onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded mr-2 cursor-pointer">Pass</button>
-                            <button onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 text-white font-bold text-[10px] rounded cursor-pointer">Fail</button>
+                          <td className="py-3 px-3 font-bold text-slate-800">{p.candidateName}</td>
+                          <td className="py-3 px-3 text-slate-600 max-w-[200px] truncate">{p.olympiadTier}</td>
+                          <td className="py-3 px-3 font-black text-blue-600">{p.writtenScore || 0}%</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                              p.vivaStatus === 'PASSED' ? 'bg-emerald-100 text-emerald-800' :
+                              p.vivaStatus === 'FAILED' ? 'bg-rose-100 text-rose-800' :
+                              'bg-amber-100 text-amber-800'
+                            }`}>
+                              {p.vivaStatus || 'PENDING'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right space-x-2">
+                            <button 
+                              onClick={() => setViewingAdmitCardParticipant(p)}
+                              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded-lg cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <Download className="w-3 h-3" /> Formal Admit Card
+                            </button>
+                            <button onClick={() => handleVivaAction(p.id, 'PASSED', p.candidateName)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded cursor-pointer">Pass</button>
+                            <button onClick={() => handleVivaAction(p.id, 'FAILED', p.candidateName)} className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded cursor-pointer">Fail</button>
                           </td>
                         </tr>
                       ))}
@@ -1610,6 +1524,7 @@ export default function AbhyaasMasterTower() {
                 </div>
               )}
             </div>
+
           </div>
         )}
 
@@ -1781,11 +1696,6 @@ export default function AbhyaasMasterTower() {
                     <div className="text-sm font-bold text-slate-800 line-through opacity-80 leading-[2.2]">
                       <MathRenderer text={q.questionEn} />
                     </div>
-                    {q.questionHi && (
-                      <div className="text-xs text-slate-500 leading-[2.2]">
-                        <MathRenderer text={q.questionHi} />
-                      </div>
-                    )}
                   </div>
                 ))
               )}
@@ -1795,23 +1705,25 @@ export default function AbhyaasMasterTower() {
 
       </div>
 
-      {/* MODAL 1: CREATE CUSTOM OLYMPIAD */}
+      {/* MODAL 1: CREATE OR EDIT OLYMPIAD TOURNAMENT */}
       {isOlympiadModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  Custom Tournament Engine
+                  {editingOlyId ? 'Modify Configuration' : 'Custom Tournament Engine'}
                 </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">Create Standardized Olympiad</h3>
+                <h3 className="text-lg font-black text-slate-900 mt-1">
+                  {editingOlyId ? 'Edit Olympiad Assessment Parameters' : 'Create Standardized Olympiad'}
+                </h3>
               </div>
               <button onClick={() => setIsOlympiadModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateOlympiadSubmit} className="space-y-4 text-xs font-medium">
+            <form onSubmit={handleSaveOlympiadSubmit} className="space-y-4 text-xs font-medium">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tournament Title*</label>
@@ -1840,19 +1752,40 @@ export default function AbhyaasMasterTower() {
                     <option value="SPECIAL">Special Invitational</option>
                     <option value="CUSTOM" className="font-black text-blue-600">✍️ + Type Custom Section...</option>
                   </select>
-                  {newOlySection === 'CUSTOM' && (
-                    <input
-                      type="text"
-                      placeholder="Type custom frequency (e.g. Bi-Weekly, Flash Cup)"
-                      value={newOlySectionCustom}
-                      onChange={e => setNewOlySectionCustom(e.target.value)}
-                      className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                      required
-                    />
-                  )}
                 </div>
               </div>
 
+              {/* Status & Grace Window Controls */}
+              <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-black text-amber-950 text-[11px] mb-1">Live State / Lifecycle Status:</label>
+                  <select
+                    value={newOlyStatus}
+                    onChange={e => setNewOlyStatus(e.target.value as any)}
+                    className="w-full h-10 px-3 bg-white border border-amber-300 rounded-xl font-bold text-xs outline-none cursor-pointer"
+                  >
+                    <option value="UPCOMING">⏳ UPCOMING (Locked Countdown)</option>
+                    <option value="LIVE">🔴 LIVE (Accepting Submissions)</option>
+                    <option value="COMPLETED">✓ COMPLETED (Exam Over)</option>
+                    <option value="CANCELLED">✕ CANCELLED</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-black text-amber-950 text-[11px] mb-1">Entry Grace Window (Backlock Mins):</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="120"
+                    value={newOlyGraceMinutes}
+                    onChange={e => setNewOlyGraceMinutes(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-white border border-amber-300 rounded-xl font-bold text-xs outline-none"
+                    required
+                  />
+                  <span className="text-[10px] text-amber-800 font-medium">Allows candidates to join up to {newOlyGraceMinutes} mins late.</span>
+                </div>
+              </div>
+
+              {/* Academic Hierarchy */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <span className="text-[11px] font-black uppercase text-slate-700 flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-blue-600" /> Target Academic Hierarchy
@@ -1871,16 +1804,6 @@ export default function AbhyaasMasterTower() {
                       {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Class...</option>
                     </select>
-                    {newOlyClass === 'OTHER' && (
-                      <input
-                        type="text"
-                        placeholder="Type custom class (e.g. Class 8th, B.Sc Honours)"
-                        value={newOlyClassCustom}
-                        onChange={e => setNewOlyClassCustom(e.target.value)}
-                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                        required
-                      />
-                    )}
                   </div>
 
                   <div>
@@ -1895,16 +1818,6 @@ export default function AbhyaasMasterTower() {
                       {olyAvailableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Exam...</option>
                     </select>
-                    {newOlyExam === 'OTHER' && (
-                      <input
-                        type="text"
-                        placeholder="Type custom exam (e.g. NDA, UPPSC, BPSC)"
-                        value={newOlyExamCustom}
-                        onChange={e => setNewOlyExamCustom(e.target.value)}
-                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                        required
-                      />
-                    )}
                   </div>
 
                   <div>
@@ -1919,16 +1832,6 @@ export default function AbhyaasMasterTower() {
                       {olyAvailableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Subject...</option>
                     </select>
-                    {newOlySubject === 'OTHER' && (
-                      <input
-                        type="text"
-                        placeholder="Type custom subject (e.g. Constitutional Law, Botany)"
-                        value={newOlySubjectCustom}
-                        onChange={e => setNewOlySubjectCustom(e.target.value)}
-                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                        required
-                      />
-                    )}
                   </div>
 
                   <div>
@@ -1942,38 +1845,27 @@ export default function AbhyaasMasterTower() {
                       {olyAvailableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
                       <option value="OTHER" className="font-black text-blue-600">✍️ + Type Custom Topic...</option>
                     </select>
-                    {newOlyTopic === 'OTHER' && (
-                      <input
-                        type="text"
-                        placeholder="Type custom topic (e.g. Fundamental Rights, Thermodynamics)"
-                        value={newOlyTopicCustom}
-                        onChange={e => setNewOlyTopicCustom(e.target.value)}
-                        className="w-full h-9 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                      />
-                    )}
                   </div>
                 </div>
               </div>
 
+              {/* Numerical Parameters */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Manual Fee (₹)*</label>
+                  <label className="block font-bold text-slate-700 mb-1">Evaluation Fee (₹)*</label>
                   <input
                     type="number"
                     min="0"
-                    placeholder="49"
                     value={newOlyFee}
                     onChange={e => setNewOlyFee(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-600"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
                     required
                   />
-                  <p className="text-[10px] text-slate-400 mt-0.5">Enter 0 for Free Entry</p>
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Fellowship Pool*</label>
                   <input
                     type="text"
-                    placeholder="₹15,000"
                     value={newOlyGrantPool}
                     onChange={e => setNewOlyGrantPool(e.target.value)}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none"
@@ -2006,12 +1898,10 @@ export default function AbhyaasMasterTower() {
               <div>
                 <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                  Scheduled Date & Start Time (Calendar & Clock 2026–2099)*
+                  Scheduled Session Start Time*
                 </label>
                 <input
                   type="datetime-local"
-                  min="2026-01-01T00:00"
-                  max="2099-12-31T23:59"
                   value={newOlyDateTime}
                   onChange={e => setNewOlyDateTime(e.target.value)}
                   className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none text-slate-800 cursor-pointer"
@@ -2023,13 +1913,13 @@ export default function AbhyaasMasterTower() {
                 <label className="block font-bold text-slate-700 mb-1">Examination Description / Overview</label>
                 <textarea
                   rows={2}
-                  placeholder="Describe examination standards, syllabus coverage, and learning outcomes..."
                   value={newOlyDesc}
                   onChange={e => setNewOlyDesc(e.target.value)}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                 />
               </div>
 
+              {/* Detailed Syllabus */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <label className="block font-black text-xs uppercase text-slate-700">Detailed Syllabus Modules</label>
                 <div className="space-y-2">
@@ -2051,6 +1941,7 @@ export default function AbhyaasMasterTower() {
                 <button type="button" onClick={handleAddSyllabusItem} className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[11px] cursor-pointer">+ Add Subject Module</button>
               </div>
 
+              {/* Anti Cheat Rules */}
               <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
                 <label className="block font-black text-xs uppercase text-amber-900">Custom Editable Anti-Cheat & Assessment Rules</label>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
@@ -2064,7 +1955,7 @@ export default function AbhyaasMasterTower() {
                 <div className="flex gap-2 pt-1">
                   <input
                     type="text"
-                    placeholder="Add custom rule (e.g. Webcam snapshot enabled)..."
+                    placeholder="Add custom rule..."
                     value={newRuleInput}
                     onChange={e => setNewRuleInput(e.target.value)}
                     className="flex-1 h-9 px-2.5 bg-white border border-amber-300 rounded-lg text-xs outline-none"
@@ -2077,7 +1968,7 @@ export default function AbhyaasMasterTower() {
                 type="submit"
                 className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs cursor-pointer"
               >
-                <Trophy className="w-4 h-4" /> Save & Publish Olympiad Live
+                <Trophy className="w-4 h-4" /> {editingOlyId ? 'Save & Synchronize Changes Live' : 'Save & Publish Olympiad Live'}
               </button>
             </form>
           </div>
@@ -2088,37 +1979,21 @@ export default function AbhyaasMasterTower() {
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[92vh] overflow-y-auto">
-            
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900">
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Universal Question Studio'}
                 </h3>
-                <p className="text-xs text-slate-500">
-                  UPSC/NTA Standard: Bold, Alignment, Colors, Inline Diagrams, and Live Split Preview as you type.
-                </p>
+                <p className="text-xs text-slate-500">UPSC/NTA Standard: Bold, Alignment, Colors, Inline Diagrams, and Live Split Preview.</p>
               </div>
-              <button
-                onClick={() => setIsQuestionModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
-              >
+              <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveQuestion} className="space-y-5">
-              
-              {duplicateWarning && (
-                <div className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-rose-50 border-rose-300 text-rose-800">
-                  <AlertTriangle className="w-5 h-5 shrink-0" />
-                  <span>{duplicateWarning}</span>
-                </div>
-              )}
-
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">
-                  Target Destination / Vault*
-                </label>
+                <label className="block text-xs font-black uppercase text-slate-500">Target Vault*</label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
                     { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
@@ -2130,129 +2005,46 @@ export default function AbhyaasMasterTower() {
                       key={s.id}
                       onClick={() => setQSegment(s.id as QuestionSegment)}
                       className={`p-3 rounded-xl border text-left transition cursor-pointer ${
-                        qSegment === s.id 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        qSegment === s.id ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
                       }`}
                     >
                       <p className="font-black text-xs">{s.title}</p>
-                      <p className={`text-[10px] mt-0.5 ${qSegment === s.id ? 'text-blue-100' : 'text-slate-400'}`}>
-                        {s.desc}
-                      </p>
+                      <p className={`text-[10px] mt-0.5 ${qSegment === s.id ? 'text-blue-100' : 'text-slate-400'}`}>{s.desc}</p>
                     </button>
                   ))}
                 </div>
-
-                {qSegment === 'PYQ' && (
-                  <div className="pt-2 flex items-center gap-3">
-                    <label className="text-xs font-bold text-slate-700">Exam Year (PYQ):</label>
-                    <input
-                      type="text"
-                      value={qPyqYear}
-                      onChange={e => setQPyqYear(e.target.value)}
-                      placeholder="e.g. 2026"
-                      className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold w-32 outline-none"
-                    />
-                  </div>
-                )}
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">1. Class / Tier*</label>
-                  <div className="relative">
-                    <select
-                      value={qClass}
-                      onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qClass === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Class name" value={qClassCustom} onChange={e => setQClassCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50/50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
+                  <select
+                    value={qClass}
+                    onChange={e => { setQClass(e.target.value); setQExam(''); setQSubject(''); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose Class --</option>
+                    {classes.map(c => <option key={c.id} value={c.nameEn}>{c.nameEn}</option>)}
+                  </select>
                 </div>
-
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">2. Target Examination*</label>
-                  <div className="relative">
-                    <select
-                      value={qExam}
-                      onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Exam --</option>
-                      {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qExam === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Exam name" value={qExamCustom} onChange={e => setQExamCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">3. Subject*</label>
-                  <div className="relative">
-                    <select
-                      value={qSubject}
-                      onChange={e => { setQSubject(e.target.value); setQTopic(''); }}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Subject --</option>
-                      {availableSubjects.map(s => <option key={s.id} value={s.nameEn}>{s.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qSubject === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Subject name" value={qSubjectCustom} onChange={e => setQSubjectCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none" required
-                    />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">4. Topic / Chapter</label>
-                  <div className="relative">
-                    <select
-                      value={qTopic}
-                      onChange={e => setQTopic(e.target.value)}
-                      className="w-full h-11 px-3.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold appearance-none outline-none cursor-pointer"
-                    >
-                      <option value="">-- Choose Topic --</option>
-                      {availableTopics.map(t => <option key={t.id} value={t.nameEn}>{t.nameEn}</option>)}
-                      <option value="OTHER" className="font-black text-blue-600">✍️ + Other (Type Manually)</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  {qTopic === 'OTHER' && (
-                    <input
-                      type="text" placeholder="Type custom Topic name" value={qTopicCustom} onChange={e => setQTopicCustom(e.target.value)}
-                      className="w-full h-10 px-3 mt-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs outline-none"
-                    />
-                  )}
+                  <select
+                    value={qExam}
+                    onChange={e => { setQExam(e.target.value); setQSubject(''); setQTopic(''); }}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                  >
+                    <option value="">-- Choose Exam --</option>
+                    {availableExams.map(e => <option key={e.id} value={e.nameEn}>{e.nameEn}</option>)}
+                  </select>
                 </div>
               </div>
 
-              {/* UNIVERSAL INPUT FIELDS WITH TRUE BOLD, INLINE DIAGRAMS & SPLIT LIVE PREVIEW */}
               <UniversalMathBox
                 label="Question Statement (English)*"
                 value={qStatementEn}
                 onChange={val => { setQStatementEn(val); checkDuplicates(val); }}
-                placeholder="Type question or formula. Example: Find the limit $$f(x) = \lim_{n \to \infty} \frac{(1+\sin\frac{\pi}{x})^n-1}{(1+\sin\frac{\pi}{x})^n+1}$$..."
+                placeholder="Type question or formula..."
                 rows={3}
                 required={true}
               />
@@ -2265,7 +2057,7 @@ export default function AbhyaasMasterTower() {
                 rows={3}
               />
 
-              {/* Standalone Diagram URL / Drive Attachment */}
+              {/* Standalone Diagram Attachment */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <input
                   type="text"
@@ -2280,7 +2072,7 @@ export default function AbhyaasMasterTower() {
                 </button>
               </div>
 
-              {/* Options A - D (English & Hindi) */}
+              {/* Options A - D */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <span className="font-black uppercase text-slate-700 block">Options & Answer Key*:</span>
                 <div className="space-y-4">
@@ -2294,50 +2086,28 @@ export default function AbhyaasMasterTower() {
                           onChange={() => setQCorrectOpt(i)}
                           className="w-4 h-4 text-blue-600 cursor-pointer"
                         />
-                        <span className="font-black text-slate-800 text-xs">
-                          Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct Answer)' : ''}
-                        </span>
+                        <span className="font-black text-slate-800 text-xs">Option {String.fromCharCode(65 + i)} {qCorrectOpt === i ? '(Correct Answer)' : ''}</span>
                       </div>
-
-                      <div className="grid sm:grid-cols-2 gap-3">
-                        <UniversalMathBox
-                          label={`Option ${String.fromCharCode(65 + i)} (English)`}
-                          value={qOptionsEn[i]}
-                          onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} English formula or text...`}
-                          rows={1}
-                          required={true}
-                        />
-                        <UniversalMathBox
-                          label={`Option ${String.fromCharCode(65 + i)} (Hindi)`}
-                          value={qOptionsHi[i]}
-                          onChange={val => { const o = [...qOptionsHi]; o[i] = val; setQOptionsHi(o); }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)} Hindi formula or text...`}
-                          rows={1}
-                        />
-                      </div>
+                      <UniversalMathBox
+                        label={`Option ${String.fromCharCode(65 + i)} (English)`}
+                        value={qOptionsEn[i]}
+                        onChange={val => { const o = [...qOptionsEn]; o[i] = val; setQOptionsEn(o); }}
+                        placeholder={`Option ${String.fromCharCode(65 + i)} English formula...`}
+                        rows={1}
+                        required={true}
+                      />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Detailed Explanations */}
-              <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                <UniversalMathBox
-                  label="Detailed Explanation (English)"
-                  value={qExplanationEn}
-                  onChange={setQExplanationEn}
-                  placeholder="Step-by-step mathematical proof. Use • for bullets, [center]...[/center] for center align, and [color=blue]...[/color] for highlights..."
-                  rows={4}
-                />
-                <UniversalMathBox
-                  label="Detailed Explanation (Hindi)"
-                  value={qExplanationHi}
-                  onChange={setQExplanationHi}
-                  placeholder="हिंदी में चरणबद्ध हल और व्याख्या..."
-                  rows={4}
-                />
-              </div>
+              <UniversalMathBox
+                label="Detailed Explanation (English)"
+                value={qExplanationEn}
+                onChange={setQExplanationEn}
+                placeholder="Step-by-step mathematical proof..."
+                rows={4}
+              />
 
               <button
                 type="submit"
@@ -2345,46 +2115,193 @@ export default function AbhyaasMasterTower() {
               >
                 <Check className="w-4 h-4" /> Save Question Entry to Database
               </button>
-
             </form>
           </div>
         </div>
       )}
 
-      {/* EXCEL BULK IMPORTER MODAL */}
-      {isBulkModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Excel Power Importer
-              </h3>
-              <button onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
-              </button>
+      {/* ========================================================================= */}
+      {/* MODAL 3: OFFICIAL NTA / UPSC STANDARD PROVISIONAL ADMIT CARD */}
+      {/* ========================================================================= */}
+      {viewingAdmitCardParticipant && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-8 shadow-2xl my-6 max-h-[95vh] overflow-y-auto">
+            
+            {/* Top Close & Print Action Bar (Hidden on actual print) */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-200 print:hidden">
+              <span className="text-xs font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Official National Assessment Hall Ticket Generated
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" /> Print / Save Formal PDF
+                </button>
+                <button
+                  onClick={() => setViewingAdmitCardParticipant(null)}
+                  className="p-2 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <textarea
-              rows={8}
-              value={pasteData}
-              onChange={e => { setPasteData(e.target.value); parseBulkInputText(e.target.value); }}
-              placeholder="Paste Excel tab-separated rows here..."
-              className="w-full p-3 bg-slate-50 border rounded-2xl font-mono text-xs outline-none"
-            />
-            {bulkParseError && <div className="p-2 bg-rose-50 text-rose-800 text-xs font-bold rounded-lg">{bulkParseError}</div>}
-            <button
-              type="button"
-              disabled={bulkParsedQuestions.length === 0 || isImportingBulk}
-              onClick={handleExecuteBulkImport}
-              className={`w-full h-11 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${
-                bulkParsedQuestions.length > 0 ? 'bg-emerald-600 text-white cursor-pointer' : 'bg-slate-200 text-slate-400'
-              }`}
-            >
-              {isImportingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-              <span>Confirm & Upload {bulkParsedQuestions.length} Questions</span>
-            </button>
+
+            {/* FORMAL NTA / UPSC STANDARD ADMIT CARD LAYOUT (Print Engine Target) */}
+            <div className="admit-card-container p-6 sm:p-8 border-2 border-slate-900 rounded-2xl bg-white text-slate-900 space-y-5 font-serif mt-4">
+              
+              {/* Official Header */}
+              <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-full border border-slate-900 flex items-center justify-center font-black text-lg bg-slate-100 font-sans">
+                    A
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-slate-900">
+                      ABHYAAS NATIONAL TESTING & ACADEMIC FELLOWSHIP DIRECTORATE
+                    </h2>
+                    <p className="text-xs font-bold text-slate-700 tracking-wide">
+                      ALL-INDIA STANDARDIZED COMPETITIVE EVALUATION ROSTER (SESSION 2026)
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <span className="inline-block px-4 py-0.5 bg-slate-900 text-white text-xs font-sans font-bold uppercase tracking-widest rounded-full">
+                    PROVISIONAL ADMIT CARD (HALL TICKET)
+                  </span>
+                </div>
+              </div>
+
+              {/* Barcode Mock & Verification Banner */}
+              <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50 border border-slate-300 p-3 rounded-lg text-xs font-sans">
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Application Reference No:</span>
+                  <span className="font-mono font-bold text-slate-900">ABH-APP-{viewingAdmitCardParticipant.id.slice(-8).toUpperCase()}</span>
+                </div>
+                <div className="text-center my-2 sm:my-0">
+                  <span className="font-mono text-xs tracking-widest font-black text-slate-800 bg-slate-200 px-3 py-1 rounded border">
+                    ||| | ||||| || |||||| | ||| |||| |
+                  </span>
+                  <span className="text-[9px] block text-slate-400 mt-0.5 font-mono">{viewingAdmitCardParticipant.rollNo}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Candidate Security Status:</span>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold rounded">
+                    KYC Verified / Proctored
+                  </span>
+                </div>
+              </div>
+
+              {/* Candidate Details & Examination Timing Grid */}
+              <div className="border border-slate-800 rounded-lg overflow-hidden text-xs font-sans">
+                <table className="w-full border-collapse">
+                  <tbody>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 w-1/4 border-r border-slate-300">Roll Number:</td>
+                      <td className="p-2.5 font-mono font-black text-base text-slate-900 w-1/4 border-r border-slate-300">{viewingAdmitCardParticipant.rollNo}</td>
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 w-1/4 border-r border-slate-300">Candidate's Name:</td>
+                      <td className="p-2.5 font-black text-slate-900 w-1/4 uppercase">{viewingAdmitCardParticipant.candidateName}</td>
+                    </tr>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 border-r border-slate-300">Registered Email:</td>
+                      <td className="p-2.5 font-medium border-r border-slate-300">{viewingAdmitCardParticipant.email}</td>
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 border-r border-slate-300">Contact Number:</td>
+                      <td className="p-2.5 font-medium">{viewingAdmitCardParticipant.phone}</td>
+                    </tr>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 border-r border-slate-300">Examination Stream:</td>
+                      <td className="p-2.5 font-bold text-slate-900 border-r border-slate-300" colSpan={3}>
+                        {viewingAdmitCardParticipant.olympiadTier}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-slate-300 bg-amber-50/50">
+                      <td className="p-2.5 font-bold text-amber-900 border-r border-slate-300">Reporting & Start Window:</td>
+                      <td className="p-2.5 font-bold text-slate-900 border-r border-slate-300">
+                        {viewingAdmitCardParticipant.examSlot || '10:00 AM (Synchronized)'}
+                      </td>
+                      <td className="p-2.5 font-bold text-rose-900 border-r border-slate-300">Gate Closure Time (Strict):</td>
+                      <td className="p-2.5 font-bold text-rose-700">
+                        +30 Minutes Past Session Start (No Entry Thereafter)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 border-r border-slate-300">Fee Status:</td>
+                      <td className="p-2.5 font-bold text-emerald-700 border-r border-slate-300">
+                        {viewingAdmitCardParticipant.amount === 0 ? 'Exempted (Institutional Merit Grant)' : `₹${viewingAdmitCardParticipant.amount} (Payment Reconciled)`}
+                      </td>
+                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 border-r border-slate-300">Test Delivery Mode:</td>
+                      <td className="p-2.5 font-bold text-slate-900">Computer Based Proctored Assessment (CBT)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Photo / Signature Watermark Boxes */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 font-sans text-xs">
+                <div className="border border-dashed border-slate-400 rounded-lg p-3 text-center flex flex-col justify-between h-28 bg-slate-50">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">Digital Biometric Stamp</span>
+                  <div className="font-mono text-[10px] text-slate-400">VERIFIED PASS CERTIFIED</div>
+                  <span className="text-[9px] text-emerald-600 font-bold">✓ Identity Check Match</span>
+                </div>
+                <div className="border border-dashed border-slate-400 rounded-lg p-3 text-center flex flex-col justify-between h-28 bg-slate-50">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">Candidate Signature</span>
+                  <div className="font-serif italic text-slate-600 text-sm">Digitally Affirmed on Registration</div>
+                  <span className="text-[9px] text-slate-400">System Signed</span>
+                </div>
+                <div className="border border-dashed border-slate-400 rounded-lg p-3 text-center flex flex-col justify-between h-28 bg-slate-50 col-span-2 sm:col-span-1">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">Directorate Seal</span>
+                  <div className="font-serif font-black text-slate-800 text-xs">ABHYAAS CENTRAL CONTROLLER</div>
+                  <span className="text-[9px] text-slate-500">Autonomous Evaluation Board</span>
+                </div>
+              </div>
+
+              {/* Strict NTA / Civil Services Conduct Rules */}
+              <div className="border-t-2 border-slate-900 pt-3 space-y-2 font-sans text-[10px] leading-relaxed text-slate-700">
+                <h4 className="font-black uppercase text-slate-900 text-xs">
+                  IMPORTANT INSTRUCTIONS FOR THE CANDIDATE:
+                </h4>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>This Provisional Admit Card must be presented alongside an authentic Government Photo Identity Card for session validation.</li>
+                  <li><strong>Strict Entry Cutoff:</strong> Candidates are allowed entry into the proctored hall from the scheduled session time up to <strong>exactly 30 minutes thereafter (Backlock Window)</strong>. At the 31st minute, the assessment portal locks permanently and late admission is barred under all circumstances.</li>
+                  <li><strong>No Backtracking Policy:</strong> Questions appear under an independent per-question timer. Once answered or expired, candidates cannot revisit previous questions.</li>
+                  <li><strong>Digital Proctoring & Focus Lock:</strong> The assessment executes in full-screen mode. Switching tabs, minimizing windows, or secondary monitor relays will prompt instant disciplinary warnings; <strong>exceeding 2 warnings causes immediate script auto-submission</strong>.</li>
+                  <li><strong>Academic Research Fellowships:</strong> Sanction of endowed grants is strictly contingent upon securing a written score &ge;75% followed by successfully defending analytical methods in a mandatory <strong>1-on-1 Faculty Viva Voce (minimum 60% viva cutoff)</strong>.</li>
+                  <li>Impersonation, AI relay, or unfair means will lead to permanent blacklisting across the national verification register.</li>
+                </ol>
+              </div>
+
+              <div className="text-center text-[9px] font-sans text-slate-400 pt-2 border-t border-slate-200">
+                This document is a computer-generated provisional credentials pass authorized by the Abhyaas Examination Directorate.
+              </div>
+
+            </div>
+
           </div>
         </div>
       )}
+
+      {/* Global CSS for Clean National Standard Print Output */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .admit-card-container, .admit-card-container * {
+            visibility: visible;
+          }
+          .admit-card-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 15px;
+            border: 2px solid #000 !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
 
     </div>
   );

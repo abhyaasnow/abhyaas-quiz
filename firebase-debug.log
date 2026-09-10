@@ -1,0 +1,54 @@
+[debug] [2026-09-10T08:34:06.898Z] ----------------------------------------------------------------------
+[debug] [2026-09-10T08:34:06.905Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Dell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-09-10T08:34:06.906Z] CLI Version:   15.11.0
+[debug] [2026-09-10T08:34:06.906Z] Platform:      win32
+[debug] [2026-09-10T08:34:06.907Z] Node Version:  v24.20.0
+[debug] [2026-09-10T08:34:06.907Z] Time:          Thu Sep 10 2026 14:04:06 GMT+0530 (India Standard Time)
+[debug] [2026-09-10T08:34:06.907Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-10T08:34:06.933Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-10T08:39:04.609Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-10T08:39:04.610Z] > authorizing via signed-in user (admin.abhyaas@gmail.com)
+[debug] [2026-09-10T08:39:04.610Z] [iam] checking project abhyaas-app for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-09-10T08:39:04.615Z] Checked if tokens are valid: false, expires at: 1774162474363
+[debug] [2026-09-10T08:39:04.615Z] Checked if tokens are valid: false, expires at: 1774162474363
+[debug] [2026-09-10T08:39:04.616Z] > refreshing access token with scopes: []
+[debug] [2026-09-10T08:39:04.683Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-09-10T08:39:04.683Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-10T08:39:06.129Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-09-10T08:39:06.129Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-10T08:39:06.338Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/abhyaas-app:testIamPermissions [none]
+[debug] [2026-09-10T08:39:06.339Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/abhyaas-app:testIamPermissions  x-goog-user-project=abhyaas-app
+[debug] [2026-09-10T08:39:06.339Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/abhyaas-app:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-10T08:39:06.414Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-09-10T08:39:06.414Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-09-10T08:39:08.108Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/abhyaas-app:testIamPermissions 200
+[debug] [2026-09-10T08:39:08.109Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/abhyaas-app:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-10T08:39:08.111Z] Checked if tokens are valid: true, expires at: 1789033145130
+[debug] [2026-09-10T08:39:08.112Z] Checked if tokens are valid: true, expires at: 1789033145130
+[debug] [2026-09-10T08:39:08.113Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/abhyaas-app [none]
+[debug] [2026-09-10T08:39:09.140Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/abhyaas-app 200
+[debug] [2026-09-10T08:39:09.141Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/abhyaas-app {"projectId":"abhyaas-app","projectNumber":"925401420707","displayName":"Abhyaas App","name":"projects/abhyaas-app","resources":{"hostingSite":"abhyaas-app"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_7240a8d0-f1a2-4348-baf0-18ca1b741760"}
+[info] 
+[info] === Deploying to 'abhyaas-app'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-09-10T08:39:09.189Z] Checked if tokens are valid: true, expires at: 1789033145130
+[debug] [2026-09-10T08:39:09.189Z] Checked if tokens are valid: true, expires at: 1789033145130
+[debug] [2026-09-10T08:39:09.190Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/abhyaas-app/versions [none]
+[debug] [2026-09-10T08:39:09.190Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/abhyaas-app/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-09-10T08:39:12.600Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/abhyaas-app/versions 200
+[debug] [2026-09-10T08:39:12.600Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/abhyaas-app/versions {"name":"projects/925401420707/sites/abhyaas-app/versions/b4eeac749f536fb5","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[abhyaas-app]: beginning deploy... 
+[info] i  hosting[abhyaas-app]: found 267629 files in . 
+[debug] [2026-09-10T09:03:04.541Z] [hosting] uploading with 200 concurrency
+[debug] [2026-09-10T09:03:04.543Z] [hosting] hash cache [] not populated
+[debug] [2026-09-10T09:03:05.337Z] Error: EBUSY: resource busy or locked, open 'C:\Users\Dell\ntuser.dat.LOG2'
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-09-10T09:03:05.342Z] Error: EBUSY: resource busy or locked, open 'C:\Users\Dell\ntuser.dat.LOG1'
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-09-10T09:03:05.344Z] Error: EBUSY: resource busy or locked, open 'C:\Users\Dell\NTUSER.DAT'
+[error] 
+[error] Error: An unexpected error has occurred.
