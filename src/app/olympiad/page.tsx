@@ -42,10 +42,11 @@ export default function CascadingOlympiadSuite() {
   const [acceptIntegrityCode, setAcceptIntegrityCode] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Confirmed Admit Card State
+  // Confirmed Admit Card State (Now strictly bound with tournamentId)
   const [confirmedAdmit, setConfirmedAdmit] = useState<{
     rollNo: string;
     candidateName: string;
+    tournamentId: string;
     tournamentTitle: string;
     examSlot: string;
     amount: number;
@@ -182,7 +183,10 @@ export default function CascadingOlympiadSuite() {
         candidateName: candidateName.trim(),
         email: candidateEmail.trim().toLowerCase(),
         phone: candidatePhone.trim(),
+        olympiadId: activeTournament.id,
         olympiadTier: activeTournament.title,
+        targetExam: activeTournament.targetExam,
+        targetSubject: activeTournament.targetSubject,
         amount: activeTournament.fee,
         paymentMethod: activeTournament.fee === 0 ? 'Exempted Merit Application' : 'Online Evaluation Fee',
       });
@@ -191,6 +195,7 @@ export default function CascadingOlympiadSuite() {
         setConfirmedAdmit({
           rollNo: res.rollNo,
           candidateName: candidateName.trim(),
+          tournamentId: activeTournament.id,
           tournamentTitle: activeTournament.title,
           examSlot: activeTournament.scheduleText || (activeTournament.startDateTime ? new Date(activeTournament.startDateTime).toLocaleString('en-IN') : 'Scheduled Slot'),
           amount: activeTournament.fee,
@@ -458,8 +463,9 @@ export default function CascadingOlympiadSuite() {
                 <span>Print Official Admit Card (.PDF)</span>
               </button>
 
+              {/* Explicit Session & Roll Binding */}
               <Link
-                href={`/quiz?mode=olympiad&roll=${encodeURIComponent(confirmedAdmit.rollNo)}`}
+                href={`/quiz?mode=olympiad&roll=${encodeURIComponent(confirmedAdmit.rollNo)}&olympiadId=${encodeURIComponent(confirmedAdmit.tournamentId)}`}
                 className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
               >
                 <span>Enter Proctored Examination Hall</span>

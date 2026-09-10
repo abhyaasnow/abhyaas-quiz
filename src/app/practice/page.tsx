@@ -6,7 +6,7 @@ import {
   BookOpen, Filter, ArrowRight,
   FolderOpen, Clock, Search, Layers,
   Compass, CheckCircle2, GraduationCap,
-  Check, Tag, ShieldCheck, Sparkles, FileText
+  Check, Tag, ShieldCheck, Sparkles, FileText, Archive
 } from 'lucide-react';
 
 import { 
@@ -28,7 +28,7 @@ export default function DynamicPracticeBank() {
   // LEVEL 2: Dynamic Sub-Category (Loaded purely from database)
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
 
-  // LEVEL 3: Mode Filter (Practice Drills vs Official PYQs)
+  // LEVEL 3: Mode Filter (Practice Drills vs Past Olympiad Archive)
   const [selectedSegment, setSelectedSegment] = useState<'ALL' | 'PRACTICE' | 'PYQ'>('ALL');
 
   // Search Filter
@@ -46,7 +46,7 @@ export default function DynamicPracticeBank() {
         const safeTax = taxRes.status === 'fulfilled' && Array.isArray(taxRes.value) ? taxRes.value : [];
         const safeQs = qsRes.status === 'fulfilled' && Array.isArray(qsRes.value) ? qsRes.value : [];
 
-        // Isolate active, non-archived questions (Practice & PYQ only)
+        // Isolate active, non-archived questions (Practice & Completed Olympiad Archive only)
         const practiceOnly = safeQs.filter(q => 
           !q.isArchived && 
           (q.segment === 'PRACTICE' || q.segment === 'PYQ' || !q.segment)
@@ -169,7 +169,7 @@ export default function DynamicPracticeBank() {
       <div className="bg-slate-900 text-slate-200 border-b border-slate-800 px-4 py-2.5 shadow-sm flex items-center justify-center gap-2 text-xs font-medium text-center">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
-          <strong className="text-white font-bold">ABHYAAS OPEN KNOWLEDGE REPOSITORY:</strong> All conceptual practice drills and official past year archives (PYQ) are completely open-access with verified step-by-step solutions.
+          <strong className="text-white font-bold">ABHYAAS OPEN KNOWLEDGE REPOSITORY:</strong> All conceptual practice drills and retrospective past Olympiad archives are completely open-access with verified step-by-step solutions.
         </span>
       </div>
 
@@ -181,13 +181,13 @@ export default function DynamicPracticeBank() {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[11px] font-bold uppercase tracking-wider">
                 <GraduationCap className="w-4 h-4 text-blue-700" />
-                <span>Chapter-Wise Conceptual Mastery & PYQ Archives</span>
+                <span>Chapter-Wise Conceptual Mastery & Past Olympiad Archives</span>
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
                 Standardized Practice Drills
               </h1>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
-                Precision-Curated Questions • Official Past Year Archives • Step-by-Step Solutions
+                Precision-Curated Questions • Past Olympiad Retrospective Vault • Bilingual Step-by-Step Solutions
               </p>
             </div>
 
@@ -317,7 +317,7 @@ export default function DynamicPracticeBank() {
             </div>
           )}
 
-          {/* LEVEL 3: DRILL MODE TOGGLE (PRACTICE VS PYQ) & SEARCH */}
+          {/* LEVEL 3: DRILL MODE TOGGLE (PRACTICE VS PAST OLYMPIAD ARCHIVE) & SEARCH */}
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold w-fit">
               <button
@@ -342,7 +342,7 @@ export default function DynamicPracticeBank() {
                   selectedSegment === 'PYQ' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                📜 Official PYQs
+                🏛️ Past Olympiad Archive
               </button>
             </div>
 
@@ -369,7 +369,7 @@ export default function DynamicPracticeBank() {
             <FolderOpen className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-bold text-base text-slate-800">No Questions Found in Repository</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              There are currently no active questions matching this selection in the database. Questions uploaded via the Admin Question Studio will appear here automatically.
+              There are currently no active questions matching this selection in the database. Questions uploaded via the Admin Question Studio or completed Olympiads will populate here automatically.
             </p>
           </div>
         ) : (
@@ -443,7 +443,7 @@ export default function DynamicPracticeBank() {
                               >
                                 <div className="space-y-0.5">
                                   <p className="font-bold text-xs text-slate-900 group-hover:text-blue-600 transition">
-                                    Practice Drill Set {testNum}
+                                    {selectedSegment === 'PYQ' ? `Olympiad Archive Drill ${testNum}` : `Practice Drill Set ${testNum}`}
                                   </p>
                                   <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
                                     <Clock className="w-3 h-3 text-slate-400" />

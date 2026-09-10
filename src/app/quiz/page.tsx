@@ -39,6 +39,7 @@ function QuizEngine() {
   // Mode Detector: Standard Practice Drill VS High-Stakes Olympiad
   const modeParam = searchParams.get('mode') || 'practice';
   const rollParam = searchParams.get('roll') || '';
+  const olympiadIdParam = searchParams.get('olympiadId') || '';
   const isOlympiadMode = modeParam === 'olympiad';
 
   // Practice Query Params
@@ -66,29 +67,56 @@ function QuizEngine() {
   const [vivaQualified, setVivaQualified] = useState<boolean>(false);
   const [examStarted, setExamStarted] = useState<boolean>(!isOlympiadMode);
 
-  // 1. DATA LOADER (Split between Practice vs Olympiad Vault)
+  // 1. DATA LOADER (Strictly Isolated: Olympiad Vault VS Practice Repository)
   useEffect(() => {
     async function loadTestQuestions() {
       try {
         if (isOlympiadMode) {
-          // OLYMPIAD MODE: Fetch matching active Olympiad Session from DB
+          // OLYMPIAD MODE: Fetch exact matching Olympiad Session
           const allOlys = await getAllOlympiads();
-          const activeOly = allOlys.find(o => o.status === 'LIVE' || o.status === 'UPCOMING') || allOlys[0] || null;
+          let activeOly: OlympiadTournament | null = null;
+
+          if (olympiadIdParam) {
+            activeOly = allOlys.find(o => o.id === olympiadIdParam) || null;
+          }
+          if (!activeOly) {
+            activeOly = allOlys.find(o => o.status === 'LIVE' || o.status === 'UPCOMING') || allOlys[0] || null;
+          }
+
           setOlympiadSession(activeOly);
 
-          // Fetch quarantined Olympiad questions
-          const olyTargetSubject = activeOly ? (activeOly.targetSubject || activeOly.targetExam) : '';
+          // Dedicated Olympiad Questions Fetcher
+          const olyTargetFilter = activeOly 
+            ? (activeOly.targetSubject || activeOly.targetExam || activeOly.title || '') 
+            : '';
           const qLimit = activeOly ? (activeOly.questionsCount || 10) : 10;
-          const rawOlyQuestions = await getOlympiadQuestionsForCandidate(olyTargetSubject, qLimit);
 
-          const mappedItems: QuestionItem[] = rawOlyQuestions.map(q => ({
+          // Pull strictly from Olympiad quarantine vault
+          const allVault = await getAllQuestions();
+          let olyPool = allVault.filter(q => q.segment === 'OLYMPIAD' && !q.isArchived);
+
+          if (olyTargetFilter.trim() && olyPool.length > 0) {
+            const matched = olyPool.filter(q => 
+              (q.examName && q.examName.toLowerCase().includes(olyTargetFilter.toLowerCase())) ||
+              (q.subjectName && q.subjectName.toLowerCase().includes(olyTargetFilter.toLowerCase())) ||
+              (q.topicName && q.topicName.toLowerCase().includes(olyTargetFilter.toLowerCase())) ||
+              (q.category && q.category.toLowerCase().includes(olyTargetFilter.toLowerCase()))
+            );
+            if (matched.length > 0) {
+              olyPool = matched;
+            }
+          }
+
+          const finalOlyQuestions = olyPool.slice(0, qLimit);
+
+          const mappedItems: QuestionItem[] = finalOlyQuestions.map(q => ({
             id: String(q.id),
-            category: String(q.examName || q.category || 'National Olympiad'),
-            subject: String(q.subjectName || q.subject || 'All-India Assessment'),
-            topic: String(q.topicName || q.topic || 'General'),
+            category: String(q.examName || q.category || activeOly?.targetExam || 'National Olympiad'),
+            subject: String(q.subjectName || q.subject || activeOly?.targetSubject || 'Standardized Assessment'),
+            topic: String(q.topicName || q.topic || 'General Module'),
             segment: 'OLYMPIAD',
             pyqYear: q.pyqYear || '',
-            questionEn: String(q.questionEn || 'Question missing'),
+            questionEn: String(q.questionEn || 'Question text missing'),
             questionHi: String(q.questionHi || q.questionEn || ''),
             optionsEn: Array.isArray(q.optionsEn) ? q.optionsEn : ['', '', '', ''],
             optionsHi: Array.isArray(q.optionsHi) ? q.optionsHi : ['', '', '', ''],
@@ -100,10 +128,10 @@ function QuizEngine() {
 
           setQuestions(mappedItems);
           const totalDurationSecs = activeOly ? (activeOly.durationMinutes * 60) : (mappedItems.length * 60);
-          setTimeLeft(totalDurationSecs);
+          setTimeLeft(totalDurationSecs > 0 ? totalDurationSecs : 600);
 
         } else {
-          // STANDARD PRACTICE DRILL MODE (Preserves your exact original logic)
+          // STANDARD PRACTICE DRILL MODE (Original practice logic intact)
           const all = await getAllQuestions();
           let filtered = all.filter(q => q.segment !== 'OLYMPIAD' && !q.isArchived);
 
@@ -135,7 +163,7 @@ function QuizEngine() {
             if (matchTopic.length > 0) filtered = matchTopic;
           }
 
-          const sourceList = filtered.length > 0 ? filtered : all.filter(q => !q.isArchived);
+          const sourceList = filtered.length > 0 ? filtered : all.filter(q => q.segment !== 'OLYMPIAD' && !q.isArchived);
 
           const startIndex = (setParam - 1) * 10;
           const pagedList = sourceList.length > 10 
@@ -170,14 +198,14 @@ function QuizEngine() {
     }
 
     loadTestQuestions();
-  }, [isOlympiadMode, categoryParam, subjectParam, topicParam, segmentParam, setParam]);
+  }, [isOlympiadMode, olympiadIdParam, categoryParam, subjectParam, topicParam, segmentParam, setParam]);
 
-  // 2. DYNAMIC 30-MINUTE GRACE WINDOW & COUNTDOWN ENGINE (For Olympiads)
+  // 2. DYNAMIC 30-MINUTE GRACE WINDOW & COUNTDOWN ENGINE
   useEffect(() => {
     if (!isOlympiadMode || !olympiadSession) return;
 
     const checkWindow = () => {
-      // If Admin marked status as LIVE manually, bypass countdown lock
+      // If Admin sets status directly to LIVE, bypass countdown lock
       if (olympiadSession.status === 'LIVE') {
         setOlympiadGateState('OPEN');
         return;
@@ -196,7 +224,7 @@ function QuizEngine() {
       const now = Date.now();
 
       if (now < scheduledStart) {
-        // UPCOMING: Calculate countdown
+        // UPCOMING: Render live countdown
         setOlympiadGateState('UPCOMING');
         const diff = scheduledStart - now;
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -208,7 +236,7 @@ function QuizEngine() {
         // OPEN: Within 30-Minute Grace Window
         setOlympiadGateState('OPEN');
       } else {
-        // EXPIRED: Strict 31st minute cutoff passed
+        // EXPIRED: 31st minute onwards entry is barred
         setOlympiadGateState('EXPIRED');
       }
     };
@@ -218,7 +246,7 @@ function QuizEngine() {
     return () => clearInterval(interval);
   }, [isOlympiadMode, olympiadSession]);
 
-  // 3. PROCTORING & TAB SWITCH DETECTION (Active in Olympiad Mode)
+  // 3. PROCTORING & TAB SWITCH DETECTION
   useEffect(() => {
     if (!isOlympiadMode || !examStarted || isSubmitted) return;
 
@@ -227,7 +255,6 @@ function QuizEngine() {
         setTabSwitchCount(prev => {
           const updated = prev + 1;
           if (updated > 2) {
-            // Auto submit on 3rd violation
             handleAutoDisqualifySubmit(updated);
           } else {
             setShowWarningModal(true);
@@ -291,7 +318,7 @@ function QuizEngine() {
         const res = await submitOlympiadResult(rollParam, stats.scorePercent, tabSwitchCount);
         setVivaQualified(res.vivaEligible);
       } catch (err) {
-        console.error("Error submitting result to Firestore:", err);
+        console.error("Error submitting Olympiad result:", err);
       }
     }
   };
@@ -305,7 +332,6 @@ function QuizEngine() {
   };
 
   const startOlympiadExam = () => {
-    // Attempt full screen launch
     try {
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
@@ -358,11 +384,11 @@ function QuizEngine() {
             </div>
 
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Assessment hall unlocks automatically upon commencement. Candidates are granted a <strong>30-minute late grace window</strong> past scheduled time.
+              Assessment hall unlocks automatically upon scheduled start time. Candidates are permitted a <strong>30-minute late grace window</strong> past session commencement.
             </p>
 
             <Link href="/olympiad" className="inline-block text-xs text-slate-400 hover:text-white font-bold underline">
-              ← Return to Olympiad Schedule
+              ← Return to Olympiad Timetable
             </Link>
           </div>
         </div>
@@ -378,7 +404,7 @@ function QuizEngine() {
             </div>
             <h2 className="text-xl font-black text-rose-300">Admission Gate Closed</h2>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Session admission is strictly locked. The <strong>30-minute late entry grace window</strong> for this national assessment has concluded. Late admissions are barred under Directorate regulations.
+              Session admission is strictly locked. The <strong>30-minute late entry grace window</strong> for this national assessment has concluded. Late admission is barred under Directorate rules.
             </p>
             <Link href="/olympiad" className="inline-block px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl">
               Back to National Timetable
@@ -409,7 +435,7 @@ function QuizEngine() {
               <li>Full screen mode will engage upon clicking start.</li>
               <li>Per-question timer with forward-only navigation (No Backtracking).</li>
               <li>Switching browser windows will prompt disciplinary warnings (Limit: 2 warnings).</li>
-              <li>Minimum qualifying cutoff for Research Fellowship is 75% followed by Viva Voce.</li>
+              <li>Minimum qualifying cutoff for Research Fellowship is 75% followed by Viva Voce defense.</li>
             </ul>
           </div>
 
@@ -429,12 +455,16 @@ function QuizEngine() {
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
         <div className="max-w-md bg-white border border-slate-200 p-8 rounded-3xl space-y-4 shadow-sm">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
-          <h2 className="text-lg font-black text-slate-900">No Questions In This Vault Yet</h2>
+          <h2 className="text-lg font-black text-slate-900">
+            {isOlympiadMode ? 'No Questions in Olympiad Vault' : 'No Questions In This Topic Yet'}
+          </h2>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Please add or import questions for this discipline from the Admin Command Center.
+            {isOlympiadMode 
+              ? 'Please ensure questions are assigned to [🛡️ Live Olympiad Vault] for this discipline from the Admin Panel.'
+              : 'Please add questions for this exam stream from the Admin Command Center.'}
           </p>
-          <Link href="/practice" className="inline-block px-6 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md">
-            Back to Practice Streams
+          <Link href={isOlympiadMode ? "/olympiad" : "/practice"} className="inline-block px-6 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md">
+            {isOlympiadMode ? 'Back to Olympiads' : 'Back to Practice Streams'}
           </Link>
         </div>
       </div>
@@ -446,7 +476,7 @@ function QuizEngine() {
   const att = parseAttachment(currentQ?.diagramUrl);
 
   // =========================================================================
-  // VIEW B: ACTIVE ASSESSMENT ROOM (Practice & Proctored Olympiad)
+  // VIEW B: ACTIVE ASSESSMENT ROOM
   // =========================================================================
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
