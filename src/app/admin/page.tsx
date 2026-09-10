@@ -12,7 +12,8 @@ import {
   Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Palette,
   AlignLeft, AlignCenter, AlignRight, Table, BarChart2, TrendingUp,
   Shapes, Sparkles, FileDown, Percent, DollarSign, Subscript, Superscript,
-  Sigma, Pi, Target, ArrowUpDown, Columns, PlayCircle, StopCircle, Radio
+  Sigma, Pi, Target, ArrowUpDown, Columns, PlayCircle, StopCircle, Radio,
+  EyeOff, CheckCircle, HelpCircle
 } from 'lucide-react';
 
 import { 
@@ -453,11 +454,13 @@ export default function AbhyaasMasterTower() {
   const [bulkParsedQuestions, setBulkParsedQuestions] = useState<QuestionData[]>([]);
   const [bulkParseError, setBulkParseError] = useState<string | null>(null);
   const [isImportingBulk, setIsImportingBulk] = useState(false);
+  const [bulkTargetOlympiadId, setBulkTargetOlympiadId] = useState<string>('');
   const csvFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Filters (Tab 1)
   const [searchFilter, setSearchFilter] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<'ALL' | QuestionSegment>('ALL');
+  const [visibilityFilter, setVisibilityFilter] = useState<'ALL' | 'LIVE' | 'DRAFT'>('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
   const [filterExam, setFilterExam] = useState('ALL');
   const [filterSubject, setFilterSubject] = useState('ALL');
@@ -475,7 +478,9 @@ export default function AbhyaasMasterTower() {
   const [qTopicCustom, setQTopicCustom] = useState('');
 
   const [qSegment, setQSegment] = useState<QuestionSegment>('PRACTICE');
-  const [qPyqYear, setQPyqYear] = useState('2024');
+  const [qPyqYear, setQPyqYear] = useState('2026');
+  const [qAssignedOlympiadId, setQAssignedOlympiadId] = useState<string>('');
+  const [qIsLive, setQIsLive] = useState<boolean>(true);
 
   // BILINGUAL QUESTION, OPTIONS & EXPLANATIONS STATE
   const [qStatementEn, setQStatementEn] = useState('');
@@ -545,7 +550,29 @@ export default function AbhyaasMasterTower() {
     localStorage.removeItem('abhyaas_admin_auth');
   };
 
-  // Parse Excel Correct Option Helper
+  // Quick Live / Hidden Toggle directly on Question Card
+  const handleToggleQuestionLiveStatus = async (q: QuestionData) => {
+    const nextLiveStatus = !(q.isLive !== false);
+    try {
+      await updateQuestion(q.id, { isLive: nextLiveStatus });
+      setQuestionsList(prev => prev.map(item => item.id === q.id ? { ...item, isLive: nextLiveStatus } : item));
+    } catch (err: any) {
+      alert("Error changing visibility: " + err.message);
+    }
+  };
+
+  // Direct Olympiad Binding directly on Question Card
+  const handleQuickAssignOlympiad = async (q: QuestionData, newOlyId: string) => {
+    try {
+      const targetSeg: QuestionSegment = newOlyId ? 'OLYMPIAD' : 'PRACTICE';
+      await updateQuestion(q.id, { olympiadId: newOlyId, segment: targetSeg });
+      setQuestionsList(prev => prev.map(item => item.id === q.id ? { ...item, olympiadId: newOlyId, segment: targetSeg } : item));
+      alert(newOlyId ? `✓ Assigned to Olympiad (${newOlyId})` : `✓ Moved to General Practice Vault`);
+    } catch (err: any) {
+      alert("Error assigning Olympiad: " + err.message);
+    }
+  };
+
   const parseExcelCorrectOption = (val: string): number => {
     const clean = String(val || '').trim().toUpperCase();
     if (clean === 'A' || clean === '1') return 0;
@@ -557,7 +584,6 @@ export default function AbhyaasMasterTower() {
     return 0;
   };
 
-  // Bulk Input Text Parser (Supports both TSV and CSV text)
   const parseBulkInputText = (rawText: string) => {
     setBulkParseError(null);
     if (!rawText.trim()) {
@@ -595,7 +621,9 @@ export default function AbhyaasMasterTower() {
         parsed.push({
           id: newId,
           docId: newId,
-          segment: segment,
+          olympiadId: bulkTargetOlympiadId || (row[20] ? row[20].trim() : ''),
+          isLive: true,
+          segment: bulkTargetOlympiadId ? 'OLYMPIAD' : segment,
           className: row[1] || 'Civil Services / Competitive',
           examName: row[2] || 'General Studies',
           subjectName: row[3] || 'General Subject',
@@ -641,7 +669,6 @@ export default function AbhyaasMasterTower() {
     }
   };
 
-  // CSV File Handler
   const handleCSVFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -661,8 +688,13 @@ export default function AbhyaasMasterTower() {
 
     setIsImportingBulk(true);
     try {
-      const count = await bulkUploadQuestions(bulkParsedQuestions);
-      setQuestionsList(prev => [...bulkParsedQuestions, ...prev]);
+      const finalBatch = bulkParsedQuestions.map(q => ({
+        ...q,
+        olympiadId: bulkTargetOlympiadId || q.olympiadId || ''
+      }));
+
+      const count = await bulkUploadQuestions(finalBatch);
+      setQuestionsList(prev => [...finalBatch, ...prev]);
       setPasteData('');
       setBulkParsedQuestions([]);
       setIsBulkModalOpen(false);
@@ -787,6 +819,16 @@ export default function AbhyaasMasterTower() {
     try {
       await saveOlympiadTournament(updated);
       setOlympiadsList(prev => prev.map(o => o.id === oly.id ? updated : o));
+
+      // Auto archive questions when Olympiad is completed
+      if (nextStatus === 'COMPLETED') {
+        const matchingQuestions = questionsList.filter(q => q.olympiadId === oly.id && !q.isArchived);
+        if (matchingQuestions.length > 0) {
+          await Promise.all(matchingQuestions.map(q => updateQuestion(q.id, { segment: 'PYQ', isLive: true })));
+          setQuestionsList(prev => prev.map(q => q.olympiadId === oly.id ? { ...q, segment: 'PYQ', isLive: true } : q));
+          alert(`🎉 Olympiad marked as COMPLETED! ${matchingQuestions.length} questions moved to Past Olympiad Archive.`);
+        }
+      }
     } catch (err: any) {
       alert("Status update error: " + err.message);
     }
@@ -943,7 +985,10 @@ export default function AbhyaasMasterTower() {
     setQOptionsEn(['', '', '', '']); setQOptionsHi(['', '', '', '']);
     setQOptionsDiagrams(['', '', '', '']);
     setQCorrectOpt(0); setQExplanationEn(''); setQExplanationHi('');
-    setQDiagramUrl(''); setQSegment('PRACTICE');
+    setQDiagramUrl(''); 
+    setQSegment('PRACTICE');
+    setQAssignedOlympiadId('');
+    setQIsLive(true);
     setIsQuestionModalOpen(true);
   };
 
@@ -955,7 +1000,9 @@ export default function AbhyaasMasterTower() {
     setQSubject(q.subjectName || q.subject || '');
     setQTopic(q.topicName || q.topic || '');
     setQSegment(q.segment || 'PRACTICE');
-    setQPyqYear(q.pyqYear || '2024');
+    setQPyqYear(q.pyqYear || '2026');
+    setQAssignedOlympiadId(q.olympiadId || '');
+    setQIsLive(q.isLive !== false);
     setQStatementEn(q.questionEn || '');
     setQStatementHi(q.questionHi || '');
     setQOptionsEn([...(q.optionsEn || ['', '', '', ''])]);
@@ -984,6 +1031,8 @@ export default function AbhyaasMasterTower() {
     const payload: QuestionData = {
       id: editingQuestionId || `q-${Date.now()}`,
       docId: editingQuestionId || `q-${Date.now()}`,
+      olympiadId: qAssignedOlympiadId.trim(),
+      isLive: qIsLive,
       className: finalClass,
       examName: finalExam,
       subjectName: finalSubject,
@@ -992,7 +1041,7 @@ export default function AbhyaasMasterTower() {
       subject: finalSubject,
       class: finalClass,
       topic: finalTopic || 'General',
-      segment: qSegment,
+      segment: qAssignedOlympiadId ? 'OLYMPIAD' : qSegment,
       pyqYear: qSegment === 'PYQ' ? qPyqYear : '',
       questionEn: sanitizeLatex(qStatementEn.trim()),
       questionHi: sanitizeLatex(qStatementHi.trim() || qStatementEn.trim()),
@@ -1017,7 +1066,7 @@ export default function AbhyaasMasterTower() {
       } else {
         setQuestionsList(prev => [payload, ...prev]);
         await createQuestion(payload);
-        alert(`Saved question to [${qSegment}]!`);
+        alert(`Saved question to [${payload.segment}]! Status: ${payload.isLive ? '🟢 LIVE' : '🔴 DRAFT'}`);
       }
       setIsQuestionModalOpen(false);
     } catch (err: any) {
@@ -1112,12 +1161,13 @@ export default function AbhyaasMasterTower() {
   const archivedQuestions = questionsList.filter(q => q.isArchived);
 
   const filteredActiveQuestions = activeQuestions.filter(q => {
-    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter)) || cleanStr(q.topicName || q.topic).includes(cleanStr(searchFilter));
+    const matchesSearch = cleanStr(q.questionEn).includes(cleanStr(searchFilter)) || cleanStr(q.questionHi).includes(cleanStr(searchFilter)) || cleanStr(q.subjectName || q.subject).includes(cleanStr(searchFilter)) || cleanStr(q.topicName || q.topic).includes(cleanStr(searchFilter)) || cleanStr(q.olympiadId || '').includes(cleanStr(searchFilter));
     const matchesSegment = segmentFilter === 'ALL' || q.segment === segmentFilter;
+    const matchesVisibility = visibilityFilter === 'ALL' || (visibilityFilter === 'LIVE' ? q.isLive !== false : q.isLive === false);
     const matchesClass = filterClass === 'ALL' || q.className === filterClass || q.class === filterClass;
     const matchesExam = filterExam === 'ALL' || q.examName === filterExam || q.category === filterExam;
     const matchesSubject = filterSubject === 'ALL' || q.subjectName === filterSubject || q.subject === filterSubject;
-    return matchesSearch && matchesSegment && matchesClass && matchesExam && matchesSubject;
+    return matchesSearch && matchesSegment && matchesVisibility && matchesClass && matchesExam && matchesSubject;
   });
 
   return (
@@ -1158,7 +1208,7 @@ export default function AbhyaasMasterTower() {
               adminTab === 'questions' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> 1. Question Bank & Practice Vault ({activeQuestions.length})
+            <BookOpen className="w-4 h-4" /> 1. Question Warehouse & Vault ({activeQuestions.length})
           </button>
 
           <button
@@ -1197,10 +1247,10 @@ export default function AbhyaasMasterTower() {
                 <div>
                   <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-blue-600" />
-                    Active Question Bank & Practice Vault
+                    Question Bank & Warehouse Inventory
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Bilingual UPSC/NTA Standard: Hindi & English inputs for Question, Options, and Detailed Explanations.
+                    Store raw stock questions, assign to Olympiad sessions on-demand, or publish live instantly with 🟢/🔴 visibility toggles.
                   </p>
                 </div>
 
@@ -1216,6 +1266,7 @@ export default function AbhyaasMasterTower() {
                       setBulkParsedQuestions([]);
                       setBulkParseError(null);
                       setPasteData('');
+                      setBulkTargetOlympiadId('');
                       setIsBulkModalOpen(true);
                     }}
                     className="px-4 h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
@@ -1243,6 +1294,34 @@ export default function AbhyaasMasterTower() {
                          `🛡️ Olympiad (${activeQuestions.filter(q=>q.segment==='OLYMPIAD').length})`}
                       </button>
                     ))}
+                  </div>
+
+                  {/* Visibility State Filter */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
+                    <button
+                      onClick={() => setVisibilityFilter('ALL')}
+                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                        visibilityFilter === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                      }`}
+                    >
+                      All States
+                    </button>
+                    <button
+                      onClick={() => setVisibilityFilter('LIVE')}
+                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+                        visibilityFilter === 'LIVE' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Live ({activeQuestions.filter(q=>q.isLive !== false).length})
+                    </button>
+                    <button
+                      onClick={() => setVisibilityFilter('DRAFT')}
+                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+                        visibilityFilter === 'DRAFT' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-500'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span> Draft / Hidden ({activeQuestions.filter(q=>q.isLive === false).length})
+                    </button>
                   </div>
 
                   <select
@@ -1280,7 +1359,7 @@ export default function AbhyaasMasterTower() {
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="Search question or formula..."
+                      placeholder="Search question, topic or Olympiad ID..."
                       value={searchFilter}
                       onChange={e => setSearchFilter(e.target.value)}
                       className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800"
@@ -1296,27 +1375,58 @@ export default function AbhyaasMasterTower() {
                 <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-sm">
                   <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="font-extrabold text-sm text-slate-800">No Questions Found Matching Filter</p>
-                  <p className="text-xs text-slate-400">Add bilingual questions using Single Question Studio or Excel Power Importer.</p>
+                  <p className="text-xs text-slate-400">Add questions using Single Question Studio or Excel Power Importer.</p>
                 </div>
               ) : (
                 filteredActiveQuestions.map((q, idx) => {
                   const att = parseAttachment(q.diagramUrl);
+                  const isLive = q.isLive !== false;
+
                   return (
                     <div
                       key={q.id || idx}
-                      className="bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm transition space-y-3 relative"
+                      className={`bg-white border p-5 rounded-2xl shadow-sm transition space-y-3 relative ${
+                        isLive ? 'border-slate-200 hover:border-blue-300' : 'border-rose-200 bg-rose-50/20'
+                      }`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <div className="flex items-center gap-2.5 flex-wrap">
+                          {/* Visibility Toggle Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleQuestionLiveStatus(q)}
+                            className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer border ${
+                              isLive 
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' 
+                                : 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
+                            }`}
+                            title="Click to toggle between LIVE and DRAFT"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                            <span>{isLive ? '🟢 LIVE (Visible)' : '🔴 DRAFT (Hidden)'}</span>
+                          </button>
+
+                          {/* Vault Badge */}
                           <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
                             q.segment === 'OLYMPIAD' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                             q.segment === 'PYQ' ? `bg-purple-100 text-purple-900 border border-purple-300` :
-                            'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                            'bg-blue-100 text-blue-900 border border-blue-300'
                           }`}>
                             {q.segment === 'OLYMPIAD' ? '🛡️ Live Olympiad' :
                              q.segment === 'PYQ' ? `🏛️ Past Archive (${q.pyqYear || 'Retrospective'})` :
                              '📘 Free Practice Drill'}
                           </span>
+
+                          {/* Olympiad ID Tag */}
+                          {q.olympiadId ? (
+                            <span className="text-[10px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                              <Target className="w-3 h-3 text-amber-600" /> ID: {q.olympiadId}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded border">
+                              Unassigned Stock
+                            </span>
+                          )}
 
                           <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
                             {q.className || q.class} ➔ {q.examName || q.category} ➔ {q.subjectName || q.subject}
@@ -1327,7 +1437,21 @@ export default function AbhyaasMasterTower() {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1 self-end sm:self-center">
+                        {/* Actions */}
+                        <div className="flex items-center gap-1.5 self-end sm:self-center">
+                          {/* Quick Olympiad Assign Dropdown */}
+                          <select
+                            value={q.olympiadId || ''}
+                            onChange={e => handleQuickAssignOlympiad(q, e.target.value)}
+                            className="h-8 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                            title="Quick assign this question to an Olympiad"
+                          >
+                            <option value="">-- Assign Olympiad --</option>
+                            {olympiadsList.map(o => (
+                              <option key={o.id} value={o.id}>{o.title.slice(0, 28)}... ({o.id})</option>
+                            ))}
+                          </select>
+
                           <button
                             onClick={() => openEditQuestionModal(q)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
@@ -1523,6 +1647,7 @@ export default function AbhyaasMasterTower() {
                                   </span>
                                 </div>
                                 <h4 className="font-black text-sm text-slate-900 mt-2 leading-snug">{oly.title}</h4>
+                                <span className="text-[10px] font-mono text-slate-400">ID: {oly.id}</span>
                               </div>
                             </div>
                           </div>
@@ -1779,7 +1904,7 @@ export default function AbhyaasMasterTower() {
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 2: 100% RESTORED BILINGUAL SINGLE QUESTION STUDIO */}
+      {/* MODAL 2: 100% BILINGUAL QUESTION STUDIO WITH OPTIONAL OLYMPIAD & VISIBILITY */}
       {/* ========================================================================= */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -1790,7 +1915,7 @@ export default function AbhyaasMasterTower() {
                   {editingQuestionId ? 'Edit Question Entry' : 'Smart Universal Question Studio (Bilingual)'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  UPSC/NTA Standard: Hindi & English inputs for Question Statement, Options (A-D) & Detailed Solutions.
+                  UPSC/NTA Standard: Hindi & English inputs with optional Olympiad binding and live/hidden controls.
                 </p>
               </div>
               <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer">
@@ -1799,13 +1924,15 @@ export default function AbhyaasMasterTower() {
             </div>
 
             <form onSubmit={handleSaveQuestion} className="space-y-5">
+              
+              {/* TARGET DESTINATION & DYNAMIC OLYMPIAD SELECTOR */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black uppercase text-slate-500">Target Destination / Vault*</label>
+                <label className="block text-xs font-black uppercase text-slate-500">Target Vault*</label>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'Instant student drill access' },
+                    { id: 'PRACTICE', title: '📘 Free Practice Drill', desc: 'General conceptual drills' },
                     { id: 'PYQ', title: '🏛️ Past Archive Vault', desc: 'Retrospective historical papers' },
-                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Quarantine lock until exam' },
+                    { id: 'OLYMPIAD', title: '🛡️ Live Olympiad Vault', desc: 'Session-isolated quarantine' },
                   ].map(s => (
                     <button
                       type="button"
@@ -1821,8 +1948,61 @@ export default function AbhyaasMasterTower() {
                   ))}
                 </div>
 
+                {/* Optional Olympiad ID Dropdown (NOT Mandatory) */}
+                <div className="pt-2 grid sm:grid-cols-2 gap-3 border-t border-slate-200">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                      <Target className="w-3.5 h-3.5 text-amber-600" /> Assign to Olympiad Tournament (Optional):
+                    </label>
+                    <select
+                      value={qAssignedOlympiadId}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setQAssignedOlympiadId(val);
+                        if (val) setQSegment('OLYMPIAD');
+                      }}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                    >
+                      <option value="">-- None (Unassigned / General Warehouse) --</option>
+                      {olympiadsList.map(o => (
+                        <option key={o.id} value={o.id}>
+                          {o.title} (ID: {o.id})
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-slate-400">If assigned, question enters quarantine for that specific tournament.</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Visibility State (Puri vs Kadai):
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQIsLive(true)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                          qIsLive ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> 🟢 Live / Published
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQIsLive(false)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                          !qIsLive ? 'bg-rose-600 text-white border-rose-600 shadow-xs' : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        <EyeOff className="w-3.5 h-3.5" /> 🔴 Draft / Hidden
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Draft questions remain in backend inventory and will not appear to students.</span>
+                  </div>
+                </div>
+
                 {qSegment === 'PYQ' && (
-                  <div className="pt-2 flex items-center gap-3">
+                  <div className="pt-2 flex items-center gap-3 border-t border-slate-200">
                     <label className="text-xs font-bold text-slate-700">Exam / Archive Year:</label>
                     <input
                       type="text"
@@ -2046,6 +2226,25 @@ export default function AbhyaasMasterTower() {
               <button onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Optional Target Olympiad for Entire Batch */}
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <label className="block text-xs font-bold text-amber-950 mb-1 flex items-center gap-1">
+                <Target className="w-3.5 h-3.5 text-amber-700" /> Assign Uploaded Batch to Olympiad (Optional):
+              </label>
+              <select
+                value={bulkTargetOlympiadId}
+                onChange={e => setBulkTargetOlympiadId(e.target.value)}
+                className="w-full h-9 px-3 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-800 outline-none cursor-pointer"
+              >
+                <option value="">-- None (Keep in General Practice / Unassigned Warehouse) --</option>
+                {olympiadsList.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.title} (ID: {o.id})
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Mode Switcher: Paste VS CSV File */}
