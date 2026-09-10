@@ -573,6 +573,35 @@ export default function AbhyaasMasterTower() {
     }
   };
 
+  // Question Selection Helpers
+  const handleToggleSelectAllQuestions = () => {
+    if (selectedQuestionIds.length === filteredActiveQuestions.length) {
+      setSelectedQuestionIds([]);
+    } else {
+      setSelectedQuestionIds(filteredActiveQuestions.map(q => q.id));
+    }
+  };
+
+  const handleToggleSelectQuestion = (id: string) => {
+    setSelectedQuestionIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkMoveToRecycleBin = async () => {
+    if (selectedQuestionIds.length === 0) return;
+    if (!confirm(`🚨 Move ${selectedQuestionIds.length} selected questions to Recycle Bin?`)) return;
+
+    try {
+      await Promise.all(selectedQuestionIds.map(id => archiveQuestion(id)));
+      setQuestionsList(prev => prev.map(q => selectedQuestionIds.includes(q.id) ? { ...q, isArchived: true, status: 'ARCHIVED' } : q));
+      setSelectedQuestionIds([]);
+      alert("Selected questions archived successfully!");
+    } catch (err: any) {
+      alert("Error archiving questions: " + err.message);
+    }
+  };
+
   const parseExcelCorrectOption = (val: string): number => {
     const clean = String(val || '').trim().toUpperCase();
     if (clean === 'A' || clean === '1') return 0;
@@ -820,7 +849,6 @@ export default function AbhyaasMasterTower() {
       await saveOlympiadTournament(updated);
       setOlympiadsList(prev => prev.map(o => o.id === oly.id ? updated : o));
 
-      // Auto archive questions when Olympiad is completed
       if (nextStatus === 'COMPLETED') {
         const matchingQuestions = questionsList.filter(q => q.olympiadId === oly.id && !q.isArchived);
         if (matchingQuestions.length > 0) {
@@ -1369,6 +1397,36 @@ export default function AbhyaasMasterTower() {
               </div>
             </div>
 
+            {/* Batch Action Toolbar for Questions */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-100 p-3 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filteredActiveQuestions.length > 0 && selectedQuestionIds.length === filteredActiveQuestions.length}
+                    onChange={handleToggleSelectAllQuestions}
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <span>Select All Visible ({filteredActiveQuestions.length})</span>
+                </label>
+                {selectedQuestionIds.length > 0 && (
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md">
+                    {selectedQuestionIds.length} Selected
+                  </span>
+                )}
+              </div>
+
+              {selectedQuestionIds.length > 0 && (
+                <button
+                  onClick={handleBulkMoveToRecycleBin}
+                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Move Selected to Recycle Bin ({selectedQuestionIds.length})</span>
+                </button>
+              )}
+            </div>
+
             {/* Questions Stream */}
             <div className="space-y-3">
               {filteredActiveQuestions.length === 0 ? (
@@ -1381,16 +1439,26 @@ export default function AbhyaasMasterTower() {
                 filteredActiveQuestions.map((q, idx) => {
                   const att = parseAttachment(q.diagramUrl);
                   const isLive = q.isLive !== false;
+                  const isSelected = selectedQuestionIds.includes(q.id);
 
                   return (
                     <div
                       key={q.id || idx}
                       className={`bg-white border p-5 rounded-2xl shadow-sm transition space-y-3 relative ${
+                        isSelected ? 'border-blue-600 ring-2 ring-blue-500/20' :
                         isLive ? 'border-slate-200 hover:border-blue-300' : 'border-rose-200 bg-rose-50/20'
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <div className="flex items-center gap-2.5 flex-wrap">
+                          {/* Row Selection Checkbox */}
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectQuestion(q.id)}
+                            className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                          />
+
                           {/* Visibility Toggle Button */}
                           <button
                             type="button"
@@ -1403,7 +1471,7 @@ export default function AbhyaasMasterTower() {
                             title="Click to toggle between LIVE and DRAFT"
                           >
                             <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                            <span>{isLive ? '🟢 LIVE (Visible)' : '🔴 DRAFT (Hidden)'}</span>
+                            <span>{isLive ? '🟢 LIVE' : '🔴 DRAFT'}</span>
                           </button>
 
                           {/* Vault Badge */}
@@ -1558,6 +1626,7 @@ export default function AbhyaasMasterTower() {
 
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={openCreateOlympiadModal}
                   className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                 >
@@ -1695,12 +1764,14 @@ export default function AbhyaasMasterTower() {
 
                           <div className="flex items-center gap-2">
                             <button
+                              type="button"
                               onClick={() => openEditOlympiadModal(oly)}
                               className="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-blue-200"
                             >
                               <Edit3 className="w-3.5 h-3.5" /> Edit Configuration
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleSingleDeleteOlympiad(oly.id, oly.title)}
                               className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer border border-rose-200"
                               title="Delete Olympiad Permanently"
@@ -1952,7 +2023,7 @@ export default function AbhyaasMasterTower() {
                 <div className="pt-2 grid sm:grid-cols-2 gap-3 border-t border-slate-200">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                      <Target className="w-3.5 h-3.5 text-amber-600" /> Assign to Olympiad Tournament (Optional):
+                      <Target className="w-3.5 h-3.5 text-amber-700" /> Assign to Olympiad Tournament (Optional):
                     </label>
                     <select
                       value={qAssignedOlympiadId}
