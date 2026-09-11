@@ -10,7 +10,6 @@ import {
   Trophy, 
   Sparkles,
   ArrowLeft,
-  ArrowRight,
   Menu,
   X,
   GraduationCap,
@@ -59,7 +58,7 @@ export default function Navbar() {
     setUserDropdownOpen(false);
   }, [pathname]);
 
-  // Admin & Quiz portal par navbar hide rahega
+  // Admin & Quiz portal par navbar hide raheगा
   if (pathname === '/quiz' || pathname.startsWith('/admin')) {
     return null;
   }
@@ -134,9 +133,9 @@ export default function Navbar() {
                       Civil Services
                     </div>
                     <ul className="space-y-2 text-slate-600 font-medium">
-                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">UPSC CSE (IAS/IPS)</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">UPSC CSE (Prelims &amp; Mains)</Link></li>
                       <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">State PCS (UPPSC, BPSC)</Link></li>
-                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Daily Current Affairs</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Analytical General Studies</Link></li>
                     </ul>
                   </div>
 
@@ -148,19 +147,19 @@ export default function Navbar() {
                     <ul className="space-y-2 text-slate-600 font-medium">
                       <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">SSC CGL Tier 1 &amp; 2</Link></li>
                       <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Banking (SBI / IBPS)</Link></li>
-                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">CSAT &amp; Quantitative</Link></li>
+                      <li><Link href="/practice" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">CSAT &amp; Quantitative Aptitude</Link></li>
                     </ul>
                   </div>
 
                   <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-2 pb-2 border-b border-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wide">
                       <Award className="w-3.5 h-3.5 text-emerald-600" />
-                      National Olympiad
+                      National Evaluations
                     </div>
                     <ul className="space-y-2 text-slate-600 font-medium text-xs">
-                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Weekly Sprint (₹49)</Link></li>
-                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Monthly Mega (₹199)</Link></li>
-                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block text-blue-600 font-bold">Merit Grants Info →</Link></li>
+                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Weekly Skill Sprints</Link></li>
+                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block">Monthly Fellowships</Link></li>
+                      <li><Link href="/olympiad" onClick={() => setActiveDropdown(null)} className="hover:text-blue-600 block text-blue-600 font-bold">Research Grants Info →</Link></li>
                     </ul>
                   </div>
                 </div>
@@ -284,7 +283,6 @@ export default function Navbar() {
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Daily Speed Drill</span>
-              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
 
             {user ? (

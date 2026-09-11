@@ -131,7 +131,7 @@ function QuizEngine() {
           setTimeLeft(totalDurationSecs > 0 ? totalDurationSecs : 600);
 
         } else {
-          // STANDARD PRACTICE DRILL MODE (Original practice logic intact)
+          // STANDARD PRACTICE DRILL MODE
           const all = await getAllQuestions();
           let filtered = all.filter(q => q.segment !== 'OLYMPIAD' && !q.isArchived);
 
@@ -205,7 +205,6 @@ function QuizEngine() {
     if (!isOlympiadMode || !olympiadSession) return;
 
     const checkWindow = () => {
-      // If Admin sets status directly to LIVE, bypass countdown lock
       if (olympiadSession.status === 'LIVE') {
         setOlympiadGateState('OPEN');
         return;
@@ -224,7 +223,6 @@ function QuizEngine() {
       const now = Date.now();
 
       if (now < scheduledStart) {
-        // UPCOMING: Render live countdown
         setOlympiadGateState('UPCOMING');
         const diff = scheduledStart - now;
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -233,10 +231,8 @@ function QuizEngine() {
         const seconds = Math.floor((diff / 1000) % 60);
         setGateCountdown(`${days > 0 ? `${days}d ` : ''}${hours}h ${minutes}m ${seconds}s`);
       } else if (now >= scheduledStart && now <= gateClosureTime) {
-        // OPEN: Within 30-Minute Grace Window
         setOlympiadGateState('OPEN');
       } else {
-        // EXPIRED: 31st minute onwards entry is barred
         setOlympiadGateState('EXPIRED');
       }
     };
@@ -372,7 +368,7 @@ function QuizEngine() {
               <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-[10px] font-black uppercase tracking-wider">
                 Synchronized National Slot Locked
               </span>
-              <h2 className="text-xl font-black mt-2">{olympiadSession?.title || 'Academic Olympiad'}</h2>
+              <h2 className="text-xl font-black mt-2">{olympiadSession?.title || 'Academic Evaluation'}</h2>
               <p className="text-xs text-slate-400 mt-1 font-mono">Roll: {rollParam || 'Verified Candidate'}</p>
             </div>
 
@@ -388,7 +384,7 @@ function QuizEngine() {
             </p>
 
             <Link href="/olympiad" className="inline-block text-xs text-slate-400 hover:text-white font-bold underline">
-              ← Return to Olympiad Timetable
+              ← Return to Evaluation Timetable
             </Link>
           </div>
         </div>
@@ -407,14 +403,13 @@ function QuizEngine() {
               Session admission is strictly locked. The <strong>30-minute late entry grace window</strong> for this national assessment has concluded. Late admission is barred under Directorate rules.
             </p>
             <Link href="/olympiad" className="inline-block px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl">
-              Back to National Timetable
+              Back to Evaluation Timetable
             </Link>
           </div>
         </div>
       );
     }
 
-    // OPEN: Ready to Enter Proctored Hall
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 sm:p-6 text-center">
         <div className="max-w-lg w-full bg-slate-800/90 border border-slate-700 p-8 rounded-3xl space-y-6 shadow-2xl">
@@ -425,7 +420,7 @@ function QuizEngine() {
             <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-[10px] font-black uppercase tracking-wider">
               Examination Gate Open
             </span>
-            <h2 className="text-xl font-black mt-2">{olympiadSession?.title || 'Academic Olympiad'}</h2>
+            <h2 className="text-xl font-black mt-2">{olympiadSession?.title || 'Academic Evaluation'}</h2>
             <p className="text-xs text-slate-400 font-mono mt-0.5">Verified Roll: {rollParam}</p>
           </div>
 
@@ -440,6 +435,7 @@ function QuizEngine() {
           </div>
 
           <button
+            type="button"
             onClick={startOlympiadExam}
             className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
           >
@@ -456,7 +452,7 @@ function QuizEngine() {
         <div className="max-w-md bg-white border border-slate-200 p-8 rounded-3xl space-y-4 shadow-sm">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
           <h2 className="text-lg font-black text-slate-900">
-            {isOlympiadMode ? 'No Questions in Olympiad Vault' : 'No Questions In This Topic Yet'}
+            {isOlympiadMode ? 'No Questions in Evaluation Vault' : 'No Questions In This Topic Yet'}
           </h2>
           <p className="text-xs text-slate-500 leading-relaxed">
             {isOlympiadMode 
@@ -464,7 +460,7 @@ function QuizEngine() {
               : 'Please add questions for this exam stream from the Admin Command Center.'}
           </p>
           <Link href={isOlympiadMode ? "/olympiad" : "/practice"} className="inline-block px-6 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md">
-            {isOlympiadMode ? 'Back to Olympiads' : 'Back to Practice Streams'}
+            {isOlympiadMode ? 'Back to Evaluations' : 'Back to Practice Streams'}
           </Link>
         </div>
       </div>
@@ -476,7 +472,7 @@ function QuizEngine() {
   const att = parseAttachment(currentQ?.diagramUrl);
 
   // =========================================================================
-  // VIEW B: ACTIVE ASSESSMENT ROOM
+  // VIEW B: ACTIVE ASSESSMENT ROOM (MOBILE RESPONSIVE & HORIZONTAL SCROLL FIX)
   // =========================================================================
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
@@ -491,6 +487,7 @@ function QuizEngine() {
               Window switch or background relay detected. <strong>Warning {tabSwitchCount} of 2.</strong> Exceeding 2 warnings causes immediate automated disqualification and script submission.
             </p>
             <button
+              type="button"
               onClick={() => setShowWarningModal(false)}
               className="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl cursor-pointer"
             >
@@ -505,25 +502,26 @@ function QuizEngine() {
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link 
             href={isOlympiadMode ? "/olympiad" : "/practice"} 
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 shrink-0"
           >
-            <ArrowLeft className="w-4 h-4" /> {isOlympiadMode ? 'Exit Olympiad' : 'Exit Drill'}
+            <ArrowLeft className="w-4 h-4" /> {isOlympiadMode ? 'Exit Evaluation' : 'Exit Drill'}
           </Link>
 
-          <div className="text-center hidden sm:block">
+          <div className="text-center hidden sm:block overflow-hidden px-2">
             <p className="text-xs font-black text-slate-900 truncate max-w-xs">{currentQ?.subject}</p>
             <p className="text-[10px] text-slate-500 font-bold truncate max-w-xs">
               {isOlympiadMode ? `Roll No: ${rollParam}` : currentQ?.topic}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
+              type="button"
               onClick={() => setUseHindi(!useHindi)}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black rounded-lg border border-slate-300 flex items-center gap-1 transition cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black rounded-lg border border-slate-300 flex items-center gap-1 transition cursor-pointer"
             >
               <Languages className="w-3.5 h-3.5 text-blue-600" />
-              {useHindi ? 'हिंदी Active' : 'English Active'}
+              <span>{useHindi ? 'हिंदी' : 'Eng'}</span>
             </button>
 
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono text-xs font-black ${
@@ -591,14 +589,15 @@ function QuizEngine() {
           </div>
         )}
 
-        {/* Question Numbers Navigation Bar (Hidden in Olympiad mode to enforce strict forward-only pacing) */}
+        {/* Question Numbers Navigation Bar */}
         {!isOlympiadMode && (
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
             {questions.map((_, i) => {
               const isAnswered = selectedAnswers[i] !== undefined;
               const isCurrent = currentIndex === i;
               return (
                 <button
+                  type="button"
                   key={i}
                   onClick={() => setCurrentIndex(i)}
                   className={`w-9 h-9 shrink-0 rounded-xl text-xs font-black transition flex items-center justify-center border cursor-pointer ${
@@ -622,8 +621,9 @@ function QuizEngine() {
           </div>
         )}
 
-        {/* Main Question Card */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+        {/* Main Question Card (With Overflow-X Safety Fix for Mobile) */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 shadow-sm space-y-6 max-w-full overflow-hidden">
+          
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
@@ -649,21 +649,21 @@ function QuizEngine() {
             </div>
           </div>
 
-          {/* Question Statement */}
-          <div className="space-y-2">
-            <div className="text-base sm:text-lg font-bold text-slate-900 leading-[2.2]">
+          {/* Question Statement with Horizontal Scroll Safety */}
+          <div className="space-y-2 max-w-full overflow-x-auto pb-2">
+            <div className="text-sm sm:text-base font-bold text-slate-900 leading-[2.2] min-w-[280px]">
               <MathRenderer text={useHindi && currentQ?.questionHi ? currentQ.questionHi : (currentQ?.questionEn || '')} />
             </div>
             {((useHindi && currentQ?.questionEn) || (!useHindi && currentQ?.questionHi)) && (
-              <div className="text-xs text-slate-500 font-medium leading-[2.0] pt-1">
+              <div className="text-xs text-slate-500 font-medium leading-[2.0] pt-1 min-w-[280px]">
                 <MathRenderer text={useHindi ? (currentQ?.questionEn || '') : (currentQ?.questionHi || '')} />
               </div>
             )}
           </div>
 
-          {/* Attached Diagram / Map / Scientific Drawing */}
+          {/* Attached Diagram */}
           {att && att.type !== 'NONE' && (
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full shadow-xs">
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl w-fit max-w-full overflow-x-auto shadow-xs">
               {(att.type === 'IMAGE' || (att.type === 'GDRIVE' && !att.rawUrl.includes('.pdf'))) && (
                 <img 
                   src={att.directUrl} 
@@ -675,7 +675,7 @@ function QuizEngine() {
             </div>
           )}
 
-          {/* Options A - D */}
+          {/* Options A - D (With Mobile Text Wrap Safety) */}
           <div className="space-y-3 pt-2">
             {[0, 1, 2, 3].map(optIdx => {
               const optText = useHindi && currentQ?.optionsHi?.[optIdx] ? currentQ.optionsHi[optIdx] : currentQ?.optionsEn?.[optIdx];
@@ -695,16 +695,16 @@ function QuizEngine() {
                 <div
                   key={optIdx}
                   onClick={() => handleSelectOption(currentIndex, optIdx)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${cardStyle}`}
+                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 max-w-full overflow-hidden ${cardStyle}`}
                 >
-                  <div className="flex items-center gap-3.5">
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
                     <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
                       isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
                       {String.fromCharCode(65 + optIdx)}
                     </span>
-                    <div>
-                      <div className="text-sm font-semibold leading-relaxed">
+                    <div className="min-w-0 flex-1 overflow-x-auto">
+                      <div className="text-xs sm:text-sm font-semibold leading-relaxed">
                         <MathRenderer text={optText || `Option ${String.fromCharCode(65 + optIdx)}`} />
                       </div>
                       {optAltText && optAltText !== optText && (
@@ -726,9 +726,9 @@ function QuizEngine() {
             })}
           </div>
 
-          {/* Solution & Analytical Rationale (Available after submission) */}
+          {/* Solution & Analytical Rationale */}
           {isSubmitted && (
-            <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3 text-xs leading-[2.2] animate-in fade-in">
+            <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3 text-xs leading-[2.2] animate-in fade-in max-w-full overflow-x-auto">
               <div className="flex items-center gap-1.5 text-blue-950 font-black text-xs uppercase tracking-wider">
                 <Sparkles className="w-4 h-4 text-blue-600" />
                 <span>विस्तृत समाधान / Detailed Solution:</span>
@@ -741,9 +741,9 @@ function QuizEngine() {
 
           {/* Navigation Bar */}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-            {/* Previous disabled in Olympiad Mode to maintain No-Backtracking Policy */}
             {!isOlympiadMode ? (
               <button
+                type="button"
                 disabled={currentIndex === 0}
                 onClick={() => setCurrentIndex(prev => prev - 1)}
                 className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
@@ -758,6 +758,7 @@ function QuizEngine() {
 
             {currentIndex < questions.length - 1 ? (
               <button
+                type="button"
                 onClick={() => setCurrentIndex(prev => prev + 1)}
                 className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition cursor-pointer"
               >
@@ -765,6 +766,7 @@ function QuizEngine() {
               </button>
             ) : !isSubmitted ? (
               <button
+                type="button"
                 onClick={handleFinalSubmit}
                 className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition cursor-pointer"
               >
@@ -772,6 +774,7 @@ function QuizEngine() {
               </button>
             ) : !isOlympiadMode ? (
               <button
+                type="button"
                 onClick={() => { setIsSubmitted(false); setSelectedAnswers({}); setCurrentIndex(0); }}
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md transition cursor-pointer"
               >
@@ -782,7 +785,7 @@ function QuizEngine() {
                 href="/olympiad"
                 className="px-6 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl transition"
               >
-                Return to Olympiad Suite
+                Return to Evaluation Suite
               </Link>
             )}
           </div>

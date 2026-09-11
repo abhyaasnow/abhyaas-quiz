@@ -31,12 +31,12 @@ export default function Footer() {
             </Link>
             
             <p className="text-slate-400 text-xs leading-relaxed max-w-sm">
-              India&apos;s premier academic assessment and scholarship examination platform for UPSC Civil Services, State PSC, and Competitive Aspirants.
+              National Academic Fellowship and Skill Assessment Portal benchmarking advanced analytical aptitude for UPSC Civil Services, State PSC, and Competitive Aspirants.
             </p>
 
             <div className="inline-flex items-center gap-2 text-emerald-400 text-xs font-semibold pt-1">
               <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>100% Verified Academic Evaluations</span>
+              <span>100% Merit-Based Academic Evaluations</span>
             </div>
           </div>
 
@@ -46,7 +46,7 @@ export default function Footer() {
               PROGRAMS &amp; PRACTICE
             </h4>
             <ul className="space-y-2.5 text-slate-400 text-xs">
-              <li><Link href="/olympiad" className="hover:text-white transition-colors">National Scholarship Olympiad</Link></li>
+              <li><Link href="/olympiad" className="hover:text-white transition-colors">National Fellowship Evaluations</Link></li>
               <li><Link href="/quiz" className="hover:text-white transition-colors">Daily Free Speed Drills (24x7)</Link></li>
               <li><Link href="/practice" className="hover:text-white transition-colors">UPSC CSE Prelims PYQ Bank</Link></li>
               <li><Link href="/practice" className="hover:text-white transition-colors">State PSC Topic Mastery</Link></li>
@@ -74,7 +74,7 @@ export default function Footer() {
               ASPIRANT SUPPORT
             </h4>
             <p className="text-slate-400 text-xs leading-relaxed">
-              Have queries regarding Olympiad registration or scholarship disbursement?
+              Have queries regarding fellowship registration or grant disbursement?
             </p>
             <div className="space-y-2 pt-1 text-xs">
               <Link href="/contact" className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
@@ -92,8 +92,8 @@ export default function Footer() {
         {/* Notice Bar */}
         <div className="py-6 border-b border-slate-800/70 text-[11px] text-slate-400 leading-relaxed">
           <p>
-            <strong className="text-slate-200 font-semibold">Academic Assessment Notice:</strong>{' '}
-            Abhyaas is an educational testing portal conducting competitive mock assessments. The registration fees collected for Olympiad examinations are solely utilized for assessment conduction, ranking infrastructure, and merit scholarships. No wagering, betting, or games of chance are hosted on this platform.
+            <strong className="text-slate-200 font-semibold">Portal Mandate:</strong>{' '}
+            Abhyaas operates strictly as an academic fellowship and skill assessment portal. All evaluations are merit-based, governed by objective written exams and 1-on-1 faculty viva voce defense. Fees support proctoring technology, evaluation infrastructure, and endowed research grants.
           </p>
         </div>
 

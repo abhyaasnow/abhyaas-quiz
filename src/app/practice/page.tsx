@@ -181,13 +181,13 @@ export default function DynamicPracticeBank() {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[11px] font-bold uppercase tracking-wider">
                 <GraduationCap className="w-4 h-4 text-blue-700" />
-                <span>Chapter-Wise Conceptual Mastery & Past Olympiad Archives</span>
+                <span>Chapter-Wise Conceptual Mastery &amp; Past Fellowship Archives</span>
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
                 Standardized Practice Drills
               </h1>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
-                Precision-Curated Questions • Past Olympiad Retrospective Vault • Bilingual Step-by-Step Solutions
+                Precision-Curated Questions • Past Fellowship Retrospective Vault • Bilingual Step-by-Step Solutions
               </p>
             </div>
 
@@ -213,6 +213,7 @@ export default function DynamicPracticeBank() {
               </span>
               {selectedDimension !== 'ALL' && (
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedDimension('ALL');
                     setSelectedSubCategory('ALL');
@@ -235,6 +236,7 @@ export default function DynamicPracticeBank() {
                 const isSelected = selectedDimension === dim.id;
                 return (
                   <button
+                    type="button"
                     key={dim.id}
                     onClick={() => {
                       setSelectedDimension(dim.id as any);
@@ -270,6 +272,7 @@ export default function DynamicPracticeBank() {
                 </span>
                 {selectedSubCategory !== 'ALL' && (
                   <button
+                    type="button"
                     onClick={() => setSelectedSubCategory('ALL')}
                     className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                   >
@@ -285,6 +288,7 @@ export default function DynamicPracticeBank() {
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <button
+                    type="button"
                     onClick={() => setSelectedSubCategory('ALL')}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
                       selectedSubCategory === 'ALL'
@@ -299,6 +303,7 @@ export default function DynamicPracticeBank() {
                     const isSelected = selectedSubCategory === sub;
                     return (
                       <button
+                        type="button"
                         key={sub}
                         onClick={() => setSelectedSubCategory(sub)}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
@@ -317,10 +322,11 @@ export default function DynamicPracticeBank() {
             </div>
           )}
 
-          {/* LEVEL 3: DRILL MODE TOGGLE (PRACTICE VS PAST OLYMPIAD ARCHIVE) & SEARCH */}
+          {/* LEVEL 3: DRILL MODE TOGGLE (PRACTICE VS PAST ARCHIVE) & SEARCH */}
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold w-fit">
               <button
+                type="button"
                 onClick={() => setSelectedSegment('ALL')}
                 className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
                   selectedSegment === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
@@ -329,6 +335,7 @@ export default function DynamicPracticeBank() {
                 All Question Sets
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedSegment('PRACTICE')}
                 className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
                   selectedSegment === 'PRACTICE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
@@ -337,12 +344,13 @@ export default function DynamicPracticeBank() {
                 📘 Conceptual Practice
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedSegment('PYQ')}
                 className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
                   selectedSegment === 'PYQ' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                🏛️ Past Olympiad Archive
+                🏛️ Past Fellowship Archive
               </button>
             </div>
 
@@ -369,7 +377,7 @@ export default function DynamicPracticeBank() {
             <FolderOpen className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-bold text-base text-slate-800">No Questions Found in Repository</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              There are currently no active questions matching this selection in the database. Questions uploaded via the Admin Question Studio or completed Olympiads will populate here automatically.
+              There are currently no active questions matching this selection in the database. Questions uploaded via the Admin Question Studio or completed evaluations will populate here automatically.
             </p>
           </div>
         ) : (
@@ -443,7 +451,7 @@ export default function DynamicPracticeBank() {
                               >
                                 <div className="space-y-0.5">
                                   <p className="font-bold text-xs text-slate-900 group-hover:text-blue-600 transition">
-                                    {selectedSegment === 'PYQ' ? `Olympiad Archive Drill ${testNum}` : `Practice Drill Set ${testNum}`}
+                                    {selectedSegment === 'PYQ' ? `Fellowship Archive Drill ${testNum}` : `Practice Drill Set ${testNum}`}
                                   </p>
                                   <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
                                     <Clock className="w-3 h-3 text-slate-400" />

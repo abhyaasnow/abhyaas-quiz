@@ -296,7 +296,7 @@ export default function LeaderboardPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
                 <Trophy className="w-4 h-4 text-amber-600" />
-                <span>All-India Merit &amp; Scholarship Board</span>
+                <span>All-India Merit &amp; Fellowship Board</span>
               </div>
               <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
                 National Merit Standings
@@ -324,6 +324,7 @@ export default function LeaderboardPage() {
           {/* Tier Selector Filter Tabs */}
           <div className="mt-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
             <button
+              type="button"
               onClick={() => setSelectedTier('weekly-sprint')}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
                 selectedTier === 'weekly-sprint'
@@ -332,10 +333,11 @@ export default function LeaderboardPage() {
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Weekly Speed Sprint (Live)</span>
+              <span>Weekly Assessment Sprints (Live)</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setSelectedTier('monthly-mega')}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
                 selectedTier === 'monthly-mega'
@@ -344,10 +346,11 @@ export default function LeaderboardPage() {
               }`}
             >
               <Trophy className="w-3.5 h-3.5" />
-              <span>Monthly Mega Olympiad</span>
+              <span>Monthly Fellowship Evaluations</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setSelectedTier('daily-drill')}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
                 selectedTier === 'daily-drill'

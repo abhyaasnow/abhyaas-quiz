@@ -42,7 +42,7 @@ export default function CascadingOlympiadSuite() {
   const [acceptIntegrityCode, setAcceptIntegrityCode] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Confirmed Admit Card State (Now strictly bound with tournamentId)
+  // Confirmed Admit Card State
   const [confirmedAdmit, setConfirmedAdmit] = useState<{
     rollNo: string;
     candidateName: string;
@@ -73,7 +73,7 @@ export default function CascadingOlympiadSuite() {
     loadLiveSystemData();
   }, []);
 
-  // 1. DYNAMIC CADENCES (Derived strictly from Admin-created evaluations)
+  // 1. DYNAMIC CADENCES
   const availableCadences = useMemo(() => {
     const cadencesSet = new Set<string>();
 
@@ -86,7 +86,7 @@ export default function CascadingOlympiadSuite() {
     const list = Array.from(cadencesSet).map(c => {
       let displayLabel = c.replace(/_/g, ' ');
       if (c === 'WEEKLY') displayLabel = 'Weekly Assessment Series';
-      else if (c === 'MONTHLY') displayLabel = 'Monthly Scholarship Examination';
+      else if (c === 'MONTHLY') displayLabel = 'Monthly Fellowship Examination';
       else if (c === 'QUARTERLY') displayLabel = 'Quarterly Talent Evaluation';
       else if (c === 'HALF_YEARLY') displayLabel = 'Half-Yearly Examination';
       else if (c === 'YEARLY') displayLabel = 'Annual Academic Fellowship';
@@ -160,7 +160,8 @@ export default function CascadingOlympiadSuite() {
         const matchesSubject = (t.targetSubject || '').toLowerCase().includes(query);
         const matchesExam = (t.targetExam || '').toLowerCase().includes(query);
         const matchesClass = (t.targetClass || '').toLowerCase().includes(query);
-        if (!matchesTitle && !matchesSubject && !matchesExam && !matchesClass) return false;
+        const matchesId = (t.id || '').toLowerCase().includes(query);
+        if (!matchesTitle && !matchesSubject && !matchesExam && !matchesClass && !matchesId) return false;
       }
 
       return true;
@@ -218,7 +219,7 @@ export default function CascadingOlympiadSuite() {
       <div className="bg-slate-900 text-slate-200 border-b border-slate-800 px-4 py-2.5 shadow-sm flex items-center justify-center gap-2 text-xs font-medium text-center">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
-          <strong className="text-white font-bold">ABHYAAS NATIONAL ACADEMIC CHARTER:</strong> Evaluations operate under strict non-commercial educational fellowship guidelines. Secondary device assistance or proxy attempts lead to permanent disqualification from national academic registers.
+          <strong className="text-white font-bold">ABHYAAS NATIONAL ACADEMIC CHARTER:</strong> Evaluations operate under strict non-commercial educational fellowship guidelines. Merit grants require written evaluation and mandatory 1-on-1 faculty viva voce defense.
         </span>
       </div>
 
@@ -233,7 +234,7 @@ export default function CascadingOlympiadSuite() {
                 <span>All-India Merit Evaluation & Research Fellowship Directorate</span>
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
-                All-India Academic Olympiads
+                National Academic Fellowship Evaluations
               </h1>
               <p className="text-xs sm:text-sm font-semibold text-slate-500">
                 Independent Standardized Evaluation • Institutional Endowed Fellowships • Mandatory 1-on-1 Faculty Defense
@@ -261,6 +262,7 @@ export default function CascadingOlympiadSuite() {
               </span>
               {selectedCadence !== 'ALL' && (
                 <button
+                  type="button"
                   onClick={() => setSelectedCadence('ALL')}
                   className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                 >
@@ -274,6 +276,7 @@ export default function CascadingOlympiadSuite() {
                 const isSelected = selectedCadence === c.id;
                 return (
                   <button
+                    type="button"
                     key={c.id}
                     onClick={() => setSelectedCadence(c.id)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
@@ -298,6 +301,7 @@ export default function CascadingOlympiadSuite() {
               </span>
               {selectedDimension !== 'ALL' && (
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedDimension('ALL');
                     setSelectedSubCategory('ALL');
@@ -320,6 +324,7 @@ export default function CascadingOlympiadSuite() {
                 const isSelected = selectedDimension === dim.id;
                 return (
                   <button
+                    type="button"
                     key={dim.id}
                     onClick={() => {
                       setSelectedDimension(dim.id as any);
@@ -355,6 +360,7 @@ export default function CascadingOlympiadSuite() {
                 </span>
                 {selectedSubCategory !== 'ALL' && (
                   <button
+                    type="button"
                     onClick={() => setSelectedSubCategory('ALL')}
                     className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
                   >
@@ -370,6 +376,7 @@ export default function CascadingOlympiadSuite() {
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <button
+                    type="button"
                     onClick={() => setSelectedSubCategory('ALL')}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
                       selectedSubCategory === 'ALL'
@@ -384,6 +391,7 @@ export default function CascadingOlympiadSuite() {
                     const isSelected = selectedSubCategory === sub;
                     return (
                       <button
+                        type="button"
                         key={sub}
                         onClick={() => setSelectedSubCategory(sub)}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer flex items-center gap-1.5 ${
@@ -456,6 +464,7 @@ export default function CascadingOlympiadSuite() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <button
+                type="button"
                 onClick={() => window.print()}
                 className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -463,7 +472,6 @@ export default function CascadingOlympiadSuite() {
                 <span>Print Official Admit Card (.PDF)</span>
               </button>
 
-              {/* Explicit Session & Roll Binding */}
               <Link
                 href={`/quiz?mode=olympiad&roll=${encodeURIComponent(confirmedAdmit.rollNo)}&olympiadId=${encodeURIComponent(confirmedAdmit.tournamentId)}`}
                 className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
@@ -490,7 +498,7 @@ export default function CascadingOlympiadSuite() {
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder="Filter by subject, syllabus or exam..."
+              placeholder="Filter by subject, syllabus or ID..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-slate-800 transition"
@@ -518,26 +526,31 @@ export default function CascadingOlympiadSuite() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTournaments.map(t => {
               const isFeeExempt = Number(t.fee) === 0;
+              const isLive = t.status === 'LIVE';
+              const isCompleted = t.status === 'COMPLETED';
 
               return (
                 <div 
                   key={t.id}
-                  className="bg-white border border-slate-200 hover:border-slate-400 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-5 transition"
+                  className={`bg-white border rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-5 transition ${
+                    isLive ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-slate-200 hover:border-slate-400'
+                  }`}
                 >
                   <div className="space-y-4">
                     
-                    {/* Header: Ref + Tags */}
+                    {/* Header: Status + ID + Fee */}
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Notification: ABH/EXAM/{t.id.slice(-6).toUpperCase()}
-                        </span>
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                            {t.categorySection || 'ASSESSMENT'}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${
+                            isLive ? 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse' :
+                            isCompleted ? 'bg-slate-100 text-slate-700 border-slate-300' :
+                            'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            ● {t.status || 'UPCOMING'}
                           </span>
-                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                            {t.targetClass || 'OPEN'}
+                          <span className="text-[10px] font-mono text-slate-400 font-bold">
+                            ID: {t.id}
                           </span>
                         </div>
                       </div>
@@ -564,7 +577,7 @@ export default function CascadingOlympiadSuite() {
                     <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Scheduled Date:
+                          <Calendar className="w-3.5 h-3.5 text-slate-500" /> Start Window:
                         </span>
                         <strong className="text-slate-900 font-bold">
                           {t.startDateTime ? new Date(t.startDateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : (t.scheduleText || 'Scheduled Slot')}
@@ -598,6 +611,7 @@ export default function CascadingOlympiadSuite() {
                   {/* Actions */}
                   <div className="pt-3 border-t border-slate-100 space-y-2">
                     <button
+                      type="button"
                       onClick={() => { setActiveTournament(t); setShowRegisterModal(true); }}
                       className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                     >
@@ -606,6 +620,7 @@ export default function CascadingOlympiadSuite() {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => { setActiveTournament(t); setShowBlueprintModal(true); }}
                       className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
@@ -637,7 +652,7 @@ export default function CascadingOlympiadSuite() {
                   Evaluation & Proctoring Cost: {Number(activeTournament.fee) === 0 ? 'Sponsored / Nil' : `₹${activeTournament.fee}`}
                 </p>
               </div>
-              <button onClick={() => setShowRegisterModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
+              <button type="button" onClick={() => setShowRegisterModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -733,8 +748,9 @@ export default function CascadingOlympiadSuite() {
                   Academic Curriculum & Examination Regulations
                 </span>
                 <h3 className="font-bold text-base text-slate-900 mt-0.5">{activeTournament.title}</h3>
+                <span className="text-[11px] font-mono text-amber-600 font-bold block">ID: {activeTournament.id}</span>
               </div>
-              <button onClick={() => setShowBlueprintModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
+              <button type="button" onClick={() => setShowBlueprintModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -749,9 +765,10 @@ export default function CascadingOlympiadSuite() {
                   <div key={idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs">
                     <div>
                       <span className="font-bold text-slate-900">{s.subject}</span>
-                      {s.topics && <p className="text-[11px] text-slate-500 mt-0.5">{s.topics}</p>}
+                      {s.subjectHi && <span className="text-slate-500 text-[11px] ml-1">({s.subjectHi})</span>}
+                      {s.topics && <p className="text-[11px] text-slate-500 mt-0.5">Topics: {s.topics}</p>}
                     </div>
-                    <span className="font-bold text-slate-700 bg-white px-2.5 py-1 rounded-md border border-slate-200">
+                    <span className="font-bold text-slate-700 bg-white px-2.5 py-1 rounded-md border border-slate-200 shrink-0">
                       {s.questions} Questions
                     </span>
                   </div>
@@ -786,7 +803,7 @@ export default function CascadingOlympiadSuite() {
               </ul>
             </div>
 
-            <button onClick={() => setShowBlueprintModal(false)} className="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl cursor-pointer hover:bg-slate-800 transition">
+            <button type="button" onClick={() => setShowBlueprintModal(false)} className="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl cursor-pointer hover:bg-slate-800 transition">
               Close Regulations Window
             </button>
           </div>

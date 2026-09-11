@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import BottomNav from "./components/BottomNav";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import BottomNav from "@/components/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Abhyaas | All-India Scholarship Olympiad & Practice Platform",
-  description: "Pure merit-based assessments and high-yield practice drills for UPSC CSE, State PSC, and Competitive Aspirants.",
+  title: "Abhyaas | National Academic Fellowship & Skill Assessment Portal",
+  description: "Pure merit-based academic assessments, high-yield practice drills, and endowed research fellowship evaluations for serious competitive aspirants.",
 };
 
 export default function RootLayout({
@@ -39,7 +39,7 @@ export default function RootLayout({
           {/* Dynamic Page Content */}
           <main className="flex-1 w-full pb-16 lg:pb-0">{children}</main>
 
-          {/* Persistent Dark Compliance Footer */}
+          {/* Persistent Academic Compliance Footer */}
           <Footer />
 
           {/* Mobile Bottom Navigation Bar */}
